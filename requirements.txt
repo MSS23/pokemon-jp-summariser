@@ -1,0 +1,12 @@
+streamlit
+requests
+beautifulsoup4
+pillow
+
+langchain
+langchain-google-genai
+langchain-core
+langchain-community
+
+google-generativeai
+streamlit-authenticator
