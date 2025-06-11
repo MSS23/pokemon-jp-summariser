@@ -19,7 +19,7 @@ This project provides a web interface for summarising Japanese Pokémon VGC arti
 - (Optional) Streamlit Community Auth setup if extending
 - - Create a `.streamlit/secrets.toml` file with the following content:
   ```toml
-  GOOGLE_API_KEY = "your-google-api-key-here"
+  google_api_key = "your-google-api-key-here"
 
 ### Installation
 
