@@ -46,7 +46,6 @@ streamlit run Summarise_Article.py
 ├── pages/
 │   └── Pokémon_Team_and...  # Additional Streamlit pages
 ├── .streamlit/
-│   ├── credentials.yaml
 ├── utils/
 │   ├── config_loader.py
 │   ├── llm_summary.py
