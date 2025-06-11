@@ -74,7 +74,7 @@ streamlit run Summarise_Article.py
 
 - Improve Pokémon name detection using LLM parsing
 - Add support for translating Japanese terms
-- Build “Team Search” page as referenced in the sidebar
+- Add Login Functionality and Users With Login Have Translated Teams Saved 
 
 ## 📜 License
 
