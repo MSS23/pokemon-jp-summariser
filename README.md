@@ -36,14 +36,22 @@ streamlit run Summarise_Article.py
 
 ```
 .
+.
 ├── .gitignore
 ├── requirements.txt
 ├── Summarise_Article.py
 ├── pokemon_jp_translator.ipynb
 ├── storage/
-│   └── cache.json  # Generated at runtime
-└── utils/
-    └── llm_summary.py  # Your Gemini-based summary logic
+│   └── cache.json
+├── pages/
+│   └── Pokémon_Team_and...  # Additional Streamlit pages
+├── .streamlit/
+│   ├── credentials.yaml
+├── utils/
+│   ├── config_loader.py
+│   ├── llm_summary.py
+│   └── __pycache__/
+
 ```
 
 ## 🧠 How It Works
