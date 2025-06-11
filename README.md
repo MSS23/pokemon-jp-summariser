@@ -1,6 +1,6 @@
 # 🧠 Pokémon VGC Japanese Article Summariser
 
-This project provides a web interface for summarising Japanese Pokémon VGC articles using Google Gemini and LangChain. It extracts team details and Pokémon names from the article, helping competitive players quickly analyse meta-relevant content.
+This project provides a web interface for summarising Japanese Pokémon VGC articles into English using Google Gemini and LangChain. It extracts team details and Pokémon names from the article, helping competitive players quickly analyse meta-relevant content.
 
 ## 🔧 Features
 
@@ -58,7 +58,7 @@ streamlit run Summarise_Article.py
 
 1. User inputs a Japanese article URL
 2. If summary exists in cache, it is shown immediately
-3. Otherwise, Gemini processes the article to generate a summary
+3. Otherwise, Gemini processes the article to generate a summary and translates it into English.
 4. Pokémon names are extracted using pattern-matching
 5. Result is displayed and cached for future reuse
 
@@ -73,7 +73,6 @@ streamlit run Summarise_Article.py
 ## ✅ TODO
 
 - Improve Pokémon name detection using LLM parsing
-- Add support for translating Japanese terms
 - Add Login Functionality and Users With Login Have Translated Teams Saved 
 
 ## 📜 License
