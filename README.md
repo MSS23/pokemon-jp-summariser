@@ -64,8 +64,8 @@ streamlit run Summarise_Article.py
 4. Pokémon names are extracted using pattern-matching
 5. Result is displayed and cached for future reuse
 
-To Test this yourself try this Japanese Article link!
-https://note.com/bright_ixora372/n/nd5515195c993
+**To test it yourself, try this Japanese article link:**  
+[https://note.com/bright_ixora372/n/nd5515195c993](https://note.com/bright_ixora372/n/nd5515195c993)
 
 ## 🛠️ Technologies
 
