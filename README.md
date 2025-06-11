@@ -21,7 +21,7 @@ This project provides a web interface for summarising Japanese Pokémon VGC arti
 ### Installation
 
 ```bash
-git clone https://github.com/yourusername/pokemon-jp-summariser.git
+git clone https://github.com/mss23/pokemon-jp-summariser.git
 cd pokemon-jp-summariser
 pip install -r requirements.txt
 ```
