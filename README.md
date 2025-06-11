@@ -73,7 +73,6 @@ streamlit run Summarise_Article.py
 - [Google Gemini (Generative AI)](https://ai.google.dev/)
 - [LangChain](https://www.langchain.com/)
 - [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/)
-- [Pillow](https://python-pillow.org/)
 
 ## ✅ TODO
 
