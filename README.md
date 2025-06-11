@@ -17,6 +17,9 @@ This project provides a web interface for summarising Japanese Pokémon VGC arti
 - Python 3.9+
 - A Google Gemini API key
 - (Optional) Streamlit Community Auth setup if extending
+- - Create a `.streamlit/secrets.toml` file with the following content:
+  ```toml
+  GOOGLE_API_KEY = "your-google-api-key-here"
 
 ### Installation
 
