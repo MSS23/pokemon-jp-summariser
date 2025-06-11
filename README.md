@@ -5,7 +5,7 @@ This project provides a web interface for summarising Japanese Pokémon VGC arti
 ## 🔧 Features
 
 - 🔗 Accepts a Japanese article URL
-- 🧠 Uses Google Gemini via LangChain to summarise article content
+- 🧠 Uses Google Gemini via LangChain to summarise article content and translate it into English
 - 🧪 Extracts Pokémon names using regex logic
 - 💾 Caches summaries to avoid redundant processing and hitting Gemini API constantly
 - 🗑️ Cache clearing feature available via sidebar
