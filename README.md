@@ -17,22 +17,42 @@ This project provides a web interface for summarising Japanese Pokémon VGC arti
 - Python 3.9+
 - A Google Gemini API key
 - (Optional) Streamlit Community Auth setup if extending
-- - Create a `.streamlit/secrets.toml` file with the following content:
-  ```toml
-  google_api_key = "your-google-api-key-here"
+- (Optional but preferred) uv
 
 ### Installation
 
 ```bash
 git clone https://github.com/mss23/pokemon-jp-summariser.git
 cd pokemon-jp-summariser
+```
+
+If you have uv installed use:
+
+```
+uv install -r requirements.txt
+```
+
+Otherwise run
+
+```bash
 pip install -r requirements.txt
+```
+
+In a virtual environment.
+
+### Secrets Setup
+
+The application requires you to save your Google Gemini API key in a
+`.streamlit/secrets.toml` file. Create the file with the following content:
+
+```toml
+google_api_key = <YOUR_SECRET_HERE>
 ```
 
 ### Run the App
 
 ```bash
-streamlit run Summarise_Article.py
+uv run streamlit run Summarise_Article.py
 ```
 
 ## 📁 Project Structure
