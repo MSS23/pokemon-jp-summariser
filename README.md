@@ -1,6 +1,6 @@
 # 🧠 Pokémon VGC Japanese Article Summariser
 
-This project provides a web interface for summarising Japanese Pokémon VGC articles into English using Google Gemini and LangChain. It extracts team details and Pokémon names from the article, helping competitive players quickly analyse meta-relevant conten.
+This project provides a web interface for summarising Japanese Pokémon VGC articles into English using Google Gemini and LangChain. It extracts team details and Pokémon names from the article, helping competitive players quickly analyse meta-relevant content.
 
 ## 🔧 Features
 
