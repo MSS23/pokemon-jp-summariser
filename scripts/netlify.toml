@@ -1,0 +1,21 @@
+[build]
+  command = "pip install -r requirements.txt && streamlit run Summarise_Article.py --server.port 8501 --server.address 0.0.0.0"
+  publish = "."
+
+[build.environment]
+  PYTHON_VERSION = "3.9"
+  STREAMLIT_SERVER_PORT = "8501"
+  STREAMLIT_SERVER_ADDRESS = "0.0.0.0"
+
+[[redirects]]
+  from = "/*"
+  to = "/"
+  status = 200
+  force = false
+
+# Health check
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"

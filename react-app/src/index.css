@@ -1,0 +1,169 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-gray-900 text-gray-100;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-700 hover:bg-gray-600 text-gray-100 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900;
+  }
+  
+  .card {
+    @apply bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6;
+  }
+  
+  .input-field {
+    @apply block w-full rounded-lg border-gray-600 bg-gray-700 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500 placeholder-gray-400;
+  }
+  
+  .nav-tab {
+    @apply px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200;
+  }
+  
+  .nav-tab-active {
+    @apply bg-purple-600 text-white;
+  }
+  
+  .nav-tab-inactive {
+    @apply text-gray-300 hover:text-white hover:bg-gray-700;
+  }
+  
+  .pokemon-type {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .type-normal {
+    @apply bg-gray-100 text-gray-800;
+  }
+  
+  .type-fire {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .type-water {
+    @apply bg-blue-100 text-blue-800;
+  }
+  
+  .type-electric {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .type-grass {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .type-ice {
+    @apply bg-cyan-100 text-cyan-800;
+  }
+  
+  .type-fighting {
+    @apply bg-red-200 text-red-900;
+  }
+  
+  .type-poison {
+    @apply bg-purple-100 text-purple-800;
+  }
+  
+  .type-ground {
+    @apply bg-yellow-200 text-yellow-900;
+  }
+  
+  .type-flying {
+    @apply bg-indigo-100 text-indigo-800;
+  }
+  
+  .type-psychic {
+    @apply bg-pink-100 text-pink-800;
+  }
+  
+  .type-bug {
+    @apply bg-lime-100 text-lime-800;
+  }
+  
+  .type-rock {
+    @apply bg-amber-100 text-amber-800;
+  }
+  
+  .type-ghost {
+    @apply bg-purple-100 text-purple-800;
+  }
+  
+  .type-steel {
+    @apply bg-gray-200 text-gray-800;
+  }
+  
+  .type-dragon {
+    @apply bg-indigo-100 text-indigo-800;
+  }
+  
+  .type-dark {
+    @apply bg-gray-800 text-gray-100;
+  }
+  
+  .type-fairy {
+    @apply bg-pink-100 text-pink-800;
+  }
+  
+  .hp-bar {
+    @apply w-full bg-gray-700 rounded-full h-2;
+  }
+  
+  .hp-fill {
+    @apply h-2 rounded-full transition-all duration-300;
+  }
+  
+  .hp-high {
+    @apply bg-green-500;
+  }
+  
+  .hp-medium {
+    @apply bg-yellow-500;
+  }
+  
+  .hp-low {
+    @apply bg-red-500;
+  }
+  
+  .stat-table {
+    @apply w-full text-sm;
+  }
+  
+  .stat-row {
+    @apply border-b border-gray-700;
+  }
+  
+  .stat-cell {
+    @apply px-2 py-1 text-center;
+  }
+  
+  .stat-header {
+    @apply font-medium text-gray-300;
+  }
+  
+  .move-item {
+    @apply flex items-center justify-between p-2 rounded border border-gray-700 hover:bg-gray-700 transition-colors duration-200;
+  }
+  
+  .move-checked {
+    @apply bg-purple-600 border-purple-500;
+  }
+  
+  .damage-rolls {
+    @apply bg-gray-700 rounded p-2 text-xs font-mono;
+  }
+}
