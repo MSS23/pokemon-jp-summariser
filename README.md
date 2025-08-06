@@ -1,119 +1,76 @@
-# 🧠 Pokémon VGC Japanese Article Summariser
+# Pokemon Translation Web App
 
-This project provides a web interface for summarising Japanese Pokémon VGC articles into English using Google Gemini and LangChain. It extracts team details and Pokémon names from the article, helping competitive players quickly analyse meta-relevant content.
+A modern web application for translating and analyzing Japanese Pokemon VGC articles using AI. Built with React and Streamlit.
 
-## 🔧 Features
+## 🚀 Quick Start
 
-- 🔗 Accepts a Japanese article URL
-- 🧠 Uses Google Gemini via LangChain to summarise article content and translate it into English
-- 🧪 Extracts Pokémon names using regex logic
-- 💾 Caches summaries to avoid redundant processing and hitting Gemini API constantly
-- 🗑️ Cache clearing feature available via sidebar
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Python 3.9+
-- A Google Gemini API key
-- (Optional) Streamlit Community Auth setup if extending
-- (Optional but preferred) uv
-
-### Installation
-
+### React App (Frontend)
 ```bash
-git clone https://github.com/mss23/pokemon-jp-summariser.git
-cd pokemon-jp-summariser
+cd react-app
+npm install
+npm run dev
 ```
+Visit: http://localhost:5173
 
-If you have uv installed use:
-
-```
-uv install -r requirements.txt
-```
-
-Otherwise run
-
+### Streamlit App (Alternative Interface)
 ```bash
+cd streamlit-app
 pip install -r requirements.txt
+streamlit run Summarise_Article.py
 ```
-
-In a virtual environment.
-
-### Secrets Setup
-
-The application requires you to save your Google Gemini API key in a
-`.streamlit/secrets.toml` file. Create the file with the following content:
-
-```toml
-google_api_key = <YOUR_SECRET_HERE>
-```
-
-### Run the App
-
-```bash
-uv run streamlit run Summarise_Article.py
-```
+Visit: http://localhost:8501
 
 ## 📁 Project Structure
 
 ```
-.
-├── .gitignore
-├── requirements.txt
-├── Summarise_Article.py
-├── pokemon_jp_translator.ipynb
-├── storage/
-│   └── cache.json
-├── pages/
-│   └── Pokémon_Team_and...
-├── .streamlit/
-├── utils/
-│   ├── config_loader.py
-│   ├── llm_summary.py
-│   └── __pycache__/
+Pokemon Translation Web App/
+├── react-app/          # React frontend with Gemini integration
+├── streamlit-app/      # Streamlit alternative interface
+├── shared/            # Shared utilities and constants
+└── scripts/           # Utility scripts
 ```
 
-## 🧠 How It Works
+## 🎯 Features
 
-1. User inputs a Japanese article URL
-2. If summary exists in cache, it is shown immediately
-3. Otherwise, Gemini processes the article to generate a summary and translates it into English
-4. Pokémon names are extracted using pattern-matching
-5. Result is displayed and cached for future reuse
+- **Japanese to English Translation**: Powered by Google Gemini AI
+- **Pokemon Team Analysis**: Extract and analyze team compositions
+- **Modern UI**: Clean, responsive React interface
+- **Alternative Interface**: Streamlit app for different use cases
+- **Real-time Processing**: Fast translation and analysis
 
-**To test it yourself, try this Japanese article link:**  
-[https://note.com/bright_ixora372/n/nd5515195c993](https://note.com/bright_ixora372/n/nd5515195c993)
+## 🔧 Setup
 
-## ⚠️ Known Limitations & Translation Nuances
+### Prerequisites
+- Node.js 18+ (for React app)
+- Python 3.8+ (for Streamlit app)
+- Google Gemini API key
 
-This project leverages **Google Gemini 2.0 Flash** and **LangChain** to translate Japanese VGC articles into English. However, due to the nature of language translation—especially when involving game-specific terminology—some inaccuracies can occur.
+### Environment Variables
+Create `.env` file in `react-app/`:
+```env
+VITE_GOOGLE_API_KEY=your_google_api_key_here
+```
 
-These issues include:
+## 🎨 Technologies Used
 
-- **Move name discrepancies**: For example, Calyrex-Ice’s signature move *Glacial Lance* is occasionally translated as *Blizzard Lance*.
-- **Incorrect ability/move associations**: Kyogre’s *Drizzle* ability has, in some instances, led to the incorrect appearance of the word "Rain" as a move rather than as a weather effect.
+- **Frontend**: React, TypeScript, Tailwind CSS
+- **AI**: Google Gemini 2.0 Flash
+- **Alternative**: Streamlit
+- **Styling**: Tailwind CSS, Framer Motion
 
-These are known quirks stemming from translation layers, context ambiguity, and input quality. As Gemini and other LLMs continue to evolve, we expect these issues to reduce over time.
+## 📝 Usage
 
-Despite these challenges, this project serves as a demonstration of:
+1. **Start the React app**: `npm run dev` in `react-app/`
+2. **Enter a Japanese Pokemon VGC article URL**
+3. **Get instant translation and team analysis**
 
-- Prompt engineering to contextualise Pokémon-specific content
-- Practical use of the **Gemini SDK** and **LangChain** for multilingual content summarisation
-- Early-stage experimentation with translation reliability in the context of competitive Pokémon
+## 🤝 Contributing
 
-## 🛠️ Technologies
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-- [Streamlit](https://streamlit.io/)
-- [Google Gemini (Generative AI)](https://ai.google.dev/)
-- [LangChain](https://www.langchain.com/)
-- [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/)
+## 📄 License
 
-## ✅ TODO
-
-- Improve Pokémon name detection using LLM parsing
-- Add Login Functionality and Users With Login Have Translated Teams Saved 
-
-## 📜 License
-
-MIT License
+This project is licensed under the MIT License.

@@ -1,0 +1,62 @@
+{
+  "searches": [],
+  "team_views": [],
+  "pokemon_searches": [],
+  "article_summaries": [],
+  "user_sessions": [
+    {
+      "timestamp": "2025-08-04T17:15:45.382766",
+      "username": "testuser",
+      "action": "login",
+      "date": "2025-08-04"
+    },
+    {
+      "timestamp": "2025-08-04T17:15:48.486163",
+      "username": "testuser",
+      "action": "login",
+      "date": "2025-08-04"
+    },
+    {
+      "timestamp": "2025-08-04T17:15:49.179511",
+      "username": "testuser",
+      "action": "login",
+      "date": "2025-08-04"
+    },
+    {
+      "timestamp": "2025-08-04T17:19:06.500943",
+      "username": "testuser",
+      "action": "login",
+      "date": "2025-08-04"
+    },
+    {
+      "timestamp": "2025-08-04T23:46:39.848099",
+      "username": "testuser",
+      "action": "login",
+      "date": "2025-08-04"
+    },
+    {
+      "timestamp": "2025-08-04T23:46:50.247016",
+      "username": "testuser",
+      "action": "login",
+      "date": "2025-08-04"
+    },
+    {
+      "timestamp": "2025-08-04T23:46:51.466172",
+      "username": "testuser",
+      "action": "login",
+      "date": "2025-08-04"
+    },
+    {
+      "timestamp": "2025-08-04T23:49:09.532700",
+      "username": "testuser",
+      "action": "login",
+      "date": "2025-08-04"
+    }
+  ],
+  "daily_stats": {},
+  "trending_data": {
+    "teams": {},
+    "pokemon": {},
+    "articles": {}
+  }
+}
