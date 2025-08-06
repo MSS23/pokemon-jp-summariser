@@ -24,6 +24,8 @@ export interface ArticleAnalysis {
   summary: string;
   team: PokemonTeamMember[];
   pokemonNames: string[];
+  strengths: string[];
+  weaknesses: string[];
   meta: {
     processingTime: number;
     source: string;
@@ -37,67 +39,166 @@ export interface GeminiResponse {
   error?: string;
 }
 
-// Prompt template (from your Streamlit app)
+// Enhanced prompt template (updated from Streamlit app)
 const PROMPT_TEMPLATE = `
-Act as a Pokémon VGC (Video Game Championships) expert analysing teams for Pokémon Scarlet and Violet's current competitive format.
+You are a Pokémon VGC expert analyzing competitive teams. Your task is to extract and translate team information from Japanese articles and images.
 
-**Current Format: Regulation I**
-- Two restricted Pokémon are allowed per team.
-- You may refer to the restricted Pokémon list below to assist with translations and identifications from Japanese text or image content.
+**CRITICAL POKEMON IDENTIFICATION RULES:**
+- **LOOK CAREFULLY AT THE IMAGE**: Identify Pokémon based on their visual appearance, moves, abilities, and stats shown
+- **DO NOT GUESS**: If you cannot clearly identify a Pokémon, write "Pokémon not clearly visible in the image"
+- **COMMON MISTAKES TO AVOID**:
+  * Calyrex Ice Rider (white horse with crown, Ice-type moves, Glastrier) vs Calyrex Shadow Rider (black horse with crown, Ghost-type moves, Spectrier)
+  * Iron Crown (robot-like, Steel/Psychic) vs Calyrex Ice Rider (white horse)
+  * Chi-Yu (Fire/Dark, red, Beads of Ruin) vs Chien-Pao (Ice/Dark, white/blue, Sword of Ruin)
+  * Urshifu Rapid Strike (blue, Water-type moves) vs Urshifu Single Strike (red, Dark-type moves)
+- **USE VISUAL CUES**: Look at the Pokémon's appearance, color, and any visible features
+- **VERIFY WITH MOVES/ABILITIES**: Use the moves and abilities shown to confirm the Pokémon identity
+- **MOVE-BASED IDENTIFICATION**: If you see "Astral Barrage" (Ghost move) + "As One (Spectrier)" ability, this is Calyrex Shadow Rider
+- **ABILITY-BASED IDENTIFICATION**: If you see "As One (Glastrier)" ability, this is Calyrex Ice Rider
+
+**CHIEN-PAO SPECIFIC IDENTIFICATION:**
+- **VISUAL IDENTIFICATION**: Chien-Pao is a white/blue saber-toothed tiger-like Pokémon with a long flowing mane and tail
+- **ABILITY IDENTIFICATION**: If you see "Sword of Ruin" ability, this is DEFINITELY Chien-Pao (NOT Chi-Yu)
+- **MOVE IDENTIFICATION**: Chien-Pao commonly uses Ice-type moves like "Ice Spinner", "Ice Shard" and Dark-type moves like "Sucker Punch", "Ruination"
+- **TYPE IDENTIFICATION**: Chien-Pao is Ice/Dark type (NOT Fire/Dark like Chi-Yu)
+- **COLOR IDENTIFICATION**: Chien-Pao is primarily white/blue in color (NOT red like Chi-Yu)
+- **CRITICAL**: If you see "Sword of Ruin" ability, the Pokémon is Chien-Pao regardless of other factors
+
+**CRITICAL EV EXTRACTION RULES:**
+- **PRIORITIZE IMAGES**: If EV values are shown in images, use those values over text
+- **JAPANESE EV FORMAT**: Look for patterns like "努力値：H244 A252 B4 D4 S4" or "H188 D196 S124"
+- **JAPANESE STAT MAPPING**: H=HP, A=Attack, B=Defense, C=Special Attack, D=Special Defense, S=Speed
+- **EXTRACT FROM IMAGES**: If you see EV numbers in team images, extract them accurately
+- **FALLBACK TO TEXT**: If no images show EVs, then use text-based EV information
+- **MANDATORY EV OUTPUT**: ALWAYS include EV Spread line for every Pokémon, even if EVs are not visible
+- **CONSISTENT EV FORMAT**: Use EXACTLY this format: "EV Spread: [HP] [Atk] [Def] [SpA] [SpD] [Spe]"
+- **ZERO EV HANDLING**: If a stat has 0 EVs, write "0" not "Not specified"
+- **TOTAL EV VALIDATION**: Ensure total EVs equal 508 (or less if some EVs are not invested)
+
+**EV EXTRACTION PRIORITY:**
+1. **TEAM IMAGES**: If team images show EV numbers, extract from images first
+2. **JAPANESE TEXT**: Look for "努力値：H244 A252 B4 D4 S4" format in text
+3. **ENGLISH TEXT**: Look for "252 HP EVs", "252 Attack EVs", etc. in text
+4. **EXPLANATION TEXT**: Extract from detailed EV explanations in the article
+5. **DEFAULT**: If no EVs found, use "EV Spread: 0 0 0 0 0 0"
+
+**EV EXTRACTION EXAMPLES:**
+- Japanese: "努力値：H244 A252 B4 D4 S4" → "EV Spread: 244 252 4 0 4 4"
+- English: "252 HP EVs, 252 Attack EVs, 4 Defense EVs" → "EV Spread: 252 252 4 0 0 0"
+- Mixed: "H188 D196 S124" → "EV Spread: 188 0 0 0 196 124"
+- Iron Valiant: "H44 B4 C252 D28 S180" → "EV Spread: 44 0 4 252 28 180"
+- Dragonite: "H244 A252 B4 D4 S4" → "EV Spread: 244 252 4 0 4 4"
+- Chi-Yu: "H188 D196 S124" → "EV Spread: 188 0 0 0 196 124"
+
+**CRITICAL OUTPUT FORMAT:**
+You must output in this EXACT format:
+
+**TITLE: [Article Title in English]**
+
+**Pokémon 1: [English Name]**
+- Ability: [English Ability Name]
+- Held Item: [English Item Name] 
+- Tera Type: [English Tera Type Name]
+- Nature: [English Nature Name]
+- Moves: [Move 1] / [Move 2] / [Move 3] / [Move 4]
+- EV Spread: [HP] [Atk] [Def] [SpA] [SpD] [Spe]
+- EV Explanation: [Detailed explanation with specific numbers, percentages, and benchmarks]
+
+**IMPORTANT SEPARATION RULES:**
+- **ABILITY**: Only list the Pokémon's ability (e.g., "As One (Glastrier)", "Unseen Fist", "Grassy Surge")
+- **MOVES**: Only list actual moves the Pokémon can use (e.g., "Glacial Lance", "Trick Room", "Protect", "Leech Seed")
+- **DO NOT MIX**: Never put abilities in the moves section or moves in the ability section
+- **NATURE**: Must be a valid nature (e.g., "Adamant", "Jolly", "Modest", "Timid")
+- **ITEM**: Must be a held item (e.g., "Focus Sash", "Choice Band", "Assault Vest")
+
+**IMPORTANT EV FORMAT RULES:**
+- EV Spread must be exactly: "EV Spread: [number] [number] [number] [number] [number] [number]"
+- Use actual EV values (0-252 in multiples of 4), NOT final stat values
+- If EVs are not visible, use "EV Spread: 0 0 0 0 0 0"
+- Total EVs should equal 508 (or less if some EVs are not invested)
+- Example: "EV Spread: 252 252 4 0 0 0" (HP:252, Atk:252, Def:4, SpA:0, SpD:0, Spe:0)
+
+**Pokémon 2: [English Name]**
+[Same format for all 6 Pokémon]
+
+**CONCLUSION:**
+[Team summary and strategy]
+
+**FINAL ARTICLE SUMMARY:**
+[Provide a comprehensive summary of the entire article including:
+- Overall team strategy and concept
+- Key Pokemon roles and synergies
+- **TEAM STRENGTHS**: Extract and list specific strengths mentioned by the author
+- **TEAM WEAKNESSES**: Extract and list specific weaknesses mentioned by the author
+- **AUTHOR'S ASSESSMENT**: Only include strengths/weaknesses that the author explicitly mentioned
+- Meta positioning and tournament viability
+- Any unique strategies or innovations mentioned
+- Author's recommendations and insights
+- Team's competitive advantages and potential counters
+- Lead combinations and selection strategies
+- Specific matchups and counter strategies
+- EV spread reasoning and benchmarks
+- Item and ability choices explanation
+- Move selection rationale
+- Team building process and changes made
+
+**IMPORTANT**: For strengths and weaknesses, ONLY include what the author specifically stated in the article. Do not add your own analysis or speculation.]
+
+**IMPORTANT RULES:**
+1. **ACCURATE POKEMON IDENTIFICATION**: Look carefully at the image and identify Pokémon correctly
+2. **EV VALUES ONLY**: Use actual EV values (0-252 in multiples of 4), NOT final stat values
+3. **EXACT FORMAT**: Follow the format above exactly with dashes and colons
+4. **COMPLETE INFORMATION**: Include all 6 Pokémon even if some details are missing
+5. **DETAILED EXPLANATIONS**: Include specific percentages, numbers, and benchmarks
+6. **NO UNDEFINED**: Use "Not specified" for missing information
+
+**CRITICAL EV SPREAD RULE**: If you see numbers like 175, 195, 222, 131, 219, 155, 180, 200, 160, 140, 120, 100, 80, 60, 40, 20 in the source material, these are FINAL STAT VALUES, not EV values. EV values are ONLY multiples of 4: 0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 148, 152, 156, 160, 164, 168, 172, 176, 180, 184, 188, 192, 196, 200, 204, 208, 212, 216, 220, 224, 228, 232, 236, 240, 244, 248, 252. If you cannot determine the actual EV values from the source, write "EVs not specified in the article or image."
+
+**Strict Instructions:**
+- Do **not** infer or assume anything that is not clearly visible or mentioned.
+- All missing data must be marked with: **"Not specified in the article or image."**
+- Use only **standard ASCII characters**. Do not include Japanese script, accented characters, or emoji.
+- Write in clear, formal **UK English** only.
+- **Avoid undefined values**: Never output "undefined" or similar placeholder text. Use "Not specified in the article or image" instead.
+- **Clean formatting**: Avoid broken bars, excessive separators, or unclear formatting. Use clear, consistent formatting throughout.
+- **ALWAYS use official English Pokémon names, moves, abilities, and items.**
+- **Translate Japanese text accurately using the provided reference lists above.**
+- **IMPORTANT**: When translating Japanese Pokémon names, abilities, moves, and items, use ONLY the official English names provided in the reference lists above. Do not create new translations or use unofficial names.
+- **Format consistently**: Use the exact format specified for each Pokémon breakdown.
+- **EV Spreads**: Always use the English stat names (HP, Atk, Def, SpA, SpD, Spe) and provide the actual EV values invested (which should total 508 EVs), NOT the final stat values after EV investment. For example, write "252 Spe" not the final Speed stat number.
+- **EV Explanations**: Provide extremely comprehensive and detailed explanations including:
+  • **ALL specific percentages and survival rates** mentioned in the article (e.g., "93.6% survival rate", "87.5% chance to survive")
+  • **Exact numerical targets and benchmarks** (e.g., "Reaches 200 Speed", "Survives 180 base power attacks")
+  • **Specific speed benchmarks** with exact numbers (e.g., "Outspeeds max Speed [Pokémon] by 2 points")
+  • **Detailed survival calculations** when provided (e.g., "Survives +2 [attack] from [Pokémon] with [item]")
+  • **Damage output calculations** (e.g., "OHKOs [Pokémon] 100% of the time", "2HKOs [Pokémon]")
+  • **Team synergy considerations** and how EVs support specific strategies
+  • **Item and nature interactions** with EV calculations
+  • **Meta-specific reasoning** for why these EVs are optimal
+  • **Alternative spreads considered** if mentioned in the article
+  • **Speed tier positioning** and what it outspeeds/underspeeds
+  • **Defensive calculations** with specific benchmarks and survival rates
+  • **Offensive calculations** with specific damage outputs and conditions
+  • **Bulk calculations** and survival benchmarks
+  • **Priority considerations** and speed control details
+  • **Weather and terrain interactions** with EV calculations
+  • **Status condition considerations** and their effects on EVs
+  • **Critical hit scenarios** and their impact on EV calculations
+  • **Multi-hit move considerations** and their effects
+  • **Special mechanic interactions** (Z-moves, Terastallization, etc.)
+  Include exact numerical targets, Pokémon names, and ALL specific details when mentioned in the article.
+- **Tera Types**: Always include Tera Type in each Pokémon breakdown. Use official English type names (Normal, Fire, Water, etc.). If Tera Type is not visible in the image or text, write "Tera Type not specified in the article or image."
+- **Calyrex Identification**: Pay special attention to distinguish between Calyrex forms:
+  * **Calyrex Ice Rider**: White horse (Glastrier), Ice-type moves, "As One (Glastrier)" ability, Ice Tera Type
+  * **Calyrex Shadow Rider**: Black horse (Spectrier), Ghost-type moves, "As One (Spectrier)" ability, Ghost Tera Type
+  * **CRITICAL**: Look at the horse color (white vs black), moves (Ice vs Ghost), and ability name to determine the correct form
+- **Chi-Yu vs Chien-Pao**: Pay special attention to distinguish between Chi-Yu (Fire/Dark, Beads of Ruin) and Chien-Pao (Ice/Dark, Sword of Ruin). Use moves, abilities, and visual appearance to identify correctly. **CRITICAL**: Chi-Yu has Fire-type moves and Beads of Ruin ability, while Chien-Pao has Ice-type moves and Sword of Ruin ability. Look carefully at the moveset and ability to determine which one it is.
 
 **Restricted Pokémon Reference List:**
 {restrict_poke}
 
-**CRITICAL TRANSLATION GUIDELINES:**
-
-**Pokémon Names - Use Official English Names:**
-**IMPORTANT: Chi-Yu vs Chien-Pao Distinction:**
-- Chi-Yu (パオジアン) is the Fire/Dark legendary with Beads of Ruin ability
-- Chien-Pao (チオンジェン/チエンパオ/チェンパオ) is the Ice/Dark legendary with Sword of Ruin ability
-- When in doubt, look at the moves, abilities, and visual appearance in images to distinguish them
-
-**Your Task:**
-
-You are provided with article text and team images. Your response must be strictly based on the visible and written content. If anything is unclear, partial, or missing, mark it as such. **Do not make assumptions.**
-
-**CRITICAL IMAGE ANALYSIS FOR EV EXTRACTION:**
-When analyzing team images, prioritize these elements:
-
-1. **EV Spreads (HIGHEST PRIORITY):**
-   - Look for stat displays with format: H### A### B### C### D### S### (e.g., H244 A252 B4 C0 D4 S4)
-   - Search for "努力値" (Japanese for "Effort Values") followed by numbers
-   - Look for EV bars, stat distributions, or numerical displays
-   - Check for patterns like "252/252/4" or "244/252/12"
-   - Examine Pokemon summary screens, team builders, or stat calculators
-
-2. **Pokemon Identification:**
-   - Japanese names (e.g., バドレックス=Calyrex, カイオーガ=Kyogre, ウーラオス=Urshifu)
-   - Visual sprites/models to confirm identity
-   - Type icons and color schemes
-
-3. **Additional Data:**
-   - Move names in Japanese with type icons
-   - Held items (icons: red apple, blue orb, etc.)
-   - Nature indicators (up/down arrows, red/blue text)
-   - Ability names in Japanese
-   - Tera type indicators
-
-**ENHANCED IMAGE ANALYSIS INSTRUCTIONS:**
-- **SCAN EVERY IMAGE** for EV-related information first
-- **LOOK FOR MULTIPLE EV FORMATS**: H/A/B/C/D/S, HP/Atk/Def/SpA/SpD/Spe, numerical spreads
-- **EXAMINE POKEMON SUMMARY SCREENS** - these often show detailed EV information
-- **CHECK TEAM BUILDING TOOLS** - Showdown, Pikalytics, or similar interfaces
-- **CROSS-REFERENCE** image EV data with any text mentions
-- **PRIORITIZE IMAGE DATA** - if image shows EVs but text doesn't, use image data
-- **EXTRACT EXACT VALUES** - don't approximate, get precise EV numbers from images
-- **DO NOT make assumptions** about moves - only use what's clearly visible in images or explicitly stated in text
-- **Pay special attention** to move type icons and their corresponding move names
-
----
-
-1. **Extract the title** of the article or blog post.
-   - If there is a clear blog or article title, write it as:
-     TITLE: [Japanese Title]（[English Translation]）
+**Input Content:**
+#{text}#
    - If the title is already in English, write: TITLE: [English Title]
    - If there is no title or it's unclear, write: TITLE: Not specified
 
@@ -579,7 +680,9 @@ class GeminiService {
       title,
       summary: summaryText,
       team,
-      pokemonNames
+      pokemonNames,
+      strengths: this.extractStrengths(summaryText),
+      weaknesses: this.extractWeaknesses(summaryText)
     };
   }
 
@@ -630,19 +733,32 @@ class GeminiService {
       const teraMatch = section.match(/- Tera Type:\s*([^\n]+)/);
       const teraType = teraMatch ? teraMatch[1].trim() : 'Not specified';
 
-      // Extract moves
+      // Extract nature
+      const natureMatch = section.match(/- Nature:\s*([^\n]+)/);
+      const nature = natureMatch ? natureMatch[1].trim() : 'Not specified';
+
+      // Extract moves with enhanced filtering
       const movesMatch = section.match(/- Moves:\s*([^\n]+)/);
-      const moves = movesMatch 
-        ? movesMatch[1].split('/').map(move => move.trim()).filter(move => move.length > 0)
-        : [];
+      let moves: string[] = [];
+      if (movesMatch) {
+        const movesText = movesMatch[1].trim();
+        // Handle different separators
+        if (movesText.includes('/')) {
+          moves = movesText.split('/').map(move => move.trim()).filter(move => move.length > 0);
+        } else if (movesText.includes(',')) {
+          moves = movesText.split(',').map(move => move.trim()).filter(move => move.length > 0);
+        } else {
+          moves = [movesText];
+        }
+        
+        // Filter out abilities that might be incorrectly included in moves
+        const abilityKeywords = ['as one', 'unseen fist', 'grassy surge', 'regenerator', 'quark drive', 'drizzle'];
+        moves = moves.filter(move => !abilityKeywords.includes(move.toLowerCase()));
+      }
 
       // Extract EV spread
       const evMatch = section.match(/- EV Spread:\s*([^\n]+)/);
       const evSpread = evMatch ? evMatch[1].trim() : 'Not specified';
-
-      // Extract nature
-      const natureMatch = section.match(/- Nature:\s*([^\n]+)/);
-      const nature = natureMatch ? natureMatch[1].trim() : 'Not specified';
 
       // Extract EV explanation
       const evExplanationMatch = section.match(/- EV Explanation:\s*([\s\S]*?)(?=\n\n|\*\*Pokémon|\n- |$)/);
@@ -663,20 +779,99 @@ class GeminiService {
     return team;
   }
 
+  private extractStrengths(summary: string): string[] {
+    const strengthsMatch = summary.match(/TEAM STRENGTHS[:\s]*([\s\S]*?)(?=TEAM WEAKNESSES|CONCLUSION|FINAL ARTICLE SUMMARY|$)/i);
+    if (!strengthsMatch) return [];
+
+    const strengthsText = strengthsMatch[1].trim();
+    // Split by common separators and clean up
+    const strengths = strengthsText
+      .split(/[•\-\*;]/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && s !== 'TEAM STRENGTHS')
+      .map(s => s.replace(/^\d+\.\s*/, '')) // Remove numbered lists
+      .filter(s => s.length > 10); // Only keep substantial strengths
+
+    return strengths;
+  }
+
+  private extractWeaknesses(summary: string): string[] {
+    const weaknessesMatch = summary.match(/TEAM WEAKNESSES[:\s]*([\s\S]*?)(?=CONCLUSION|FINAL ARTICLE SUMMARY|$)/i);
+    if (!weaknessesMatch) return [];
+
+    const weaknessesText = weaknessesMatch[1].trim();
+    // Split by common separators and clean up
+    const weaknesses = weaknessesText
+      .split(/[•\-\*;]/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && s !== 'TEAM WEAKNESSES')
+      .map(s => s.replace(/^\d+\.\s*/, '')) // Remove numbered lists
+      .filter(s => s.length > 10); // Only keep substantial weaknesses
+
+    return weaknesses;
+  }
+
   private parseEVSpread(evSpread: string): Record<string, number> | undefined {
-    if (evSpread === 'Not specified') return undefined;
+    if (evSpread === 'Not specified' || evSpread === 'EVs not specified in the article or image.') {
+      return undefined;
+    }
 
-    const evMatch = evSpread.match(/(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/);
-    if (!evMatch) return undefined;
+    // Try different EV parsing patterns
+    const evParsePatterns = [
+      // Japanese format: H244 A252 B4 D4 S4
+      /H(\d+)\s+A(\d+)\s+B(\d+)\s+C(\d+)\s+D(\d+)\s+S(\d+)/,
+      /H(\d+)\s+A(\d+)\s+B(\d+)\s+D(\d+)\s+S(\d+)/,  // Missing C (SpA)
+      // Standard format: 244 252 4 4 4 4 (space separated)
+      /^(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$/,
+      /(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)/,
+      /(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/,
+      /HP:\s*(\d+).*?Atk:\s*(\d+).*?Def:\s*(\d+).*?SpA:\s*(\d+).*?SpD:\s*(\d+).*?Spe:\s*(\d+)/
+    ];
 
-    return {
-      hp: parseInt(evMatch[1]),
-      attack: parseInt(evMatch[2]),
-      defense: parseInt(evMatch[3]),
-      spAtk: parseInt(evMatch[4]),
-      spDef: parseInt(evMatch[5]),
-      speed: parseInt(evMatch[6])
-    };
+    for (const pattern of evParsePatterns) {
+      const evMatch = evSpread.match(pattern);
+      if (evMatch) {
+        // Handle Japanese format (H=HP, A=Attack, B=Defense, C=SpA, D=SpD, S=Speed)
+        if (pattern.source.startsWith('H(\\d+)')) {
+          // Japanese format
+          if (evMatch.length === 7) {
+            // Full format: H244 A252 B4 C4 D4 S4
+            return {
+              hp: parseInt(evMatch[1]),
+              attack: parseInt(evMatch[2]),
+              defense: parseInt(evMatch[3]),
+              spAtk: parseInt(evMatch[4]),
+              spDef: parseInt(evMatch[5]),
+              speed: parseInt(evMatch[6])
+            };
+          } else if (evMatch.length === 6) {
+            // Missing C (SpA): H244 A252 B4 D4 S4
+            return {
+              hp: parseInt(evMatch[1]),
+              attack: parseInt(evMatch[2]),
+              defense: parseInt(evMatch[3]),
+              spAtk: 0,  // Missing C
+              spDef: parseInt(evMatch[4]),
+              speed: parseInt(evMatch[5])
+            };
+          }
+        } else {
+          // Standard format
+          const stats = ['hp', 'attack', 'defense', 'spAtk', 'spDef', 'speed'];
+          const evs: Record<string, number> = {};
+          for (let j = 0; j < stats.length; j++) {
+            try {
+              evs[stats[j]] = parseInt(evMatch[j + 1]);
+            } catch (error) {
+              evs[stats[j]] = 0;
+            }
+          }
+          return evs;
+        }
+      }
+    }
+
+    return undefined;
   }
 }
 
