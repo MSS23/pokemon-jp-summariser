@@ -711,58 +711,187 @@ class GeminiService {
   }
 
   private parseDetailedTeamMembers(summary: string): PokemonTeamMember[] {
+    // Debug: Print the first 500 characters of the summary to see the format
+    console.log("DEBUG: Summary starts with:", summary.substring(0, 500));
+    
     const pokemonSections = summary.split(/Pokémon \d+:/);
     const team: PokemonTeamMember[] = [];
 
+    console.log(`DEBUG: Total Pokémon sections found: ${pokemonSections.length - 1}`);
+
     for (let i = 1; i < pokemonSections.length && i <= 6; i++) {
       const section = pokemonSections[i];
-      const lines = section.split('\n');
+      console.log(`DEBUG: Processing Pokémon ${i}`);
+      console.log(`DEBUG: Section preview: ${section.substring(0, 200)}...`);
 
       // Extract Pokemon name (first line after "Pokémon X:")
+      const lines = section.split('\n');
       const name = lines[0]?.trim() || `Pokemon ${i}`;
 
-      // Extract ability
-      const abilityMatch = section.match(/- Ability:\s*([^\n]+)/);
-      const ability = abilityMatch ? abilityMatch[1].trim() : 'Not specified';
-
-      // Extract held item
-      const itemMatch = section.match(/- Held Item:\s*([^\n]+)/);
-      const item = itemMatch ? itemMatch[1].trim() : 'Not specified';
-
-      // Extract Tera type
-      const teraMatch = section.match(/- Tera Type:\s*([^\n]+)/);
-      const teraType = teraMatch ? teraMatch[1].trim() : 'Not specified';
-
-      // Extract nature
-      const natureMatch = section.match(/- Nature:\s*([^\n]+)/);
-      const nature = natureMatch ? natureMatch[1].trim() : 'Not specified';
-
-      // Extract moves with enhanced filtering
-      const movesMatch = section.match(/- Moves:\s*([^\n]+)/);
-      let moves: string[] = [];
-      if (movesMatch) {
-        const movesText = movesMatch[1].trim();
-        // Handle different separators
-        if (movesText.includes('/')) {
-          moves = movesText.split('/').map(move => move.trim()).filter(move => move.length > 0);
-        } else if (movesText.includes(',')) {
-          moves = movesText.split(',').map(move => move.trim()).filter(move => move.length > 0);
-        } else {
-          moves = [movesText];
+      // Extract ability with enhanced patterns
+      const abilityPatterns = [
+        /- Ability:\s*([^\n]+)/,
+        /ability[:\s]+([^:\n]+)/i,
+        /abilities?[:\s]+([^:\n]+)/i,
+        /• ability[:\s]+([^:\n]+)/i
+      ];
+      let ability = 'Not specified';
+      for (const pattern of abilityPatterns) {
+        const match = section.match(pattern);
+        if (match) {
+          ability = match[1].trim();
+          console.log(`DEBUG: Found ability: ${ability}`);
+          break;
         }
-        
-        // Filter out abilities that might be incorrectly included in moves
-        const abilityKeywords = ['as one', 'unseen fist', 'grassy surge', 'regenerator', 'quark drive', 'drizzle'];
-        moves = moves.filter(move => !abilityKeywords.includes(move.toLowerCase()));
       }
 
-      // Extract EV spread
-      const evMatch = section.match(/- EV Spread:\s*([^\n]+)/);
-      const evSpread = evMatch ? evMatch[1].trim() : 'Not specified';
+      // Extract held item with enhanced patterns
+      const itemPatterns = [
+        /- Held Item:\s*([^\n]+)/,
+        /item[:\s]+([^:\n]+)/i,
+        /held item[:\s]+([^:\n]+)/i,
+        /• item[:\s]+([^:\n]+)/i
+      ];
+      let item = 'Not specified';
+      for (const pattern of itemPatterns) {
+        const match = section.match(pattern);
+        if (match) {
+          item = match[1].trim();
+          console.log(`DEBUG: Found item: ${item}`);
+          break;
+        }
+      }
+
+      // Extract Tera type with enhanced patterns
+      const teraPatterns = [
+        /- Tera Type:\s*([^\n]+)/,
+        /tera[:\s]+([^:\n]+)/i,
+        /tera type[:\s]+([^:\n]+)/i,
+        /• tera[:\s]+([^:\n]+)/i
+      ];
+      let teraType = 'Not specified';
+      for (const pattern of teraPatterns) {
+        const match = section.match(pattern);
+        if (match) {
+          teraType = match[1].trim();
+          console.log(`DEBUG: Found tera: ${teraType}`);
+          break;
+        }
+      }
+
+      // Extract nature with enhanced patterns and validation
+      const naturePatterns = [
+        /- Nature:\s*([^\n]+)/,
+        /nature[:\s]+([^:\n]+)/i,
+        /natures?[:\s]+([^:\n]+)/i,
+        /• nature[:\s]+([^:\n]+)/i,
+        /nature[:\s]*([a-z]+)/i,
+        /([a-z]+)\s+nature/i
+      ];
+      let nature = 'Not specified';
+      for (const pattern of naturePatterns) {
+        const match = section.match(pattern);
+        if (match) {
+          const natureText = match[1].trim();
+          // Clean up common nature names
+          const natureMapping: Record<string, string> = {
+            'Adamant': 'Adamant',
+            'Jolly': 'Jolly', 
+            'Modest': 'Modest',
+            'Timid': 'Timid',
+            'Bold': 'Bold',
+            'Impish': 'Impish',
+            'Calm': 'Calm',
+            'Careful': 'Careful',
+            'Naive': 'Naive',
+            'Hasty': 'Hasty',
+            'Naughty': 'Naughty',
+            'Lonely': 'Lonely',
+            'Mild': 'Mild',
+            'Quiet': 'Quiet',
+            'Rash': 'Rash',
+            'Brave': 'Brave',
+            'Relaxed': 'Relaxed',
+            'Sassy': 'Sassy',
+            'Gentle': 'Gentle',
+            'Lax': 'Lax'
+          };
+          nature = natureMapping[natureText] || natureText;
+          console.log(`DEBUG: Found nature: ${nature}`);
+          break;
+        }
+      }
+
+      // Extract moves with enhanced filtering
+      const movesPatterns = [
+        /- Moves:\s*([^\n]+)/,
+        /moves?[:\s]+([^:\n]+)/i,
+        /moveset[:\s]+([^:\n]+)/i,
+        /• moves?[:\s]+([^:\n]+)/i
+      ];
+      let moves: string[] = [];
+      for (const pattern of movesPatterns) {
+        const match = section.match(pattern);
+        if (match) {
+          const movesText = match[1].trim();
+          // Handle different separators
+          if (movesText.includes('/')) {
+            moves = movesText.split('/').map(move => move.trim()).filter(move => move.length > 0);
+          } else if (movesText.includes(',')) {
+            moves = movesText.split(',').map(move => move.trim()).filter(move => move.length > 0);
+          } else {
+            moves = [movesText];
+          }
+          
+          // Filter out abilities that might be incorrectly included in moves
+          const abilityKeywords = ['as one', 'unseen fist', 'grassy surge', 'regenerator', 'quark drive', 'drizzle'];
+          const filteredMoves = moves.filter(move => !abilityKeywords.includes(move.toLowerCase()));
+          
+          if (filteredMoves.length > 0) {
+            moves = filteredMoves;
+            console.log(`DEBUG: Found moves: ${moves}`);
+          } else {
+            console.log(`DEBUG: No valid moves found after filtering`);
+          }
+          break;
+        }
+      }
+
+      // Extract EV spread with enhanced patterns
+      const evPatterns = [
+        /- EV Spread:\s*([^\n]+)/,
+        /ev spread[:\s]+([^:\n]+)/i,
+        /evs?[:\s]+([^:\n]+)/i,
+        /effort values?[:\s]+([^:\n]+)/i,
+        /• ev spread[:\s]+([^:\n]+)/i,
+        /ev spread[:\s]*(\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+)/i
+      ];
+      let evSpread = 'Not specified';
+      for (const pattern of evPatterns) {
+        const match = section.match(pattern);
+        if (match) {
+          evSpread = match[1].trim();
+          console.log(`DEBUG: Raw EV text extracted: '${evSpread}'`);
+          break;
+        }
+      }
 
       // Extract EV explanation
-      const evExplanationMatch = section.match(/- EV Explanation:\s*([\s\S]*?)(?=\n\n|\*\*Pokémon|\n- |$)/);
-      const evExplanation = evExplanationMatch ? evExplanationMatch[1].trim() : 'Not specified';
+      const evExplanationPatterns = [
+        /- EV Explanation:\s*([\s\S]*?)(?=\n\n|\*\*Pokémon|\n- |$)/,
+        /ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)/i,
+        /ev reasoning[:\s]+([^:\n]+(?:\n[^:\n]+)*)/i,
+        /• ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)/i
+      ];
+      let evExplanation = 'Not specified';
+      for (const pattern of evExplanationPatterns) {
+        const match = section.match(pattern);
+        if (match) {
+          evExplanation = match[1].trim();
+          console.log(`DEBUG: Found EV explanation: ${evExplanation.substring(0, 100)}...`);
+          break;
+        }
+      }
 
       team.push({
         name,
@@ -780,35 +909,122 @@ class GeminiService {
   }
 
   private extractStrengths(summary: string): string[] {
-    const strengthsMatch = summary.match(/TEAM STRENGTHS[:\s]*([\s\S]*?)(?=TEAM WEAKNESSES|CONCLUSION|FINAL ARTICLE SUMMARY|$)/i);
-    if (!strengthsMatch) return [];
+    // Common patterns for strengths
+    const strengthPatterns = [
+      /strengths?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nweaknesses?|$)/i,
+      /team strengths?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nweaknesses?|$)/i,
+      /advantages?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\ndisadvantages?|$)/i,
+      /positive[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nnegative|$)/i,
+      /strong[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nweak|$)/i
+    ];
 
-    const strengthsText = strengthsMatch[1].trim();
-    // Split by common separators and clean up
-    const strengths = strengthsText
-      .split(/[•\-\*;]/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && s !== 'TEAM STRENGTHS')
-      .map(s => s.replace(/^\d+\.\s*/, '')) // Remove numbered lists
-      .filter(s => s.length > 10); // Only keep substantial strengths
+    let strengths = "";
+    for (const pattern of strengthPatterns) {
+      const match = summary.match(pattern);
+      if (match) {
+        strengths = match[1].trim();
+        break;
+      }
+    }
 
-    return strengths;
+    // If no specific sections found, try to extract from the conclusion
+    if (!strengths) {
+      const conclusionMatch = summary.match(/conclusion[:\s]+(.*?)(?=\n\n|\Z)/i);
+      if (conclusionMatch) {
+        const conclusion = conclusionMatch[1].toLowerCase();
+        
+        // Extract positive statements
+        const positiveKeywords = ['strong', 'advantage', 'effective', 'powerful', 'successful', 'good', 'excellent', 'outstanding'];
+        const positiveSentences: string[] = [];
+        const sentences = conclusion.split(/[.!?]+/);
+        for (const sentence of sentences) {
+          if (positiveKeywords.some(keyword => sentence.includes(keyword))) {
+            positiveSentences.push(sentence.trim());
+          }
+        }
+        if (positiveSentences.length > 0) {
+          strengths = positiveSentences.slice(0, 3).join('. '); // Limit to 3 sentences
+        }
+      }
+    }
+
+    return this.cleanTextAndSplit(strengths);
   }
 
   private extractWeaknesses(summary: string): string[] {
-    const weaknessesMatch = summary.match(/TEAM WEAKNESSES[:\s]*([\s\S]*?)(?=CONCLUSION|FINAL ARTICLE SUMMARY|$)/i);
-    if (!weaknessesMatch) return [];
+    // Common patterns for weaknesses
+    const weaknessPatterns = [
+      /weaknesses?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nstrengths?|$)/i,
+      /team weaknesses?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nstrengths?|$)/i,
+      /disadvantages?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nadvantages?|$)/i,
+      /negative[:\s]+(.*?)(?=\n\n|\n[A-Z]|\npositive|$)/i,
+      /weak[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nstrong|$)/i
+    ];
 
-    const weaknessesText = weaknessesMatch[1].trim();
+    let weaknesses = "";
+    for (const pattern of weaknessPatterns) {
+      const match = summary.match(pattern);
+      if (match) {
+        weaknesses = match[1].trim();
+        break;
+      }
+    }
+
+    // If no specific sections found, try to extract from the conclusion
+    if (!weaknesses) {
+      const conclusionMatch = summary.match(/conclusion[:\s]+(.*?)(?=\n\n|\Z)/i);
+      if (conclusionMatch) {
+        const conclusion = conclusionMatch[1].toLowerCase();
+        
+        // Extract negative statements
+        const negativeKeywords = ['weak', 'disadvantage', 'problem', 'issue', 'difficult', 'challenge', 'vulnerable'];
+        const negativeSentences: string[] = [];
+        const sentences = conclusion.split(/[.!?]+/);
+        for (const sentence of sentences) {
+          if (negativeKeywords.some(keyword => sentence.includes(keyword))) {
+            negativeSentences.push(sentence.trim());
+          }
+        }
+        if (negativeSentences.length > 0) {
+          weaknesses = negativeSentences.slice(0, 3).join('. '); // Limit to 3 sentences
+        }
+      }
+    }
+
+    return this.cleanTextAndSplit(weaknesses);
+  }
+
+  private cleanTextAndSplit(text: string): string[] {
+    if (!text) return [];
+
+    // Remove markdown formatting
+    text = text.replace(/\*\*(.*?)\*\*/g, '$1'); // Remove bold
+    text = text.replace(/\*(.*?)\*/g, '$1');     // Remove italic
+    text = text.replace(/`(.*?)`/g, '$1');       // Remove code
+    
+    // Clean up bullet points and formatting
+    text = text.replace(/^\s*[-*•]\s*/gm, '');   // Remove bullet points
+    text = text.replace(/^\s*\d+\.\s*/gm, '');   // Remove numbered lists
+    
+    // Clean up extra whitespace and newlines
+    text = text.replace(/\n+/g, ' ');            // Replace multiple newlines with space
+    text = text.replace(/\s+/g, ' ');            // Replace multiple spaces with single space
+    text = text.trim();
+    
+    // Capitalize first letter
+    if (text) {
+      text = text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
     // Split by common separators and clean up
-    const weaknesses = weaknessesText
+    const items = text
       .split(/[•\-\*;]/)
       .map(s => s.trim())
-      .filter(s => s.length > 0 && s !== 'TEAM WEAKNESSES')
+      .filter(s => s.length > 0)
       .map(s => s.replace(/^\d+\.\s*/, '')) // Remove numbered lists
-      .filter(s => s.length > 10); // Only keep substantial weaknesses
+      .filter(s => s.length > 10); // Only keep substantial items
 
-    return weaknesses;
+    return items;
   }
 
   private parseEVSpread(evSpread: string): Record<string, number> | undefined {
@@ -828,15 +1044,19 @@ class GeminiService {
       /HP:\s*(\d+).*?Atk:\s*(\d+).*?Def:\s*(\d+).*?SpA:\s*(\d+).*?SpD:\s*(\d+).*?Spe:\s*(\d+)/
     ];
 
-    for (const pattern of evParsePatterns) {
+    for (let i = 0; i < evParsePatterns.length; i++) {
+      const pattern = evParsePatterns[i];
       const evMatch = evSpread.match(pattern);
       if (evMatch) {
+        console.log(`DEBUG: EV pattern ${i} matched: ${pattern.source}`);
+        console.log(`DEBUG: EV match groups: ${evMatch.slice(1)}`);
+        
         // Handle Japanese format (H=HP, A=Attack, B=Defense, C=SpA, D=SpD, S=Speed)
         if (pattern.source.startsWith('H(\\d+)')) {
           // Japanese format
           if (evMatch.length === 7) {
             // Full format: H244 A252 B4 C4 D4 S4
-            return {
+            const evs = {
               hp: parseInt(evMatch[1]),
               attack: parseInt(evMatch[2]),
               defense: parseInt(evMatch[3]),
@@ -844,9 +1064,12 @@ class GeminiService {
               spDef: parseInt(evMatch[5]),
               speed: parseInt(evMatch[6])
             };
+            console.log(`DEBUG: Found EVs: ${evs}`);
+            console.log(`DEBUG: EV parsing breakdown - HP:${evs.hp}, Atk:${evs.attack}, Def:${evs.defense}, SpA:${evs.spAtk}, SpD:${evs.spDef}, Spe:${evs.speed}`);
+            return evs;
           } else if (evMatch.length === 6) {
             // Missing C (SpA): H244 A252 B4 D4 S4
-            return {
+            const evs = {
               hp: parseInt(evMatch[1]),
               attack: parseInt(evMatch[2]),
               defense: parseInt(evMatch[3]),
@@ -854,6 +1077,9 @@ class GeminiService {
               spDef: parseInt(evMatch[4]),
               speed: parseInt(evMatch[5])
             };
+            console.log(`DEBUG: Found EVs: ${evs}`);
+            console.log(`DEBUG: EV parsing breakdown - HP:${evs.hp}, Atk:${evs.attack}, Def:${evs.defense}, SpA:${evs.spAtk}, SpD:${evs.spDef}, Spe:${evs.speed}`);
+            return evs;
           }
         } else {
           // Standard format
@@ -866,6 +1092,8 @@ class GeminiService {
               evs[stats[j]] = 0;
             }
           }
+          console.log(`DEBUG: Found EVs: ${evs}`);
+          console.log(`DEBUG: EV parsing breakdown - HP:${evs.hp}, Atk:${evs.attack}, Def:${evs.defense}, SpA:${evs.spAtk}, SpD:${evs.spDef}, Spe:${evs.speed}`);
           return evs;
         }
       }
