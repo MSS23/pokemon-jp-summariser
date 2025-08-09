@@ -6,7 +6,7 @@ import { useState, useCallback } from 'react';
 import { geminiService, type GeminiResponse, type ArticleAnalysis } from '../services/geminiService';
 
 export interface UseGeminiReturn {
-  summarizeArticle: (url: string) => Promise<void>;
+  summarizeArticle: (url: string, directText?: string) => Promise<void>;
   isLoading: boolean;
   result: ArticleAnalysis | null;
   error: string | null;
@@ -19,13 +19,13 @@ export const useGemini = (): UseGeminiReturn => {
   const [result, setResult] = useState<ArticleAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const summarizeArticle = useCallback(async (url: string) => {
+  const summarizeArticle = useCallback(async (url: string, directText?: string) => {
     setIsLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const response: GeminiResponse = await geminiService.summarizeArticle(url);
+      const response: GeminiResponse = await geminiService.summarizeArticle(url, directText);
       
       if (response.success && response.data) {
         setResult(response.data);

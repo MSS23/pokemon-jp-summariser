@@ -22,7 +22,7 @@ def show_onboarding_guide():
             2. **✅ Verify**: The app will validate your URL and show if it's cached
             3. **🚀 Summarize**: Click the "Summarise with Gemini" button (or press Ctrl+Enter)
             4. **📊 Review**: Read the translated summary with team details
-            5. **💾 Export**: Download in multiple formats (Text, JSON, CSV)
+            5. **📊 Review**: Analyze the team composition and strategy
             
             #### ⌨️ **Keyboard Shortcuts:**
             - `Ctrl + Enter`: Start summarization
@@ -34,7 +34,7 @@ def show_onboarding_guide():
             - **Team Analysis**: Pokémon names, abilities, moves, EV spreads
             - **Tera Types**: Tera type information for each Pokémon
             - **Strategy Insights**: Team strengths, weaknesses, and meta relevance
-            - **Export Options**: Multiple download formats for your data
+            - **Team Analysis**: Detailed breakdown of each Pokémon's role
             
             #### 🔍 **Pro Tips:**
             - Use the **Search** page to find teams with specific Pokémon

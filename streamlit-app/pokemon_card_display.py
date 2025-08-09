@@ -47,15 +47,17 @@ def display_pokemon_card_with_summary(pokemon, index):
                         {pokemon.get('name', 'Unknown').title()}
                     </h2>
                 </div>
-                <div style="
-                    background: rgba(255, 255, 255, 0.2);
-                    padding: 8px 16px;
-                    border-radius: 20px;
-                    font-weight: 700;
-                    font-size: 1rem;
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                ">
-                    Tera: {pokemon.get('tera_type', 'Not specified')}
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <div style="
+                        background: rgba(255, 255, 255, 0.2);
+                        padding: 8px 16px;
+                        border-radius: 20px;
+                        font-weight: 700;
+                        font-size: 1rem;
+                        border: 1px solid rgba(255, 255, 255, 0.3);
+                    ">
+                        Tera: {pokemon.get('tera_type', 'Not specified')}
+                    </div>
                 </div>
             </div>
         </div>
@@ -170,7 +172,7 @@ def display_pokemon_card_with_summary(pokemon, index):
             </div>
             """, unsafe_allow_html=True)
         
-        # EV Explanation Section (if available)
+            # EV Explanation Section (if available)
         if pokemon.get('ev_explanation') and pokemon['ev_explanation'] != 'Not specified' and pokemon['ev_explanation'] != 'Not specified in the article or image.':
             st.markdown("""
             <h3 style="color: #1e293b; font-size: 1.3rem; font-weight: 700; margin: 24px 0 16px 0; display: flex; align-items: center;">
@@ -183,22 +185,73 @@ def display_pokemon_card_with_summary(pokemon, index):
             
             # Clean up the explanation text
             def clean_explanation(text):
+                # Strip HTML tags first
+                try:
+                    from utils.shared_utils import strip_html_tags
+                    text = strip_html_tags(text)
+                except ImportError:
+                    # Fallback HTML stripping
+                    import re
+                    text = re.sub(r'<[^>]+>', '', text)
+                
+                # Remove simple markdown/emphasis artifacts and stray markers
+                import re
+                text = re.sub(r"\*{1,3}", "", text)  # remove *, **, ***
+                text = re.sub(r"\s*-\s*ev explanation\s*$", "", text, flags=re.IGNORECASE)
+                text = text.replace("—", "-").replace("–", "-")
+                text = text.replace("’", "'").replace('“', '"').replace('”', '"')
+
                 # Capitalize first letter
                 if text:
                     text = text[0].upper() + text[1:]
                 
                 # Fix common issues
-                text = text.replace('evs', 'EVs')
-                text = text.replace('hp', 'HP')
-                text = text.replace('atk', 'Attack')
-                text = text.replace('def', 'Defense')
-                text = text.replace('spa', 'Special Attack')
-                text = text.replace('spd', 'Special Defense')
-                text = text.replace('spe', 'Speed')
-                text = text.replace('ko', 'KO')
-                text = text.replace('ohko', 'OHKO')
-                text = text.replace('2hko', '2HKO')
+                # Normalize stat abbreviations and common terms (case-insensitive)
+                replacements_ci = {
+                    r"\bevs\b": "EVs",
+                    r"\bhp\b": "HP",
+                    r"\batk\b": "Attack",
+                    r"\bdef\b": "Defense",
+                    r"\bspa\b": "Special Attack",
+                    r"\bsp\.?a\b": "Special Attack",
+                    r"\bspd\b": "Special Defense",
+                    r"\bsp\.?d\b": "Special Defense",
+                    r"\bspe\b": "Speed",
+                    r"\bko\b": "KO",
+                    r"\bohko\b": "OHKO",
+                    r"\b2hko\b": "2HKO",
+                    r"\b3hko\b": "3HKO",
+                    r"\bpokemon\b": "Pokémon",
+                }
+                for pattern, repl in replacements_ci.items():
+                    text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
                 
+                # Correct common typos and normalize stat names
+                # Special Defense typos
+                text = re.sub(r"(?i)\bpe?e?dcial\s+defen[cs]e(?:nse)?\b", "Special Defense", text)
+                text = re.sub(r"(?i)\bspecial\s+defen[cs]e\b", "Special Defense", text)
+                # Defense duplicated suffix (e.g., Defenseense)
+                text = re.sub(r"(?i)\bdefenseense\b", "Defense", text)
+                # Speed misspellings
+                text = re.sub(r"(?i)\bspe+ed+ed\b", "Speed", text)
+                text = re.sub(r"(?i)\bspe+ed\b", "Speed", text)
+                # Generic stat lowercase occurrences
+                text = re.sub(r"(?i)\bspecial\s+defen[cs]e\b", "Special Defense", text)
+                text = re.sub(r"(?i)\bspecial\s+attack\b", "Special Attack", text)
+                text = re.sub(r"(?i)\bdefen[cs]e\b", "Defense", text)
+                text = re.sub(r"(?i)\bspeed\b", "Speed", text)
+
+                # Translate a few common Japanese shorthand terms for clarity
+                jp_terms = {
+                    "準速": "neutral-nature max Speed",
+                    "最速": "max Speed (positive nature)",
+                    "無振り": "no investment",
+                    "確定耐え": "guaranteed survival",
+                    "乱数": "chance",
+                }
+                for jp, en in jp_terms.items():
+                    text = text.replace(jp, en)
+
                 # Fix sentence structure
                 text = text.replace('the author', 'The author')
                 text = text.replace('they considered', 'They considered')
@@ -206,10 +259,47 @@ def display_pokemon_card_with_summary(pokemon, index):
                 text = text.replace('they mention', 'They mention')
                 text = text.replace('they state', 'They state')
                 text = text.replace('they note', 'They note')
+                # Normalize percent spacing
+                text = re.sub(r"\s+%", "%", text)
+                # Remove stray trailing punctuation/asterisks
+                text = text.strip().rstrip('*').strip()
                 
                 return text
             
             explanation = clean_explanation(explanation)
+
+            # Additional readability polishing
+            def polish(text: str) -> str:
+                import re
+                # Normalize spacing and punctuation
+                text = re.sub(r"\s+%", "%", text)
+                text = re.sub(r"\s+\.", ".", text)
+                text = re.sub(r"\s+,", ",", text)
+                # Replace awkward phrases
+                replacements = {
+                    'it is able to': 'it can',
+                    'it is possible to': 'it can',
+                    'in order to': 'to',
+                    'the author mentions that': 'The author notes that',
+                    'the author states that': 'The author states that',
+                    'the author believes that': 'The author believes that',
+                }
+                for k,v in replacements.items():
+                    text = text.replace(k, v)
+                # Split and tidy sentences; ensure proper capitalization and ending
+                raw_sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
+                cleaned_sentences = []
+                for s in raw_sentences:
+                    if not s:
+                        continue
+                    # Capitalize first alpha character only
+                    s = s[0].upper() + s[1:] if len(s) > 1 else s.upper()
+                    if s and s[-1] not in '.!?':
+                        s += '.'
+                    cleaned_sentences.append(s)
+                return ' '.join(cleaned_sentences)
+
+            explanation = polish(explanation)
             
             # Split into coherent paragraphs
             if len(explanation) > 150:

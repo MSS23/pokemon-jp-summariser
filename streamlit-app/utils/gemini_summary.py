@@ -7,10 +7,8 @@ import os
 import re
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
 from utils.shared_utils import fetch_article_text_and_images
-from .llm_summary import prompt_template, restricted_poke
+from utils.llm_summary import prompt_template, restricted_poke
 
 def llm_summary_gemini(url):
     """

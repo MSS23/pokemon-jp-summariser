@@ -1,428 +1,383 @@
-import { useState, useEffect } from 'react';
-import { useAnalytics } from '../context/AnalyticsContext';
-import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon, TagIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { ArticleAnalysis } from '../services/geminiService';
 
-interface TranslatedTeam {
-  id: string;
-  pokemon: string;
-  level: number;
-  hp: { current: number; max: number };
-  status: string;
-  teraType: string;
-  item: string;
-  ability: string;
-  types: string[];
-  moves: Array<{ name: string; bp: number; checked: boolean }>;
-  stats: {
-    hp: { base: number; evs: number; ivs: number; final: number };
-    attack: { base: number; evs: number; ivs: number; final: number };
-    defense: { base: number; evs: number; ivs: number; final: number };
-    spAtk: { base: number; evs: number; ivs: number; final: number };
-    spDef: { base: number; evs: number; ivs: number; final: number };
-    speed: { base: number; evs: number; ivs: number; final: number };
-  };
-  bst: number;
-  remainingEvs: number;
-  nature: string;
-  articleTitle: string;
-  translatedDate: string;
-  articleUrl: string;
+interface TeamSearchProps {
+  // Props if needed
 }
 
-const TeamSearch = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [teams, setTeams] = useState<TranslatedTeam[]>([]);
-  const [allTeams, setAllTeams] = useState<TranslatedTeam[]>([]);
-  const [filteredTeams, setFilteredTeams] = useState<TranslatedTeam[]>([]);
-  const [selectedDateRange, setSelectedDateRange] = useState('All Dates');
-  const [selectedPokemon, setSelectedPokemon] = useState<string[]>([]);
-  const [selectedMoves, setSelectedMoves] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const { trackSearch } = useAnalytics();
-
-
-
-
-  
+const TeamSearch: React.FC<TeamSearchProps> = () => {
+  const [teams, setTeams] = useState<ArticleAnalysis[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTeam, setSelectedTeam] = useState<ArticleAnalysis | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    // Filter teams based on search query and filters
-    let filtered = allTeams;
+    // Load teams from localStorage or API
+    loadTeams();
+  }, []);
 
-    // Filter by search query
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(team =>
-        team.pokemon.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        team.articleTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        team.moves.some(move => move.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        team.ability.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        team.item.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Filter by Pokemon (multiple selection)
-    if (selectedPokemon.length > 0) {
-      filtered = filtered.filter(team => selectedPokemon.includes(team.pokemon));
-    }
-
-    // Filter by moves (multiple selection)
-    if (selectedMoves.length > 0) {
-      filtered = filtered.filter(team => 
-        selectedMoves.some(move => 
-          team.moves.some(teamMove => teamMove.name.toLowerCase() === move.toLowerCase())
-        )
-      );
-    }
-
-    // Filter by types (multiple selection)
-    if (selectedTypes.length > 0) {
-      filtered = filtered.filter(team => 
-        selectedTypes.some(type => 
-          team.types.some(teamType => teamType.toLowerCase() === type.toLowerCase())
-        )
-      );
-    }
-
-    // Filter by date range
-    if (selectedDateRange !== 'All Dates') {
-      const now = new Date();
-      const teamDate = new Date();
-      
-      switch (selectedDateRange) {
-        case 'Last 7 days':
-          teamDate.setDate(now.getDate() - 7);
-          break;
-        case 'Last 30 days':
-          teamDate.setDate(now.getDate() - 30);
-          break;
-        case 'Last 3 months':
-          teamDate.setMonth(now.getMonth() - 3);
-          break;
+  const loadTeams = () => {
+    try {
+      const savedTeams = localStorage.getItem('analyzedTeams');
+      if (savedTeams) {
+        const parsedTeams = JSON.parse(savedTeams);
+        setTeams(parsedTeams);
       }
-      
-      filtered = filtered.filter(team => new Date(team.translatedDate) >= teamDate);
+    } catch (error) {
+      console.error('Error loading teams:', error);
+    } finally {
+      setLoading(false);
     }
-
-    setFilteredTeams(filtered);
-  }, [allTeams, searchQuery, selectedPokemon, selectedMoves, selectedTypes, selectedDateRange]);
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    trackSearch(query);
   };
 
-  const getTypeColor = (type: string) => {
-    const typeMap: { [key: string]: string } = {
-      'DARK': 'type-dark',
-      'DRAGON': 'type-dragon',
-      'GRASS': 'type-grass',
-      'FIRE': 'type-fire',
-      'GHOST': 'type-ghost',
-      'WATER': 'type-water',
-      'ELECTRIC': 'type-electric',
-      'ICE': 'type-ice',
-      'FIGHTING': 'type-fighting',
-      'POISON': 'type-poison',
-      'GROUND': 'type-ground',
-      'FLYING': 'type-flying',
-      'PSYCHIC': 'type-psychic',
-      'BUG': 'type-bug',
-      'ROCK': 'type-rock',
-      'STEEL': 'type-steel',
-      'FAIRY': 'type-fairy',
-      'NORMAL': 'type-normal'
-    };
-    return typeMap[type] || 'bg-gray-100 text-gray-800';
+  const handleRowClick = (team: ArticleAnalysis) => {
+    setSelectedTeam(team);
+    setShowModal(true);
   };
 
-  const getUniquePokemon = () => {
-    const pokemon = allTeams.map(team => team.pokemon);
-    return Array.from(new Set(pokemon)).sort();
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedTeam(null);
   };
 
-  const getUniqueMoves = () => {
-    const moves = allTeams.flatMap(team => team.moves.map(move => move.name));
-    return Array.from(new Set(moves)).sort();
+  const getPokemonList = (team: ArticleAnalysis) => {
+    return team.team.map(pokemon => pokemon.name).join(', ');
   };
 
-  const getUniqueTypes = () => {
-    const types = allTeams.flatMap(team => team.types);
-    return Array.from(new Set(types)).sort();
+  const getSummaryPreview = (summary: string) => {
+    // Extract the conclusion or first part of the summary
+    const conclusionMatch = summary.match(/CONCLUSION[:\s]*([\s\S]*?)(?=\*\*|$)/i);
+    if (conclusionMatch) {
+      return conclusionMatch[1].substring(0, 150) + '...';
+    }
+    
+    // Fallback to first 150 characters
+    return summary.substring(0, 150) + '...';
   };
 
-  const handlePokemonToggle = (pokemon: string) => {
-    setSelectedPokemon(prev => 
-      prev.includes(pokemon) 
-        ? prev.filter(p => p !== pokemon)
-        : [...prev, pokemon]
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading teams...</p>
+        </div>
+      </div>
     );
-  };
-
-  const handleMoveToggle = (move: string) => {
-    setSelectedMoves(prev => 
-      prev.includes(move) 
-        ? prev.filter(m => m !== move)
-        : [...prev, move]
-    );
-  };
-
-  const handleTypeToggle = (type: string) => {
-    setSelectedTypes(prev => 
-      prev.includes(type) 
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-4">
-            Translated Team Search
-          </h1>
-          <p className="text-gray-200 text-lg">
-            Search through your translated Japanese VGC articles and extracted teams
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Teams Analyzed</h1>
+          <p className="text-gray-600">
+            View all the Pokémon teams that have been analyzed. Click on any row to see detailed information.
           </p>
         </div>
 
-        {/* Search Form */}
-        <div className="card mb-8">
-          <form className="space-y-4">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label htmlFor="search" className="block text-sm font-medium text-gray-200 mb-2">
-                  Search Teams
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    id="search"
-                    value={searchQuery}
-                    onChange={handleSearch}
-                    placeholder="Search by Pokemon, strategy, or article title..."
-                    className="input-field pl-10"
-                  />
-                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+        {/* Teams Table */}
+        {teams.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No teams analyzed yet</h3>
+            <p className="text-gray-500 mb-6">
+              Start by analyzing a Pokémon team article to see it appear here.
+            </p>
+            <Link
+              to="/"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Analyze a Team
+            </Link>
+          </div>
+        ) : (
+          <div className="bg-white shadow overflow-hidden sm:rounded-md">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Team Title
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pokémon
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Summary Preview
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {teams.map((team, index) => (
+                    <tr
+                      key={index}
+                      onClick={() => handleRowClick(team)}
+                      className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {team.title || 'Untitled Team'}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {team.meta.source}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">
+                          {getPokemonList(team)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-md">
+                          {getSummaryPreview(team.summary)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date().toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modal for detailed view */}
+      {showModal && selectedTeam && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {selectedTeam.title || 'Team Details'}
+                </h3>
+                <button
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Source URL */}
+              <div className="mb-6">
+                <p className="text-sm text-gray-600">
+                  <strong>Source:</strong>{' '}
+                  <a
+                    href={selectedTeam.meta.source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {selectedTeam.meta.source}
+                  </a>
+                </p>
+              </div>
+
+              {/* Team Members */}
+              <div className="mb-6">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Team Members</h4>
+                <div className="space-y-6">
+                  {selectedTeam.team.map((pokemon, index) => (
+                    <div key={index} className="bg-white dark:bg-gray-700 rounded-2xl shadow-lg border-2 border-gray-200 dark:border-gray-600 overflow-hidden">
+                      {/* Pokemon Header with Gradient */}
+                      <div className="bg-gradient-to-r from-blue-500 to-blue-700 text-white p-4 relative">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="bg-white/25 rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold text-sm border-2 border-white/30">
+                              {index + 1}
+                            </div>
+                            <h5 className="text-xl font-bold">
+                              {pokemon.name}
+                            </h5>
+                          </div>
+                          {pokemon.teraType && pokemon.teraType !== 'Not specified' && (
+                            <div className="bg-white/20 px-3 py-1 rounded-full font-bold text-xs border border-white/30">
+                              Tera: {pokemon.teraType}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Content Section */}
+                      <div className="p-4">
+                        {/* Two Column Layout */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          {/* Basic Info Column */}
+                          <div>
+                            <h6 className="text-sm font-bold text-gray-900 dark:text-white mb-2 flex items-center">
+                              ⚡ Basic Info
+                            </h6>
+                            <div className="space-y-2">
+                              {pokemon.ability && pokemon.ability !== 'Not specified' && (
+                                <div className="bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded p-2">
+                                  <div className="font-bold text-gray-600 dark:text-gray-300 text-xs mb-1">Ability</div>
+                                  <div className="text-gray-900 dark:text-white font-semibold text-sm">{pokemon.ability}</div>
+                                </div>
+                              )}
+                              
+                              {pokemon.item && pokemon.item !== 'Not specified' && (
+                                <div className="bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded p-2">
+                                  <div className="font-bold text-gray-600 dark:text-gray-300 text-xs mb-1">Item</div>
+                                  <div className="text-gray-900 dark:text-white font-semibold text-sm">{pokemon.item}</div>
+                                </div>
+                              )}
+                              
+                              {pokemon.nature && pokemon.nature !== 'Not specified' && (
+                                <div className="bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded p-2">
+                                  <div className="font-bold text-gray-600 dark:text-gray-300 text-xs mb-1">Nature</div>
+                                  <div className="text-gray-900 dark:text-white font-semibold text-sm">{pokemon.nature}</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Moves Column */}
+                          <div>
+                            <h6 className="text-sm font-bold text-gray-900 dark:text-white mb-2 flex items-center">
+                              ⚔️ Moves
+                            </h6>
+                            {pokemon.moves && pokemon.moves.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {pokemon.moves.map((move: string, moveIndex: number) => (
+                                  <span key={moveIndex} className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-sm">
+                                    {move}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-gray-500 dark:text-gray-400 italic text-sm">No moves specified</div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* EV Spread Section */}
+                        {pokemon.evs && (
+                          <div className="mb-4">
+                            <h6 className="text-sm font-bold text-gray-900 dark:text-white mb-2 flex items-center">
+                              📊 EV Spread
+                            </h6>
+                            <div className="space-y-2">
+                              {[
+                                { key: 'hp', label: 'HP', color: 'bg-red-500' },
+                                { key: 'attack', label: 'Atk', color: 'bg-orange-500' },
+                                { key: 'defense', label: 'Def', color: 'bg-yellow-500' },
+                                { key: 'spAtk', label: 'SpA', color: 'bg-green-500' },
+                                { key: 'spDef', label: 'SpD', color: 'bg-cyan-500' },
+                                { key: 'speed', label: 'Spe', color: 'bg-purple-500' }
+                              ].map((stat) => {
+                                const evValue = pokemon.evs[stat.key] || 0;
+                                const percentage = (evValue / 252) * 100;
+                                return (
+                                  <div key={stat.key} className="bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded p-2">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="font-bold text-gray-700 dark:text-gray-300 text-xs">{stat.label}</span>
+                                      <span className="font-bold text-gray-900 dark:text-white text-xs">{evValue}</span>
+                                    </div>
+                                    <div className="w-full h-2 bg-gray-200 dark:bg-gray-500 rounded-full overflow-hidden border border-gray-300 dark:border-gray-400">
+                                      <div 
+                                        className={`h-full ${stat.color} rounded-full transition-all duration-300`}
+                                        style={{ width: `${percentage}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* EV Explanation Section */}
+                        {pokemon.evExplanation && pokemon.evExplanation !== 'Not specified' && (
+                          <div>
+                            <h6 className="text-sm font-bold text-gray-900 dark:text-white mb-2 flex items-center">
+                              🧠 Strategy & EV Explanation
+                            </h6>
+                            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-3">
+                              <div className="text-blue-900 dark:text-blue-100 font-medium text-xs leading-relaxed">
+                                {pokemon.evExplanation.substring(0, 200)}...
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              
-            </div>
-          </form>
-        </div>
 
-        {/* Filters */}
-        <div className="card mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white flex items-center">
-              <FunnelIcon className="h-5 w-5 mr-2" />
-              Filters
-            </h2>
-            <div className="text-sm text-gray-300">
-              {filteredTeams.length} of {allTeams.length} teams
-            </div>
-          </div>
-          
-          {/* Date Range Filter */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-200 mb-2 flex items-center">
-              <CalendarIcon className="h-4 w-4 mr-1" />
-              Date Range
-            </label>
-            <select 
-              value={selectedDateRange} 
-              onChange={(e) => setSelectedDateRange(e.target.value)}
-              className="input-field w-full md:w-64"
-            >
-              <option>All Dates</option>
-              <option>Last 7 days</option>
-              <option>Last 30 days</option>
-              <option>Last 3 months</option>
-            </select>
-          </div>
+              {/* Strengths and Weaknesses */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-200 dark:border-green-700 rounded-xl p-4">
+                  <h4 className="text-lg font-semibold text-green-700 dark:text-green-300 mb-3 flex items-center">
+                    ✅ Team Strengths
+                  </h4>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                    {selectedTeam.strengths.length > 0 ? (
+                      selectedTeam.strengths.map((strength, index) => (
+                        <li key={index}>{strength}</li>
+                      ))
+                    ) : (
+                      <li className="text-gray-500 dark:text-gray-400">No specific strengths mentioned</li>
+                    )}
+                  </ul>
+                </div>
+                <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border-2 border-red-200 dark:border-red-700 rounded-xl p-4">
+                  <h4 className="text-lg font-semibold text-red-700 dark:text-red-300 mb-3 flex items-center">
+                    ⚠️ Team Weaknesses
+                  </h4>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                    {selectedTeam.weaknesses.length > 0 ? (
+                      selectedTeam.weaknesses.map((weakness, index) => (
+                        <li key={index}>{weakness}</li>
+                      ))
+                    ) : (
+                      <li className="text-gray-500 dark:text-gray-400">No specific weaknesses mentioned</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
 
-          {/* Pokemon Filter */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-200 mb-2">
-              Pokemon
-            </label>
-            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-              {getUniquePokemon().map(pokemon => (
-                <button
-                  key={pokemon}
-                  onClick={() => handlePokemonToggle(pokemon)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    selectedPokemon.includes(pokemon)
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {pokemon}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Moves Filter */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-200 mb-2">
-              Moves
-            </label>
-            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-              {getUniqueMoves().map(move => (
-                <button
-                  key={move}
-                  onClick={() => handleMoveToggle(move)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    selectedMoves.includes(move)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {move}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Types Filter */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-200 mb-2">
-              Types
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {getUniqueTypes().map(type => (
-                <button
-                  key={type}
-                  onClick={() => handleTypeToggle(type)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    selectedTypes.includes(type)
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Clear Filters Button */}
-          <div className="flex justify-end">
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedPokemon([]);
-                setSelectedMoves([]);
-                setSelectedTypes([]);
-                setSelectedDateRange('All Dates');
-              }}
-              className="btn-secondary"
-            >
-              Clear All Filters
-            </button>
-          </div>
-        </div>
-
-        {/* Search Results */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white">
-              Translated Teams
-            </h2>
-            <p className="text-gray-300">
-              {filteredTeams.length > 0 ? `${filteredTeams.length} teams found` : 'No teams found'}
-            </p>
-          </div>
-
-          {/* Team Results */}
-          {filteredTeams.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredTeams.map((team) => (
-                <div key={team.id} className="card hover:bg-gray-750 transition-all duration-300">
-                  {/* Pokemon Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">{team.pokemon}</h3>
-                      <p className="text-sm text-gray-300">Lv. {team.level}</p>
-                    </div>
-                  </div>
-
-                  {/* Article Info */}
-                  <div className="mb-4 p-3 bg-gray-700 rounded-lg">
-                    <p className="text-sm text-gray-200 font-medium">{team.articleTitle}</p>
-                    <p className="text-xs text-gray-400">Translated: {new Date(team.translatedDate).toLocaleDateString()}</p>
-                  </div>
-
-                  {/* Pokemon Details */}
-                  <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                    <div>
-                      <span className="text-gray-300">Item:</span>
-                      <span className="text-white ml-2">{team.item}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-300">Ability:</span>
-                      <span className="text-white ml-2">{team.ability}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-300">Tera:</span>
-                      <span className="text-white ml-2">{team.teraType}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-300">Nature:</span>
-                      <span className="text-white ml-2">{team.nature}</span>
-                    </div>
-                  </div>
-
-                  {/* Types */}
-                  {team.types && team.types.length > 0 && (
-                    <div className="mb-4">
-                      <div className="flex gap-2">
-                        {team.types.map((type) => (
-                          <span key={type} className={`pokemon-type ${getTypeColor(type)}`}>
-                            {type}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Moves */}
-                  {team.moves && team.moves.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium text-gray-200 mb-2">Moves</h4>
-                      <div className="space-y-1">
-                        {team.moves.map((move, moveIndex) => (
-                          <div key={moveIndex} className={`move-item ${move.checked ? 'move-checked' : ''}`}>
-                            <span className="text-white">{move.name}</span>
-                            <span className="text-gray-300">BP {move.bp}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* EV Spread */}
-                  <div className="text-sm text-gray-300">
-                    <div>EVs: {team.stats.hp.evs} HP / {team.stats.attack.evs} Atk / {team.stats.defense.evs} Def / {team.stats.spAtk.evs} SpA / {team.stats.spDef.evs} SpD / {team.stats.speed.evs} Spe</div>
-                    <div>BST: {team.bst}</div>
+              {/* Full Summary */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                  📰 Full Analysis
+                </h4>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-4 max-h-96 overflow-y-auto">
+                  <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                    {selectedTeam.summary}
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Footer */}
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={closeModal}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-          ) : (
-            <div className="card text-center py-12">
-              <MagnifyingGlassIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">No teams found</h3>
-              <p className="text-gray-300">
-                Try adjusting your search terms or filters to find translated teams
-              </p>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
