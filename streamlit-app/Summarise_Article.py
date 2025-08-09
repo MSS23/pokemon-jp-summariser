@@ -11,6 +11,11 @@ import pandas as pd
 import io
 import requests
 from bs4 import BeautifulSoup
+import streamlit.components.v1 as components
+try:
+    import streamlit_authenticator as stauth
+except Exception:
+    stauth = None
 
 # Import pokemon card display first to ensure it's available
 from pokemon_card_display import display_pokemon_card_with_summary
@@ -364,8 +369,49 @@ st.markdown("""
         padding: 0 2px;
         border-radius: 2px;
     }
+
+    /* Mobile tweaks */
+    @media (max-width: 640px) {
+        .hero-title { font-size: 2.2rem; }
+        .hero-subtitle { font-size: 1rem; }
+        .feature-badge { padding: 0.6rem 1rem; font-size: 0.95rem; }
+        .modern-card { padding: 20px; }
+        #share-bar { flex-wrap: wrap; }
+        #share-bar button { width: 48%; margin-bottom: 6px; }
+    }
 </style>
 """, unsafe_allow_html=True)
+
+# Simple login gate using streamlit-authenticator
+AUTH_REQUIRED = True
+if AUTH_REQUIRED:
+    if stauth is None:
+        st.stop()
+    try:
+        credentials = st.secrets["credentials"]
+        cookie_cfg = st.secrets["cookie"]
+        preauth = st.secrets.get("preauthorized", {})
+    except Exception:
+        st.error("Authentication is not configured. Add 'credentials' and 'cookie' in Streamlit secrets.")
+        st.info("Example secrets structure provided after deployment.")
+        st.stop()
+
+    authenticator = stauth.Authenticate(
+        credentials,
+        cookie_cfg.get("name", "streamlit_auth"),
+        cookie_cfg.get("key", "super-secret-cookie-key"),
+        cookie_cfg.get("expiry_days", 7),
+        preauth,
+    )
+
+    name, authentication_status, username = authenticator.login("Login", "main")
+    if authentication_status is False:
+        st.error("Invalid username or password")
+        st.stop()
+    elif authentication_status is None:
+        st.stop()
+    else:
+        authenticator.logout("Logout", "sidebar")
 
 # Accessibility controls defaults
 if "a11y_font_px" not in st.session_state:
