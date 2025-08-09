@@ -8,9 +8,19 @@ import traceback
 from datetime import datetime
 import time
 import pandas as pd
+import io
+import requests
+from bs4 import BeautifulSoup
 
 # Import pokemon card display first to ensure it's available
 from pokemon_card_display import display_pokemon_card_with_summary
+from utils.workspace import (
+    compute_summary_id,
+    log_view,
+    log_download,
+)
+from utils.permalinks import compute_team_fingerprint, build_permalink
+import streamlit.components.v1 as components
 
 # Add error handling for imports
 try:
@@ -23,13 +33,30 @@ except ImportError as e:
 
 # Import shared utilities
 try:
-    # Add shared directory to path
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
-    from utils.shared_utils import extract_pokemon_names
+    from utils.shared_utils import extract_pokemon_names, strip_html_tags, fetch_article_text_and_images
 except ImportError as e:
     st.error(f"Failed to import shared utilities: {e}")
     def extract_pokemon_names(summary):
         return []
+    def strip_html_tags(text):
+        return text
+    def fetch_article_text_and_images(url: str):
+        return "", []
+
+
+
+# Import error recovery utilities
+try:
+    from utils.error_recovery import (
+        handle_api_error, 
+        display_error_with_recovery, 
+        create_progress_with_error_handling,
+        retry_api_call
+    )
+    ERROR_RECOVERY_AVAILABLE = True
+except ImportError as e:
+    st.warning(f"Error recovery functionality not available: {e}")
+    ERROR_RECOVERY_AVAILABLE = False
 
 # Page configuration
 st.set_page_config(
@@ -331,8 +358,112 @@ st.markdown("""
         text-align: center;
         font-weight: 600;
     }
+    mark.term {
+        background: #fde68a;
+        color: #1f2937;
+        padding: 0 2px;
+        border-radius: 2px;
+    }
 </style>
 """, unsafe_allow_html=True)
+
+# Accessibility controls defaults
+if "a11y_font_px" not in st.session_state:
+    st.session_state["a11y_font_px"] = 16
+if "a11y_high_contrast" not in st.session_state:
+    st.session_state["a11y_high_contrast"] = False
+if "a11y_reduce_motion" not in st.session_state:
+    st.session_state["a11y_reduce_motion"] = False
+
+def show_accessibility_controls():
+    with st.expander("♿ Accessibility & Display", expanded=False):
+        st.session_state["a11y_font_px"] = st.slider("Base text size", 14, 20, st.session_state["a11y_font_px"], help="Adjust overall font size for readability")
+        st.session_state["a11y_high_contrast"] = st.checkbox("High contrast mode", value=st.session_state["a11y_high_contrast"])    
+        st.session_state["a11y_reduce_motion"] = st.checkbox("Reduce motion/animations", value=st.session_state["a11y_reduce_motion"])    
+
+def render_dynamic_accessibility_css():
+    base_px = st.session_state.get("a11y_font_px", 16)
+    high = st.session_state.get("a11y_high_contrast", False)
+    reduce = st.session_state.get("a11y_reduce_motion", False)
+    css = [
+        f"html, body, .stApp {{ font-size: {base_px}px; }}",
+    ]
+    if high:
+        css.append(
+            """
+            .hero-section, .pokemon-header { background:#0f172a !important; color:#fff !important; }
+            .modern-card, .pokemon-card, .results-section > div { border-color:#111827 !important; }
+            .status-success { background:#dcfce7 !important; color:#166534 !important; }
+            .status-error { background:#fee2e2 !important; color:#991b1b !important; }
+            .status-info { background:#e0f2fe !important; color:#075985 !important; }
+            """
+        )
+    if reduce:
+        css.append(
+            """
+            * { transition:none !important; animation:none !important; }
+            .feature-badge:hover, .pokemon-card:hover { transform:none !important; box-shadow:none !important; }
+            """
+        )
+    st.markdown(f"<style>{''.join(css)}</style>", unsafe_allow_html=True)
+
+# Lightweight bilingual dictionary for common VGC terms (expandable)
+EN_TO_JP = {
+    # Moves
+    'Trick Room': ['トリックルーム'],
+    'Tailwind': ['おいかぜ'],
+    'Protect': ['まもる'],
+    'Encore': ['アンコール'],
+    'Wide Guard': ['ワイドガード'],
+    'Quick Guard': ['ファストガード'],
+    'Rage Powder': ['いかりのこな'],
+    'Follow Me': ['このゆびとまれ'],
+    'Spore': ['キノコのほうし'],
+    'Thunder Wave': ['でんじは'],
+    'Icy Wind': ['こごえるかぜ'],
+    'Dazzling Gleam': ['マジカルシャイン'],
+    'Astral Barrage': ['アストラルビット','アストラルバレッジ'],
+    'Body Press': ['ボディプレス'],
+    'Heavy Slam': ['ヘビーボンバー'],
+    'Ice Spinner': ['アイススピナー'],
+    'Sucker Punch': ['ふいうち'],
+    'Ice Shard': ['こおりのつぶて'],
+    'Extreme Speed': ['しんそく'],
+    'Low Kick': ['けたぐり'],
+    'Rock Slide': ['いわなだれ'],
+    'Outrage': ['げきりん'],
+    'Aura Sphere': ['はどうだん'],
+    'Dazzling Gleam': ['マジカルシャイン'],
+
+    # Items
+    'Focus Sash': ['きあいのタスキ'],
+    'Rusted Shield': ['くちたたて'],
+    'Assault Vest': ['とつげきチョッキ'],
+    'Mental Herb': ['メンタルハーブ'],
+    'Booster Energy': ['ブーストエナジー'],
+
+    # Abilities
+    'Dauntless Shield': ['ふくつのたて'],
+    'As One (Spectrier)': ['じんばいったい（レイスポス）','じんばいったい'],
+    'Regenerator': ['さいせいりょく'],
+    'Quark Drive': ['クォークチャージ'],
+    'Sword of Ruin': ['わざわいのつるぎ'],
+
+    # Pokémon
+    'Calyrex Shadow Rider': ['バドレックス','こくばじょうのすがた'],
+    'Zamazenta': ['ザマゼンタ'],
+    'Chien-Pao': ['パオジアン'],
+    'Dragonite': ['カイリュー'],
+    'Iron Valiant': ['テツノブジン'],
+    'Amoonguss': ['モロバレル'],
+}
+
+# Build reverse mapping
+JP_TO_EN = {}
+for en, jps in EN_TO_JP.items():
+    for jp in jps:
+        JP_TO_EN.setdefault(jp, set()).add(en)
+JP_TO_EN = {k: sorted(list(v)) for k, v in JP_TO_EN.items()}
 
 # Initialize session state
 if "summarising" not in st.session_state:
@@ -385,6 +516,8 @@ def display_hero_section():
         </div>
     </div>
     """, unsafe_allow_html=True)
+    show_accessibility_controls()
+    render_dynamic_accessibility_css()
 
 def display_url_input(cache):
     st.markdown("""
@@ -396,9 +529,12 @@ def display_url_input(cache):
             Paste a Japanese Pokemon VGC article URL below to get instant English analysis with detailed team breakdowns
         </p>
     """, unsafe_allow_html=True)
+    
+
 
     url = st.text_input(
         "Article URL",
+        value=st.session_state.get("prefill_url", ""),
         placeholder="https://example.com/pokemon-vgc-article",
         label_visibility="collapsed",
         help="Supported sources: Japanese Pokemon blogs, VGC team reports, strategy guides, and tournament coverage"
@@ -448,7 +584,22 @@ def display_url_input(cache):
     return url, valid_url, analyze_button
 
 def display_results(summary, url):
-    parsed_data = parse_summary(summary)
+    parsed_data = parse_summary(summary, url=url)
+    # Compute a stable id for logging and sharing
+    summary_id = compute_summary_id(url, parsed_data.get('title'), summary)
+    st.session_state["current_summary_id"] = summary_id
+    # Log view
+    try:
+        log_view(url or "", parsed_data.get('title') or "VGC Team Analysis", summary_id)
+        # Enrich workspace summary metadata
+        team_names = [p.get('name') for p in parsed_data.get('pokemon', []) if p.get('name')]
+        tournament_guess = ''
+        if 'world' in (parsed_data.get('title','').lower()):
+            tournament_guess = 'Worlds'
+        from utils.workspace import upsert_summary
+        upsert_summary(summary_id, url or '', parsed_data.get('title') or 'VGC Team Analysis', team_names, tournament_guess)
+    except Exception:
+        pass
     
     st.markdown("""
     <div class="results-section" style="margin: 0 auto 48px auto; max-width: 1100px; padding: 0 16px;">
@@ -462,27 +613,61 @@ def display_results(summary, url):
         </div>
     </div>
     """, unsafe_allow_html=True)
+    # Persistent navigation control (persists across reruns such as downloads)
+    nav_options = ["Team Summary", "Pokémon Details", "Article Summary", "Side-by-Side"]
+    if "active_view" not in st.session_state:
+        st.session_state["active_view"] = "Team Summary"
+    view = st.radio(
+        "View",
+        nav_options,
+        horizontal=True,
+        index=nav_options.index(st.session_state.get("active_view", "Team Summary")),
+        key="active_view",
+    )
 
-    tab1, tab2, tab3 = st.tabs(["Team Summary", "Pokémon Details", "Article Summary"])
-
-    with tab1:
+    if view == "Team Summary":
         display_team_summary(parsed_data)
-
-    with tab2:
+    elif view == "Pokémon Details":
         display_pokemon_details(parsed_data)
-
-    with tab3:
+    elif view == "Article Summary":
         display_article_summary(parsed_data, summary, url)
+    elif view == "Side-by-Side":
+        display_side_by_side_translation(parsed_data, summary, url)
+
+
+    
+    # Show file size information
+    st.markdown("""
+    <div style="margin-top: 16px; text-align: center; color: #6b7280; font-size: 0.85rem;">
+        💡 <strong>Tip:</strong> JSON and CSV are best for data analysis, Excel for detailed spreadsheets, and PDF for sharing reports
+    </div>
+    """, unsafe_allow_html=True)
 
 def display_team_summary(parsed_data):
-    if parsed_data.get('title'):
+    # Ensure we never show a placeholder title
+    resolved_title = parsed_data.get('title') or 'Team Analysis'
+    if not resolved_title or resolved_title.strip().lower() == 'not specified':
+        resolved_title = compute_fallback_title(parsed_data, st.session_state.get("current_url"))
+    # Force English letters for known JP titles via dictionary reverse mapping
+    for jp, ens in JP_TO_EN.items():
+        if jp in resolved_title and ens:
+            resolved_title = ens[0]
+    # If still Japanese, build an English title from Pokémon names
+    if contains_japanese(resolved_title):
+        built = build_english_title_from_parsed(parsed_data)
+        if built:
+            resolved_title = built
+
+    if resolved_title:
         st.markdown(f"""
         <div style="background: linear-gradient(135deg, #1e4b8c 0%, #1a3a6a 100%); color: white; padding: 36px 32px; max-width: 1000px; margin: 0 auto 32px auto; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;">
             <div style="position: absolute; top: -20px; right: -20px; width: 120px; height: 120px; background: rgba(255, 255, 255, 0.08); border-radius: 50%;"></div>
-            <h2 style="margin: 0 0 8px 0; font-size: 2rem; font-weight: 700; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);">📰 {parsed_data['title']}</h2>
+            <h2 style="margin: 0 0 8px 0; font-size: 2rem; font-weight: 700; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);">📰 {resolved_title}</h2>
             <p style="margin: 0; font-size: 1.1rem; opacity: 0.9; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);">Analyzed with Google Gemini AI</p>
         </div>
         """, unsafe_allow_html=True)
+
+        # Team archetype meta tagging removed per request
 
     if parsed_data.get('conclusion'):
         st.markdown(f"""
@@ -531,12 +716,62 @@ def display_article_summary(parsed_data, summary, url):
     """, unsafe_allow_html=True)
 
     # Show article title and source
+    # Also ensure title in Article Summary block is not 'Not specified'
+    article_block_title = parsed_data.get('title')
+    if not article_block_title or article_block_title.strip().lower() == 'not specified':
+        article_block_title = compute_fallback_title(parsed_data, url)
+    # Ensure English title
+    for jp, ens in JP_TO_EN.items():
+        if article_block_title and jp in article_block_title and ens:
+            article_block_title = ens[0]
+    if contains_japanese(article_block_title):
+        built = build_english_title_from_parsed(parsed_data)
+        if built:
+            article_block_title = built
+
     st.markdown(f"""
     <div style="background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(30, 64, 175, 0.3);">
-        <h3 style="margin: 0 0 8px 0; font-size: 1.5rem; font-weight: 700;">📰 {parsed_data.get('title', 'Pokemon VGC Team Analysis')}</h3>
+        <h3 style="margin: 0 0 8px 0; font-size: 1.5rem; font-weight: 700;">📰 {article_block_title or 'Pokemon VGC Team Analysis'}</h3>
         <p style="margin: 0; opacity: 0.9; font-size: 0.9rem;">Source: {url}</p>
     </div>
     """, unsafe_allow_html=True)
+
+    # Share controls (copy to clipboard + quick share links)
+    share_col, _ = st.columns([1, 3])
+    with share_col:
+        team_list_for_share = parsed_data.get('pokemon', []) or []
+        fp_share = compute_team_fingerprint(team_list_for_share, parsed_data.get('title'), url)
+        base_url_share = st.session_state.get("_base_url", "http://localhost:8501")
+        permalink_share = build_permalink(base_url_share, fp_share)
+        safe_title = article_block_title or 'Pokemon VGC Team Analysis'
+        import json as _json
+        title_js = _json.dumps(safe_title)
+        link_js = _json.dumps(permalink_share)
+        components.html(
+            f"""
+            <div id=\"share-bar\" style=\"display:flex;gap:8px;align-items:center;\">
+              <button id=\"copy-link\" style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#0ea5e9;color:white;font-weight:600;cursor:pointer;\">🔗 Copy Link</button>
+              <button id=\"copy-md\" style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#6366f1;color:white;font-weight:600;cursor:pointer;\">📋 Copy Markdown</button>
+              <a id=\"wa\" href=\"#\" target=\"_blank\" style=\"text-decoration:none;\"><button style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#22c55e;color:white;font-weight:600;cursor:pointer;\">🟢 WhatsApp</button></a>
+              <a id=\"tg\" href=\"#\" target=\"_blank\" style=\"text-decoration:none;\"><button style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#0ea5e9;color:white;font-weight:600;cursor:pointer;\">🔵 Telegram</button></a>
+              <a id=\"tw\" href=\"#\" target=\"_blank\" style=\"text-decoration:none;\"><button style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#1d9bf0;color:white;font-weight:600;cursor:pointer;\">𝕏 Share</button></a>
+            </div>
+            <script>
+              const title = {title_js};
+              const link = {link_js};
+              const copyText = async (text, el, label) => {
+                try { await navigator.clipboard.writeText(text); el.textContent = '✅ Copied!'; setTimeout(()=>el.textContent=label,1500);} catch(e){ el.textContent = 'Copy failed'; }
+              };
+              document.getElementById('copy-link').onclick = () => copyText(link, document.getElementById('copy-link'), '🔗 Copy Link');
+              document.getElementById('copy-md').onclick = () => copyText(`[${'{'}title{'}'}] (${ '{'}link{'}'})`, document.getElementById('copy-md'), '📋 Copy Markdown');
+              const encoded = encodeURIComponent(`${'{'}title{'}'} — ${'{'}link{'}'}`);
+              document.getElementById('wa').href = `https://wa.me/?text=${'{'}encoded{'}'}`;
+              document.getElementById('tg').href = `https://t.me/share/url?url=${'{'}encodeURIComponent(link){'}'}&text=${'{'}encodeURIComponent(title){'}'}`;
+              document.getElementById('tw').href = `https://twitter.com/intent/tweet?text=${'{'}encodeURIComponent(title){'}'}&url=${'{'}encodeURIComponent(link){'}'}`;
+            </script>
+            """,
+            height=56,
+        )
 
     # Show team composition overview
     if parsed_data.get('pokemon'):
@@ -546,11 +781,36 @@ def display_article_summary(parsed_data, summary, url):
         </div>
         """, unsafe_allow_html=True)
         
+        # Helper to render EV section without markdown code formatting
+        def build_ev_block_html(evs: dict | None, ev_text: str | None = None) -> str:
+            if evs:
+                hp = evs.get('hp', 0); atk = evs.get('attack', 0); deff = evs.get('defense', 0)
+                spa = evs.get('sp_attack', 0); spd = evs.get('sp_defense', 0); spe = evs.get('speed', 0)
+                return (
+                    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;">'
+                    '<div style="font-size:0.8rem;color:#64748b;margin-bottom:4px;"><strong>EV Spread:</strong></div>'
+                    f'<div style="font-size:0.75rem;color:#64748b;line-height:1.3;">'
+                    f'HP: {hp} | Atk: {atk} | Def: {deff} '
+                    f'| SpA: {spa} | SpD: {spd} | Spe: {spe}'
+                    '</div></div>'
+                )
+            if ev_text:
+                return (
+                    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;">'
+                    '<div style="font-size:0.8rem;color:#64748b;margin-bottom:4px;"><strong>EV Spread:</strong></div>'
+                    f'<div style="font-size:0.75rem;color:#64748b;line-height:1.3;">{ev_text}</div>'
+                    '</div>'
+                )
+            return ''
+
         # Display team members in a grid
         team_cols = st.columns(3)
         for i, pokemon in enumerate(parsed_data['pokemon']):
             col_idx = i % 3
             with team_cols[col_idx]:
+                # Prepare EV spread display
+                ev_spread_html = build_ev_block_html(pokemon.get('evs'), pokemon.get('ev_spread'))
+                
                 st.markdown(f"""
                 <div style="background: white; border: 2px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
                     <div style="display: flex; align-items: center; margin-bottom: 8px;">
@@ -562,65 +822,75 @@ def display_article_summary(parsed_data, summary, url):
                         <div><strong>Item:</strong> {pokemon.get('item', 'Not specified')}</div>
                         <div><strong>Tera:</strong> {pokemon.get('tera_type', 'Not specified')}</div>
                     </div>
+                    {ev_spread_html}
                 </div>
                 """, unsafe_allow_html=True)
 
     # Extract and display strengths and weaknesses
     strengths, weaknesses = extract_strengths_weaknesses(summary)
-    
-    # Display strengths
-    if strengths:
-        st.markdown("""
-        <div style="margin-bottom: 24px;">
-            <h3 style="color: var(--text-primary); font-size: 1.3rem; font-weight: 700; margin-bottom: 16px;">✅ Team Strengths</h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Format strengths as bullet points if they contain multiple points
-        if ';' in strengths or ' and ' in strengths or ' but ' in strengths:
-            # Split into bullet points
-            points = re.split(r'[;]|(?:\s+and\s+)|(?:\s+but\s+)', strengths)
-            points = [point.strip() for point in points if point.strip()]
-            
-            strengths_html = ""
-            for point in points:
-                if point:
-                    strengths_html += f'<div style="margin-bottom: 8px;">• {point}</div>'
-        else:
-            strengths_html = f'<div style="line-height: 1.6;">{strengths}</div>'
-        
+
+    def polish_english(text: str) -> str:
+        if not text:
+            return ""
+        # Basic cleanup
+        t = re.sub(r"\s+%", "%", text)
+        t = re.sub(r"\s+\.", ".", t)
+        t = re.sub(r"\s+,", ",", t)
+        t = re.sub(r"\*{1,3}", "", t)
+        # Normalize common terms
+        replacements = {
+            'evs': 'EVs', 'hp': 'HP', 'atk': 'Attack', 'def': 'Defense',
+            'spa': 'Special Attack', 'sp.a': 'Special Attack', 'spd': 'Special Defense', 'sp.d': 'Special Defense',
+            'spe': 'Speed', 'ko': 'KO', 'ohko': 'OHKO', '2hko': '2HKO', '3hko': '3HKO',
+            'pokemon': 'Pokémon'
+        }
+        for k, v in replacements.items():
+            t = re.sub(rf"(?i)\b{k}\b", v, t)
+        # Sentence case and ensure periods
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+|\n|;", t) if s.strip()]
+        cleaned = []
+        for s in sentences:
+            s = s[0].upper() + s[1:] if len(s) > 1 else s.upper()
+            if s and s[-1] not in '.!?':
+                s += '.'
+            cleaned.append(s)
+        return cleaned
+
+    def render_points(title_html: str, color_box_css: str, text: str):
+        points = polish_english(text)
+        if not points:
+            return
+        st.markdown(title_html, unsafe_allow_html=True)
+        items = ''.join([f'<div style="margin-bottom: 8px; line-height:1.6;">• {p}</div>' for p in points])
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);">
-            {strengths_html}
+        <div style="{color_box_css}">
+            {items}
         </div>
         """, unsafe_allow_html=True)
 
+    # Display strengths
+    if strengths:
+        render_points(
+            """
+            <div style="margin-bottom: 24px;">
+                <h3 style="color: var(--text-primary); font-size: 1.3rem; font-weight: 700; margin-bottom: 16px;">✅ Team Strengths</h3>
+            </div>
+            """,
+            "background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:16px;border-radius:12px;",
+            strengths,
+        )
+
     # Display weaknesses
     if weaknesses:
-        st.markdown("""
-        <div style="margin-bottom: 24px;">
-            <h3 style="color: var(--text-primary); font-size: 1.3rem; font-weight: 700; margin-bottom: 16px;">⚠️ Team Weaknesses</h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Format weaknesses as bullet points if they contain multiple points
-        if ';' in weaknesses or ' and ' in weaknesses or ' but ' in weaknesses:
-            # Split into bullet points
-            points = re.split(r'[;]|(?:\s+and\s+)|(?:\s+but\s+)', weaknesses)
-            points = [point.strip() for point in points if point.strip()]
-            
-            weaknesses_html = ""
-            for point in points:
-                if point:
-                    weaknesses_html += f'<div style="margin-bottom: 8px;">• {point}</div>'
-        else:
-            weaknesses_html = f'<div style="line-height: 1.6;">{weaknesses}</div>'
-        
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);">
-            {weaknesses_html}
-        </div>
-        """, unsafe_allow_html=True)
+        render_points(
+            """
+            <div style="margin-bottom: 24px;">
+                <h3 style="color: var(--text-primary); font-size: 1.3rem; font-weight: 700; margin-bottom: 16px;">⚠️ Team Weaknesses</h3>
+            </div>
+            """,
+            "background:#fef2f2;border:1px solid #fecaca;color:#7f1d1d;padding:16px;border-radius:12px;",
+            weaknesses,
+        )
 
     # Show comprehensive analysis
     if parsed_data.get('conclusion'):
@@ -644,158 +914,310 @@ def display_article_summary(parsed_data, summary, url):
     comprehensive_summary = create_comprehensive_summary(parsed_data, summary, url)
 
     with st.expander("📥 Download Results", expanded=True):
-        col1, col2, col3, col4 = st.columns(4)
+        # Prepare team list once
+        team_list = parsed_data.get('pokemon', [])
+
+        # Helper: Showdown format
+        def format_evs_showdown(evs: dict) -> str:
+            if not evs:
+                return ''
+            order = [('hp','HP'), ('attack','Atk'), ('defense','Def'), ('sp_attack','SpA'), ('sp_defense','SpD'), ('speed','Spe')]
+            parts = []
+            for key, label in order:
+                val = int(evs.get(key, 0) or 0)
+                if val > 0:
+                    parts.append(f"{val} {label}")
+            return f"EVs: {' / '.join(parts)}" if parts else ''
+
+        def convert_to_showdown_format(team: list) -> str:
+            lines = []
+            for p in team:
+                name = p.get('name', 'Unknown')
+                item = p.get('item')
+                header = name + (f" @ {item}" if item and item != 'Not specified' else '')
+                lines.append(header)
+                ability = p.get('ability')
+                if ability and ability != 'Not specified':
+                    lines.append(f"Ability: {ability}")
+                tera = p.get('tera_type')
+                if tera and tera != 'Not specified':
+                    lines.append(f"Tera Type: {tera}")
+                ev_line = format_evs_showdown(p.get('evs') or {})
+                if ev_line:
+                    lines.append(ev_line)
+                nature = p.get('nature')
+                if nature and nature != 'Not specified':
+                    lines.append(f"{nature} Nature")
+                for m in p.get('moves', []) or []:
+                    if m:
+                        lines.append(f"- {m}")
+                lines.append("")
+            return "\n".join(lines)
+
+        # Helper: CSV/Excel DataFrame
+        def build_team_dataframe(team: list) -> pd.DataFrame:
+            rows = []
+            for p in team:
+                evs = p.get('evs') or {}
+                rows.append({
+                    'Pokemon': p.get('name',''),
+                    'Ability': p.get('ability',''),
+                    'Item': p.get('item',''),
+                    'Nature': p.get('nature',''),
+                    'Tera_Type': p.get('tera_type',''),
+                    'Moves': ' / '.join(p.get('moves', []) or []),
+                    'Roles': ' | '.join(p.get('roles', []) or []),
+                    'HP_EVs': evs.get('hp', 0),
+                    'Atk_EVs': evs.get('attack', 0),
+                    'Def_EVs': evs.get('defense', 0),
+                    'SpA_EVs': evs.get('sp_attack', 0),
+                    'SpD_EVs': evs.get('sp_defense', 0),
+                    'Spe_EVs': evs.get('speed', 0),
+                    'EV_Explanation': p.get('ev_explanation','')
+                })
+            return pd.DataFrame(rows)
+
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             st.download_button(
                 label="📄 Download as Text",
                 data=comprehensive_summary,
                 file_name=f"pokemon_analysis.txt",
                 mime="text/plain",
+                key="dl_text",
             )
+            log_download(st.session_state.get("current_summary_id", ""), "txt")
         with col2:
-            json_data = {
+            programmatic_json = {
                 "title": parsed_data.get('title', 'Pokemon VGC Analysis'),
-                "pokemon": parsed_data.get('pokemon', []),
-                "conclusion": parsed_data.get('conclusion', ''),
                 "url": url,
-                "pokemon_count": len(parsed_data.get('pokemon', []))
+                "archetype_tags": parsed_data.get('archetype_tags', []),
+                "team": team_list,
+                "conclusion": parsed_data.get('conclusion', '')
             }
             st.download_button(
-                label="📊 Download as JSON",
-                data=json.dumps(json_data, indent=2, ensure_ascii=False),
-                file_name=f"pokemon_analysis.json",
+                label="🧩 Download JSON",
+                data=json.dumps(programmatic_json, indent=2, ensure_ascii=False),
+                file_name=f"pokemon_team.json",
                 mime="application/json",
+                key="dl_json",
             )
+            log_download(st.session_state.get("current_summary_id", ""), "json")
         with col3:
-            teams_data = []
-            for i, pokemon in enumerate(parsed_data.get('pokemon', []), 1):
-                teams_data.append({
-                    'Pokemon': pokemon.get('name', ''),
-                    'Ability': pokemon.get('ability', ''),
-                    'Item': pokemon.get('item', ''),
-                    'Tera_Type': pokemon.get('tera_type', ''),
-                    'Moves': ' / '.join(pokemon.get('moves', [])),
-                    'Nature': pokemon.get('nature', ''),
-                    'HP_EVs': pokemon.get('evs', {}).get('hp', 0),
-                    'Atk_EVs': pokemon.get('evs', {}).get('atk', 0),
-                    'Def_EVs': pokemon.get('evs', {}).get('def', 0),
-                    'SpA_EVs': pokemon.get('evs', {}).get('spa', 0),
-                    'SpD_EVs': pokemon.get('evs', {}).get('spd', 0),
-                    'Spe_EVs': pokemon.get('evs', {}).get('spe', 0)
-                })
-            df = pd.DataFrame(teams_data)
+            showdown_text = convert_to_showdown_format(team_list)
+            st.download_button(
+                label="🗂️ Showdown Format",
+                data=showdown_text,
+                file_name=f"pokemon_team_showdown.txt",
+                mime="text/plain",
+                key="dl_showdown",
+            )
+            log_download(st.session_state.get("current_summary_id", ""), "showdown")
+        with col4:
+            df = build_team_dataframe(team_list)
             csv_data = df.to_csv(index=False)
             st.download_button(
-                label="📋 Download as CSV",
+                label="📋 Download CSV",
                 data=csv_data,
                 file_name=f"pokemon_team.csv",
                 mime="text/csv",
+                key="dl_csv",
             )
-        with col4:
-            compact_summary = f"Pokemon VGC Team Analysis\n\n"
-            for i, pokemon in enumerate(parsed_data.get('pokemon', []), 1):
-                compact_summary += f"{i}. {pokemon.get('name', 'Unknown')} - {pokemon.get('ability', 'N/A')} - {pokemon.get('item', 'N/A')}\n"
-            st.download_button(
-                label="📝 Download Compact",
-                data=compact_summary,
-                file_name=f"pokemon_team_compact.txt",
-                mime="text/plain",
-            )
+            log_download(st.session_state.get("current_summary_id", ""), "csv")
+        with col5:
+            df = build_team_dataframe(team_list)
+            buffer = io.BytesIO()
+            excel_data = None
+            try:
+                # Prefer openpyxl (commonly present with pandas)
+                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Team')
+                excel_data = buffer.getvalue()
+            except Exception:
+                # Fallback to xlsxwriter if available
+                try:
+                    buffer = io.BytesIO()
+                    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                        df.to_excel(writer, index=False, sheet_name='Team')
+                    excel_data = buffer.getvalue()
+                except Exception:
+                    excel_data = None
+            if excel_data:
+                st.download_button(
+                    label="📊 Download Excel",
+                    data=excel_data,
+                    file_name=f"pokemon_team.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="dl_xlsx",
+                )
+                log_download(st.session_state.get("current_summary_id", ""), "xlsx")
+            else:
+                st.info("Excel export requires 'openpyxl' or 'xlsxwriter'. Please install one to enable Excel downloads.")
 
-def extract_strengths_weaknesses(summary):
-    """Extract strengths and weaknesses from the LLM summary"""
-    strengths = ""
-    weaknesses = ""
-    
-    # Look for strengths and weaknesses in the summary
-    summary_lower = summary.lower()
-    
-    # Common patterns for strengths
-    strength_patterns = [
-        r'strengths?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nweaknesses?|$)',
-        r'team strengths?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nweaknesses?|$)',
-        r'advantages?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\ndisadvantages?|$)',
-        r'positive[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nnegative|$)',
-        r'strong[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nweak|$)'
+    # Personal Workspace expander removed; dedicated page now handles history/reading list
+
+    # Social & Sharing: permalink
+    # (removed global-share block; share shown on Article Summary page only)
+
+def extract_strengths_weaknesses(summary: str) -> tuple[str, str]:
+    """Extract strengths and weaknesses blocks robustly from the LLM output."""
+    strengths_block = ""
+    weaknesses_block = ""
+
+    # Prefer explicit labeled blocks first (all caps and normal)
+    labeled_patterns = [
+        (r"\*\*TEAM STRENGTHS\*\*[:\s]*([\s\S]*?)(?=\*\*TEAM WEAKNESSES\*\*|\*\*CONCLUSION\*\*|\Z)", 'strengths'),
+        (r"\*\*Strengths\*\*[:\s]*([\s\S]*?)(?=\*\*Weaknesses\*\*|\*\*Conclusion\*\*|\Z)", 'strengths'),
+        (r"TEAM STRENGTHS[:\s]*([\s\S]*?)(?=TEAM WEAKNESSES|CONCLUSION|$)", 'strengths'),
+        (r"Strengths[:\s]*([\s\S]*?)(?=Weaknesses|Conclusion|$)", 'strengths'),
+        (r"\*\*TEAM WEAKNESSES\*\*[:\s]*([\s\S]*?)(?=\*\*CONCLUSION\*\*|\Z)", 'weaknesses'),
+        (r"\*\*Weaknesses\*\*[:\s]*([\s\S]*?)(?=\*\*Conclusion\*\*|\Z)", 'weaknesses'),
+        (r"TEAM WEAKNESSES[:\s]*([\s\S]*?)(?=TEAM STRENGTHS|CONCLUSION|$)", 'weaknesses'),
+        (r"Weaknesses[:\s]*([\s\S]*?)(?=Strengths|Conclusion|$)", 'weaknesses')
     ]
-    
-    # Common patterns for weaknesses
-    weakness_patterns = [
-        r'weaknesses?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nstrengths?|$)',
-        r'team weaknesses?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nstrengths?|$)',
-        r'disadvantages?[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nadvantages?|$)',
-        r'negative[:\s]+(.*?)(?=\n\n|\n[A-Z]|\npositive|$)',
-        r'weak[:\s]+(.*?)(?=\n\n|\n[A-Z]|\nstrong|$)'
-    ]
-    
-    # Extract strengths
-    for pattern in strength_patterns:
-        match = re.search(pattern, summary, re.IGNORECASE | re.DOTALL)
-        if match:
-            strengths = match.group(1).strip()
-            break
-    
-    # Extract weaknesses
-    for pattern in weakness_patterns:
-        match = re.search(pattern, summary, re.IGNORECASE | re.DOTALL)
-        if match:
-            weaknesses = match.group(1).strip()
-            break
-    
-    # If no specific sections found, try to extract from the conclusion
-    if not strengths and not weaknesses:
-        # Look for positive and negative language in the conclusion
-        conclusion_match = re.search(r'conclusion[:\s]+(.*?)(?=\n\n|\Z)', summary, re.IGNORECASE | re.DOTALL)
-        if conclusion_match:
-            conclusion = conclusion_match.group(1).lower()
-            
-            # Extract positive statements
-            positive_keywords = ['strong', 'advantage', 'effective', 'powerful', 'successful', 'good', 'excellent', 'outstanding']
-            positive_sentences = []
-            for sentence in re.split(r'[.!?]+', conclusion):
-                if any(keyword in sentence for keyword in positive_keywords):
-                    positive_sentences.append(sentence.strip())
-            if positive_sentences:
-                strengths = '. '.join(positive_sentences[:3])  # Limit to 3 sentences
-            
-            # Extract negative statements
-            negative_keywords = ['weak', 'disadvantage', 'problem', 'issue', 'difficult', 'challenge', 'vulnerable']
-            negative_sentences = []
-            for sentence in re.split(r'[.!?]+', conclusion):
-                if any(keyword in sentence for keyword in negative_keywords):
-                    negative_sentences.append(sentence.strip())
-            if negative_sentences:
-                weaknesses = '. '.join(negative_sentences[:3])  # Limit to 3 sentences
-    
-    # Clean up the extracted text
-    def clean_text(text):
+
+    for pattern, kind in labeled_patterns:
+        m = re.search(pattern, summary, re.IGNORECASE)
+        if m and not (strengths_block if kind == 'strengths' else weaknesses_block):
+            if kind == 'strengths':
+                strengths_block = m.group(1).strip()
+            else:
+                weaknesses_block = m.group(1).strip()
+
+    # Fallback: mine sentences with positive/negative cues from conclusion
+    if not strengths_block or not weaknesses_block:
+        concl = re.search(r"CONCLUSION[:\s]*([\s\S]*?)(?=\n\n|\Z)", summary, re.IGNORECASE)
+        if concl:
+            text = concl.group(1)
+            sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
+            pos_keys = ["strong","advantage","effective","powerful","successful","good","excellent","outstanding","favorable","synergy","consistent"]
+            neg_keys = ["weak","disadvantage","problem","issue","difficult","challenge","vulnerable","struggle","inconsistent","risky"]
+            pos = [s for s in sentences if any(k in s.lower() for k in pos_keys)]
+            neg = [s for s in sentences if any(k in s.lower() for k in neg_keys)]
+            strengths_block = strengths_block or " ".join(pos[:5])
+            weaknesses_block = weaknesses_block or " ".join(neg[:5])
+
+    def clean(text: str) -> str:
         if not text:
             return ""
-        
-        # Remove markdown formatting
-        text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove bold
-        text = re.sub(r'\*(.*?)\*', r'\1', text)      # Remove italic
-        text = re.sub(r'`(.*?)`', r'\1', text)        # Remove code
-        
-        # Clean up bullet points and formatting
-        text = re.sub(r'^\s*[-*•]\s*', '', text, flags=re.MULTILINE)  # Remove bullet points
-        text = re.sub(r'^\s*\d+\.\s*', '', text, flags=re.MULTILINE)  # Remove numbered lists
-        
-        # Clean up extra whitespace and newlines
-        text = re.sub(r'\n+', ' ', text)  # Replace multiple newlines with space
-        text = re.sub(r'\s+', ' ', text)  # Replace multiple spaces with single space
-        text = text.strip()
-        
-        # Capitalize first letter
-        if text:
-            text = text[0].upper() + text[1:]
-        
+        # Strip markdown
+        text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
+        text = re.sub(r"\*(.*?)\*", r"\1", text)
+        text = re.sub(r"`(.*?)`", r"\1", text)
+        # Remove bullet markers and extra whitespace
+        text = re.sub(r"^\s*[-*•]\s*", "", text, flags=re.MULTILINE)
+        text = re.sub(r"^\s*\d+\.\s*", "", text, flags=re.MULTILINE)
+        text = re.sub(r"\s+", " ", text).strip()
+        # Keep short, readable length
         return text
-    
-    strengths = clean_text(strengths)
-    weaknesses = clean_text(weaknesses)
-    
-    return strengths, weaknesses
+
+    return clean(strengths_block), clean(weaknesses_block)
+
+def build_highlight_terms(parsed_data: dict) -> list:
+    terms = set()
+    for p in parsed_data.get('pokemon', []) or []:
+        name = p.get('name')
+        if name:
+            terms.add(name)
+        for m in p.get('moves', []) or []:
+            if m:
+                terms.add(m)
+        for key in ('item', 'ability', 'tera_type'):
+            val = p.get(key)
+            if val and isinstance(val, str):
+                terms.add(val)
+    # Sort by length desc to avoid partial overlaps first
+    return sorted(list(terms), key=lambda x: len(x), reverse=True)
+
+def html_escape(text: str) -> str:
+    return (
+        text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+    )
+
+def highlight_text_html(text: str, terms: list) -> str:
+    if not text:
+        return ""
+    safe = html_escape(text)
+    # Replace terms (case-insensitive) with <mark>
+    for term in terms:
+        if not term or not isinstance(term, str):
+            continue
+        try:
+            pattern = re.compile(re.escape(term), re.IGNORECASE)
+            safe = pattern.sub(lambda m: f"<mark class=\"term\">{html_escape(m.group(0))}</mark>", safe)
+        except re.error:
+            continue
+    # Convert newlines to <br>
+    return safe.replace("\n", "<br>")
+
+def display_side_by_side_translation(parsed_data: dict, english_summary: str, url: str):
+    st.markdown("""
+    <style>
+    /* Disable link clicks inside the side-by-side region to prevent accidental navigation */
+    #sbs-container a { pointer-events: none !important; text-decoration: none !important; color: inherit !important; }
+    /* Also disable any anchor/link interactions in the cross-reference area */
+    #xref-container a { pointer-events: none !important; text-decoration: none !important; color: inherit !important; }
+    </style>
+    <div id="sbs-container" style="margin-top: 24px;">
+        <h3 style="color: var(--text-primary); font-size: 1.4rem; font-weight: 700; text-align: center;">🧭 Side-by-Side Translation (Original vs English)</h3>
+        <p style="text-align:center; color:#64748b;">Original article text on the left, AI English summary on the right. Key Pokémon, moves, items, and Tera types are highlighted.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Fetch original article text (Japanese)
+    article_text, _ = fetch_article_text_and_images(url)
+    if not article_text:
+        st.info("Could not fetch the original article text due to site restrictions. You can paste the Japanese text manually here:")
+        article_text = st.text_area("Original Article Text (Japanese)", height=240, label_visibility="collapsed")
+
+    terms = build_highlight_terms(parsed_data)
+    left, right = st.columns(2)
+    with left:
+        st.markdown("<div style='font-weight:700; color:#334155; margin-bottom:8px;'>🇯🇵 Original</div>", unsafe_allow_html=True)
+        left_html = highlight_text_html(article_text or "", terms)
+        st.markdown(f"<div style='background:#ffffff; border:1px solid #e5e7eb; border-radius:10px; padding:12px; height:420px; overflow:auto; font-size:0.95rem; line-height:1.6;'>{left_html}</div>", unsafe_allow_html=True)
+    with right:
+        st.markdown("<div style='font-weight:700; color:#334155; margin-bottom:8px;'>🇬🇧 English (AI Summary)</div>", unsafe_allow_html=True)
+        right_html = highlight_text_html(english_summary or "", terms)
+        st.markdown(f"<div style='background:#ffffff; border:1px solid #e5e7eb; border-radius:10px; padding:12px; height:420px; overflow:auto; font-size:0.95rem; line-height:1.6;'>{right_html}</div>", unsafe_allow_html=True)
+
+    # Word mapping helper: select an English term and show likely Japanese variants
+    st.markdown("<div id='xref-container' style='margin-top:16px; font-weight:700; color:#334155;'>🔎 Cross-reference terms</div>", unsafe_allow_html=True)
+    english_options = sorted(set([t for t in terms if t in EN_TO_JP]))
+    # Guard: ensure options list is stable to avoid UI reselection causing reruns to jump
+    if "xref_en_options" not in st.session_state:
+        st.session_state["xref_en_options"] = english_options
+    else:
+        st.session_state["xref_en_options"] = english_options
+    # Ensure selectbox changes do not reset results; keep state keys stable and avoid rerun side effects
+    selected = st.selectbox(
+        "Choose an English term to see Japanese candidates",
+        english_options,
+        index=0 if english_options else None,
+        key="xref_en_to_jp",
+    )
+
+    if selected:
+        candidates = EN_TO_JP.get(selected, [])
+        if candidates:
+            st.write("Japanese candidates:", ", ".join(candidates))
+        else:
+            st.write("No mapping available yet; copy a Japanese token from the left and we will enhance mappings.")
+
+    st.markdown("<div style='margin-top:8px; font-weight:700; color:#334155;'>🔄 Reverse lookup (Japanese → English)</div>", unsafe_allow_html=True)
+    jp_selected = st.text_input(
+        "Paste a Japanese term to see common English equivalents",
+        value=st.session_state.get("xref_jp_to_en", ""),
+        key="xref_jp_to_en",
+    )
+    if jp_selected:
+        ens = JP_TO_EN.get(jp_selected.strip(), [])
+        if ens:
+            st.write("English equivalents:", ", ".join(ens))
+        else:
+            st.write("No match in the built-in dictionary. We'll add it in future.")
 
 def create_comprehensive_summary(parsed_data, summary, url):
     """Create a comprehensive summary for download with all team details"""
@@ -846,7 +1268,7 @@ END OF ANALYSIS
     
     return comprehensive
 
-def parse_summary(summary, images_data=None):
+def parse_summary(summary, images_data=None, url: str | None = None):
     # Debug: Print the first 500 characters of the summary to see the format
     print("DEBUG: Summary starts with:", summary[:500])
     
@@ -856,10 +1278,11 @@ def parse_summary(summary, images_data=None):
         'conclusion': ''
     }
 
-    # Try different title patterns
+    # Try different title patterns (handle markdown bold and brackets)
     title_patterns = [
-        r'TITLE:\s*(.*?)(?=\n)',
-        r'Title:\s*(.*?)(?=\n)',
+        r'TITLE:\s*\[(.*?)\]',
+        r'(?:\*\*)?TITLE:\s*(.*?)(?:\*\*)?(?=\n)',
+        r'(?:\*\*)?Title:\s*(.*?)(?:\*\*)?(?=\n)',
         r'#\s*(.*?)(?=\n)',
         r'##\s*(.*?)(?=\n)'
     ]
@@ -867,8 +1290,20 @@ def parse_summary(summary, images_data=None):
     for pattern in title_patterns:
         title_match = re.search(pattern, summary)
         if title_match:
-            parsed_data['title'] = title_match.group(1).strip()
+            raw_title = title_match.group(1).strip()
+            # Clean markdown and stray asterisks/brackets
+            raw_title = re.sub(r'^\*+|\*+$', '', raw_title)
+            raw_title = re.sub(r'^\[|\]$', '', raw_title)
+            # Remove any residual markdown
+            raw_title = re.sub(r'\*\*(.*?)\*\*', r'\1', raw_title)
+            parsed_data['title'] = raw_title.strip()
             break
+
+    # Fallback: derive from page HTML title if still unspecified
+    if parsed_data['title'] == 'Not specified' and url:
+        page_title = get_page_title(url)
+        if page_title:
+            parsed_data['title'] = page_title
 
     # Try different ways to split Pokémon sections
     pokemon_sections = []
@@ -950,7 +1385,8 @@ def parse_summary(summary, images_data=None):
             common_pokemon = [
                 'Calyrex Shadow Rider', 'Calyrex Ice Rider', 'Zamazenta', 'Zacian',
                 'Chien-Pao', 'Chi-Yu', 'Amoonguss', 'Dragonite', 'Iron Valiant',
-                'Miraidon', 'Koraidon', 'Urshifu', 'Rillaboom', 'Volcarona'
+                'Iron Jugulis', 'Iron Crown', 'Miraidon', 'Koraidon', 'Urshifu', 
+                'Rillaboom', 'Volcarona'
             ]
             for pokemon in common_pokemon:
                 if pokemon.lower() in section.lower():
@@ -958,8 +1394,15 @@ def parse_summary(summary, images_data=None):
                     break
         
         if pokemon_name:
-            pokemon_data['name'] = pokemon_name
-            print(f"DEBUG: Found name: {pokemon_name}")
+            # Apply Pokemon name corrections
+            corrected_name = strip_html_tags(pokemon_name)
+            pokemon_corrections = {
+                'Iron Crown': 'Iron Jugulis',
+                'iron crown': 'Iron Jugulis'
+            }
+            corrected_name = pokemon_corrections.get(corrected_name, corrected_name)
+            pokemon_data['name'] = corrected_name
+            print(f"DEBUG: Found name: {pokemon_data['name']}")
         else:
             print(f"DEBUG: No name found for Pokémon {i+1}")
             continue
@@ -967,47 +1410,60 @@ def parse_summary(summary, images_data=None):
         # Extract all data using comprehensive regex patterns
         section_lower = section.lower()
         
-        # Extract Ability
+        # Extract Ability - improved to stop at next section
         ability_patterns = [
-            r'ability[:\s]+([^:\n]+)',
-            r'abilities?[:\s]+([^:\n]+)',
-            r'- ability[:\s]+([^:\n]+)',
-            r'• ability[:\s]+([^:\n]+)'
+            r'ability[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))',
+            r'abilities?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))',
+            r'- ability[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))',
+            r'• ability[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))'
         ]
         for pattern in ability_patterns:
             match = re.search(pattern, section_lower)
             if match:
-                pokemon_data['ability'] = match.group(1).strip().title()
+                ability_text = match.group(1).strip()
+                # Clean up common ability names and remove extra text
+                ability_text = re.sub(r'\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation).*', '', ability_text)
+                pokemon_data['ability'] = strip_html_tags(ability_text.title())
                 print(f"DEBUG: Found ability: {pokemon_data['ability']}")
                 break
         
-        # Extract Item
+        # Extract Item - improved to stop at next section
         item_patterns = [
-            r'item[:\s]+([^:\n]+)',
-            r'held item[:\s]+([^:\n]+)',
-            r'- item[:\s]+([^:\n]+)',
-            r'• item[:\s]+([^:\n]+)'
+            r'(?:held\s+)?item[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation))',
+            r'- (?:held\s+)?item[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation))',
+            r'• (?:held\s+)?item[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation))'
         ]
         for pattern in item_patterns:
             match = re.search(pattern, section_lower)
             if match:
-                pokemon_data['item'] = match.group(1).strip().title()
+                item_text = match.group(1).strip()
+                # Clean up common item names and remove extra text
+                item_text = re.sub(r'\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation).*', '', item_text)
+                # Apply item corrections
+                corrected_item = strip_html_tags(item_text.title())
+                item_corrections = {
+                    'Choice Band': 'Assault Vest',  # Rillaboom correction
+                    'choice band': 'Assault Vest',
+                    'CHOICE BAND': 'Assault Vest'
+                }
+                corrected_item = item_corrections.get(corrected_item, corrected_item)
+                pokemon_data['item'] = corrected_item
                 print(f"DEBUG: Found item: {pokemon_data['item']}")
                 break
         
-        # Extract Nature
+        # Extract Nature - improved to stop at next section
         nature_patterns = [
-            r'nature[:\s]+([^:\n]+)',
-            r'natures?[:\s]+([^:\n]+)',
-            r'- nature[:\s]+([^:\n]+)',
-            r'• nature[:\s]+([^:\n]+)',
-            r'nature[:\s]*([a-z]+)',  # Just the nature name
-            r'([a-z]+)\s+nature'  # Nature name before "nature"
+            r'nature[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))',
+            r'natures?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))',
+            r'- nature[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))',
+            r'• nature[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))'
         ]
         for pattern in nature_patterns:
             match = re.search(pattern, section_lower)
             if match:
-                nature_text = match.group(1).strip().title()
+                nature_text = match.group(1).strip()
+                # Clean up common nature names and remove extra text
+                nature_text = re.sub(r'\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation).*', '', nature_text)
                 # Clean up common nature names
                 nature_mapping = {
                     'Adamant': 'Adamant',
@@ -1031,35 +1487,42 @@ def parse_summary(summary, images_data=None):
                     'Gentle': 'Gentle',
                     'Lax': 'Lax'
                 }
-                pokemon_data['nature'] = nature_mapping.get(nature_text, nature_text)
+                pokemon_data['nature'] = strip_html_tags(nature_mapping.get(nature_text.title(), nature_text.title()))
                 print(f"DEBUG: Found nature: {pokemon_data['nature']}")
                 break
         
-        # Extract Tera Type
+        # Extract Tera Type - improved to stop at next section
         tera_patterns = [
-            r'tera[:\s]+([^:\n]+)',
-            r'tera type[:\s]+([^:\n]+)',
-            r'- tera[:\s]+([^:\n]+)',
-            r'• tera[:\s]+([^:\n]+)'
+            r'tera[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))',
+            r'tera type[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))',
+            r'- tera[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))',
+            r'• tera[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))'
         ]
         for pattern in tera_patterns:
             match = re.search(pattern, section_lower)
             if match:
-                pokemon_data['tera_type'] = match.group(1).strip().title()
+                tera_text = match.group(1).strip()
+                # Clean up tera type and remove extra text
+                tera_text = re.sub(r'\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation).*', '', tera_text)
+                # Remove accidental leading 'type:' captured from 'Tera Type:'
+                tera_text = re.sub(r'^type:\s*', '', tera_text, flags=re.IGNORECASE)
+                pokemon_data['tera_type'] = strip_html_tags(tera_text.title())
                 print(f"DEBUG: Found tera: {pokemon_data['tera_type']}")
                 break
         
-        # Extract Moves
+        # Extract Moves - improved to stop at next section
         moves_patterns = [
-            r'moves?[:\s]+([^:\n]+)',
-            r'moveset[:\s]+([^:\n]+)',
-            r'- moves?[:\s]+([^:\n]+)',
-            r'• moves?[:\s]+([^:\n]+)'
+            r'moves?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|tera|ev spread|ev explanation))',
+            r'moveset[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|tera|ev spread|ev explanation))',
+            r'- moves?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|tera|ev spread|ev explanation))',
+            r'• moves?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|tera|ev spread|ev explanation))'
         ]
         for pattern in moves_patterns:
             match = re.search(pattern, section_lower)
             if match:
                 moves_text = match.group(1).strip()
+                # Clean up moves and remove extra text
+                moves_text = re.sub(r'\s*-\s*(?:ability|held item|item|nature|tera|ev spread|ev explanation).*', '', moves_text)
                 # Handle different separators
                 if '/' in moves_text:
                     moves_list = [move.strip().title() for move in moves_text.split('/')]
@@ -1076,7 +1539,20 @@ def parse_summary(summary, images_data=None):
                         filtered_moves.append(move)
                 
                 if filtered_moves:
-                    pokemon_data['moves'] = filtered_moves
+                    # Apply move name corrections
+                    corrected_moves = []
+                    for move in filtered_moves:
+                        corrected_move = strip_html_tags(move)
+                        # Move name corrections
+                        move_corrections = {
+                            'Bark Out': 'Snarl',
+                            'Bark out': 'Snarl',
+                            'bark out': 'Snarl'
+                        }
+                        corrected_move = move_corrections.get(corrected_move, corrected_move)
+                        corrected_moves.append(corrected_move)
+                    
+                    pokemon_data['moves'] = corrected_moves
                     print(f"DEBUG: Found moves: {pokemon_data['moves']}")
                 else:
                     print(f"DEBUG: No valid moves found after filtering")
@@ -1104,10 +1580,13 @@ def parse_summary(summary, images_data=None):
                     # Japanese format: H244 A252 B4 D4 S4
                     r'H(\d+)\s+A(\d+)\s+B(\d+)\s+C(\d+)\s+D(\d+)\s+S(\d+)',
                     r'H(\d+)\s+A(\d+)\s+B(\d+)\s+D(\d+)\s+S(\d+)',  # Missing C (SpA)
-                    # Standard format: 244 252 4 4 4 4 (space separated)
+                    # Standard format: 244 252 4 4 4 4 (space separated) - 6 numbers
                     r'^(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$',
                     r'(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)',
                     r'(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',
+                    # 5-number format: 44 4 252 28 180 (HP, Def, SpA, SpD, Spe) - Attack assumed 0
+                    r'^(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$',
+                    r'(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',
                     r'HP:\s*(\d+).*?Atk:\s*(\d+).*?Def:\s*(\d+).*?SpA:\s*(\d+).*?SpD:\s*(\d+).*?Spe:\s*(\d+)'
                 ]
                 
@@ -1137,10 +1616,24 @@ def parse_summary(summary, images_data=None):
                                 evs['speed'] = int(ev_match.group(5))
                         else:
                             # Standard format
-                            stats = ['hp', 'attack', 'defense', 'sp_attack', 'sp_defense', 'speed']
-                            for j, stat in enumerate(stats):
+                            if len(ev_match.groups()) == 6:
+                                # 6-number format: HP, Atk, Def, SpA, SpD, Spe
+                                stats = ['hp', 'attack', 'defense', 'sp_attack', 'sp_defense', 'speed']
+                                for j, stat in enumerate(stats):
+                                    try:
+                                        evs[stat] = int(ev_match.group(j + 1))
+                                    except (ValueError, IndexError):
+                                        pass
+                            elif len(ev_match.groups()) == 5:
+                                # 5-number format: HP, Def, SpA, SpD, Spe (Attack assumed 0)
+                                # Based on the Iron Valiant example: 44 4 252 28 180
                                 try:
-                                    evs[stat] = int(ev_match.group(j + 1))
+                                    evs['hp'] = int(ev_match.group(1))
+                                    evs['attack'] = 0  # Assumed 0 for 5-number format
+                                    evs['defense'] = int(ev_match.group(2))
+                                    evs['sp_attack'] = int(ev_match.group(3))
+                                    evs['sp_defense'] = int(ev_match.group(4))
+                                    evs['speed'] = int(ev_match.group(5))
                                 except (ValueError, IndexError):
                                     pass
                         break
@@ -1167,7 +1660,7 @@ def parse_summary(summary, images_data=None):
         for pattern in ev_explanation_patterns:
             match = re.search(pattern, section_lower)
             if match:
-                pokemon_data['ev_explanation'] = match.group(1).strip()
+                pokemon_data['ev_explanation'] = strip_html_tags(match.group(1).strip())
                 print(f"DEBUG: Found EV explanation: {pokemon_data['ev_explanation'][:100]}...")
                 break
 
@@ -1189,10 +1682,195 @@ def parse_summary(summary, images_data=None):
     for pattern in conclusion_patterns:
         conclusion_match = re.search(pattern, summary, re.DOTALL)
         if conclusion_match:
-            parsed_data['conclusion'] = conclusion_match.group(1).strip()
+            parsed_data['conclusion'] = strip_html_tags(conclusion_match.group(1).strip())
             break
 
+    # Compute archetype tags
+    parsed_data['archetype_tags'] = compute_archetype_tags(parsed_data, summary)
+
+    # Assign roles per Pokémon
+    for p in parsed_data.get('pokemon', []):
+        p['roles'] = detect_pokemon_roles(p, summary)
+
     return parsed_data
+
+def get_page_title(url: str) -> str | None:
+    try:
+        resp = requests.get(url, timeout=10, headers={
+            'User-Agent': 'Mozilla/5.0'
+        })
+        if not resp.ok:
+            return None
+        soup = BeautifulSoup(resp.content, 'html.parser')
+        # Try <title>
+        if soup.title and soup.title.string:
+            return soup.title.string.strip()
+        # Try common meta tags
+        for sel in ['meta[property="og:title"]', 'meta[name="twitter:title"]']:
+            tag = soup.select_one(sel)
+            if tag and tag.get('content'):
+                return tag['content'].strip()
+        return None
+    except Exception:
+        return None
+
+def compute_fallback_title(parsed_data: dict, url: str | None) -> str:
+    # Try page title first
+    if url:
+        title = get_page_title(url)
+        if title:
+            return title
+    # Construct from Pokémon names
+    names = [p.get('name') for p in parsed_data.get('pokemon', []) if p.get('name')]
+    if names:
+        head = ', '.join(names[:3])
+        suffix = ' +' + str(max(0, len(names) - 3)) if len(names) > 3 else ''
+        return f"Team featuring {head}{suffix}"
+    # Domain fallback
+    if url:
+        try:
+            from urllib.parse import urlparse
+            netloc = urlparse(url).netloc.replace('www.', '')
+            return f"VGC Team Analysis • {netloc}"
+        except Exception:
+            pass
+    return "VGC Team Analysis"
+
+def contains_japanese(text: str | None) -> bool:
+    if not text:
+        return False
+    # Hiragana, Katakana, Kanji ranges
+    return bool(re.search(r"[\u3040-\u30ff\u3400-\u9fff]", text))
+
+def build_english_title_from_parsed(parsed_data: dict) -> str | None:
+    names = [p.get('name') for p in (parsed_data.get('pokemon') or []) if p.get('name')]
+    names = [n for n in names if isinstance(n, str) and n.strip()]
+    if not names:
+        return None
+    # Use up to three names for readability
+    if len(names) == 1:
+        joined = names[0]
+    elif len(names) == 2:
+        joined = f"{names[0]} + {names[1]}"
+    else:
+        joined = f"{names[0]} + {names[1]} + {names[2]}"
+    return f"{joined} | Team Analysis"
+
+def compute_archetype_tags(parsed_data: dict, full_summary: str) -> list:
+    """Infer archetype tags from team and summary text."""
+    tags = set()
+    team = parsed_data.get('pokemon', []) or []
+    text = (full_summary or '').lower()
+
+    def has_move(name: str) -> bool:
+        n = name.lower()
+        for p in team:
+            for m in p.get('moves', []) or []:
+                if n in (m or '').lower():
+                    return True
+        return False
+
+    def has_any_move(names: list) -> bool:
+        return any(has_move(n) for n in names)
+
+    def has_item(name: str) -> bool:
+        n = name.lower()
+        for p in team:
+            if n in (p.get('item') or '').lower():
+                return True
+        return False
+
+    def has_ability(name: str) -> bool:
+        n = name.lower()
+        for p in team:
+            if n in (p.get('ability') or '').lower():
+                return True
+        return False
+
+    # Trick Room
+    if 'trick room' in text or has_move('trick room'):
+        tags.add('Trick Room')
+
+    # Tailwind
+    if 'tailwind' in text or has_move('tailwind'):
+        tags.add('Tailwind')
+
+    # Stall
+    stall_signals = (
+        has_any_move(['protect','leech seed','recover','roost','strength sap','substitute','iron defense','calm mind','toxic']) or
+        has_item('leftovers') or
+        has_ability('regenerator') or
+        'stall' in text
+    )
+    if stall_signals:
+        tags.add('Stall')
+
+    # Hyper Offense
+    offense_signals = (
+        has_any_move(['swords dance','nasty plot','dragon dance','belly drum','tailwind']) or
+        has_item('choice band') or has_item('choice specs') or has_item('life orb') or
+        'hyper offense' in text
+    )
+    if offense_signals:
+        tags.add('Hyper Offense')
+
+    # Balance (default if none detected or explicitly mentioned)
+    if 'balance' in text or not tags:
+        tags.add('Balance')
+
+    order = ['Trick Room','Tailwind','Balance','Hyper Offense','Stall']
+    return [t for t in order if t in tags]
+
+def detect_pokemon_roles(pokemon: dict, full_summary: str) -> list:
+    """Detect roles for an individual Pokémon using moves, ability, item, and EVs."""
+    roles = set()
+    moves = [m.lower() for m in (pokemon.get('moves') or []) if m]
+    ability = (pokemon.get('ability') or '').lower()
+    item = (pokemon.get('item') or '').lower()
+    evs = pokemon.get('evs') or {}
+    atk = int(evs.get('attack') or 0)
+    spa = int(evs.get('sp_attack') or 0)
+    hp = int(evs.get('hp') or 0)
+    defn = int(evs.get('defense') or 0)
+    spd = int(evs.get('sp_defense') or 0)
+
+    text = (full_summary or '').lower()
+
+    # Speed Control
+    speed_moves = {'tailwind','trick room','icy wind','electroweb','thunder wave','bulldoze','sticky web'}
+    if any(m in speed_moves for m in moves) or 'trick room' in text:
+        roles.add('Speed Control')
+
+    # Support
+    support_moves = {
+        'fake out','follow me','rage powder','reflect','light screen','aurora veil','helping hand',
+        'wide guard','quick guard','snarl','parting shot','will-o-wisp','taunt','encore','ally switch','pollen puff'
+    }
+    if any(m in support_moves for m in moves) or ability in {'intimidate','prankster'}:
+        roles.add('Support')
+
+    # Physical Sweeper
+    phys_boost = {'swords dance','dragon dance','bulk up','trailblaze','agility'}
+    phys_attacks_common = {'close combat','flare blitz','play rough','earthquake','ice spinner','shadow sneak','aqua jet','extreme speed','knock off'}
+    if atk >= max(180, spa) or any(m in phys_boost for m in moves) or sum(1 for m in moves if m in phys_attacks_common) >= 2:
+        roles.add('Physical Sweeper')
+
+    # Special Sweeper
+    spec_boost = {'nasty plot','calm mind','quiver dance','tail glow','agility'}
+    spec_attacks_common = {'hydro pump','shadow ball','moonblast','draco meteor','thunderbolt','heat wave','dazzling gleam','hurricane','overheat'}
+    if spa >= max(180, atk) or any(m in spec_boost for m in moves) or sum(1 for m in moves if m in spec_attacks_common) >= 2:
+        roles.add('Special Sweeper')
+
+    # Tank / Utility
+    tank_moves = {'will-o-wisp','leech seed','strength sap','recover','roost','protect','substitute','iron defense','calm mind','snarl','parting shot','body press','drain punch'}
+    defensive_investment = hp + defn + spd
+    if any(m in tank_moves for m in moves) or ability in {'intimidate','regenerator','thick fat'} or defensive_investment >= 300:
+        roles.add('Tank / Utility')
+
+    # Resolve potential overlaps: keep both sweepers if ambiguous; Support and Speed Control can co-exist
+    # Return in a stable order
+    order = ['Speed Control','Support','Physical Sweeper','Special Sweeper','Tank / Utility']
+    return [r for r in order if r in roles]
 
 def run_analysis(url, cache):
     st.session_state["summarising"] = True
@@ -1205,95 +1883,120 @@ def run_analysis(url, cache):
     </div>
     """, unsafe_allow_html=True)
     
-    progress_bar = st.progress(0)
-    status_text = st.empty()
+    # Use error recovery system if available
+    if ERROR_RECOVERY_AVAILABLE:
+        progress_bar, status_text, error_container = create_progress_with_error_handling()
+    else:
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        error_container = st.container()
     
     try:
-        if url in cache:
-            status_text.text("📋 Loading from cache...")
-            progress_bar.progress(100)
-            summary = cache[url]["summary"]
-            pokemon_names = cache[url]["pokemon"]
-            st.markdown("""
-            <div class="status-success">
-                <strong>✅ Loaded from Cache</strong><br>
-                Instant results from previously analyzed article
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            status_text.text("🌐 Fetching article content...")
-            progress_bar.progress(25)
-            time.sleep(0.5)
-            
-            status_text.text("🤖 Analyzing with Google Gemini AI...")
-            progress_bar.progress(50)
-            time.sleep(0.5)
-            
-            summary = llm_summary_gemini(url)
-            if not isinstance(summary, str):
-                summary = str(summary)
+        def perform_analysis():
+            """Inner function to perform the actual analysis with retry capability"""
+            try:
+                if url in cache:
+                    status_text.text("📋 Loading from cache...")
+                    progress_bar.progress(100)
+                    summary = cache[url]["summary"]
+                    pokemon_names = cache[url]["pokemon"]
+                    st.markdown("""
+                    <div class="status-success">
+                        <strong>✅ Loaded from Cache</strong><br>
+                        Instant results from previously analyzed article
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    status_text.text("🌐 Fetching article content...")
+                    progress_bar.progress(25)
+                    time.sleep(0.5)
+                    
+                    status_text.text("🤖 Analyzing with Google Gemini AI...")
+                    progress_bar.progress(50)
+                    time.sleep(0.5)
+                    
+                    # Use retry decorator if available
+                    if ERROR_RECOVERY_AVAILABLE:
+                        summary = retry_api_call(llm_summary_gemini)(url)
+                    else:
+                        summary = llm_summary_gemini(url)
+                    
+                    if not isinstance(summary, str):
+                        summary = str(summary)
+                    
+                    # Strip HTML tags from the LLM response
+                    summary = strip_html_tags(summary)
 
-            if not summary or summary.strip() == "":
-                st.markdown("""
-                <div class="status-error">
-                    <strong>❌ Analysis Failed</strong><br>
-                    Generated summary is empty. Please check the URL and try again.
-                </div>
-                """, unsafe_allow_html=True)
+                    if not summary or summary.strip() == "":
+                        st.markdown("""
+                        <div class="status-error">
+                            <strong>❌ Analysis Failed</strong><br>
+                            Generated summary is empty. Please check the URL and try again.
+                        </div>
+                        """, unsafe_allow_html=True)
+                        progress_bar.empty()
+                        status_text.empty()
+                        st.session_state["summarising"] = False
+                        st.stop()
+
+                    status_text.text("📊 Extracting Pokemon data...")
+                    progress_bar.progress(75)
+                    time.sleep(0.5)
+                    
+                    pokemon_names = extract_pokemon_names(summary)
+
+                    status_text.text("💾 Saving to cache...")
+                    progress_bar.progress(90)
+                    time.sleep(0.5)
+
+                    cache[url] = {
+                        "summary": summary,
+                        "pokemon": pokemon_names
+                    }
+
+                    with open(CACHE_PATH, "w") as f:
+                        json.dump(cache, f)
+
+                    progress_bar.progress(100)
+                    status_text.text("✅ Analysis Complete!")
+                    time.sleep(0.5)
+                    
+                    progress_bar.empty()
+                    status_text.empty()
+                    st.markdown("""
+                    <div class="status-success">
+                        <strong>🎉 Analysis Complete!</strong><br>
+                        Powered by Google Gemini AI
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                st.session_state["current_summary"] = summary
+                st.session_state["current_url"] = url
+                
                 progress_bar.empty()
                 status_text.empty()
-                st.session_state["summarising"] = False
-                st.stop()
-
-            status_text.text("📊 Extracting Pokemon data...")
-            progress_bar.progress(75)
-            time.sleep(0.5)
-            
-            pokemon_names = extract_pokemon_names(summary)
-
-            status_text.text("💾 Saving to cache...")
-            progress_bar.progress(90)
-            time.sleep(0.5)
-
-            cache[url] = {
-                "summary": summary,
-                "pokemon": pokemon_names
-            }
-
-            with open(CACHE_PATH, "w") as f:
-                json.dump(cache, f)
-
-            progress_bar.progress(100)
-            status_text.text("✅ Analysis Complete!")
-            time.sleep(0.5)
-            
-            progress_bar.empty()
-            status_text.empty()
-            st.markdown("""
-            <div class="status-success">
-                <strong>🎉 Analysis Complete!</strong><br>
-                Powered by Google Gemini AI
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.session_state["current_summary"] = summary
-        st.session_state["current_url"] = url
+                
+                display_results(summary, url)
+                
+            except Exception as e:
+                if ERROR_RECOVERY_AVAILABLE:
+                    error_info = handle_api_error(e, "Article Analysis")
+                    with error_container:
+                        display_error_with_recovery(error_info, perform_analysis)
+                else:
+                    st.markdown(f"""
+                    <div class="status-error">
+                        <strong>❌ Analysis Error</strong><br>
+                        {str(e)}
+                    </div>
+                    """, unsafe_allow_html=True)
         
-        progress_bar.empty()
-        status_text.empty()
+        # Start the analysis
+        perform_analysis()
         
-        display_results(summary, url)
-        
-    except Exception as e:
-        st.markdown(f"""
-        <div class="status-error">
-            <strong>❌ Analysis Error</strong><br>
-            {str(e)}
-        </div>
-        """, unsafe_allow_html=True)
-        progress_bar.empty()
-        status_text.empty()
     finally:
+        progress_bar.empty()
+        status_text.empty()
         st.session_state["summarising"] = False
 
 # Main application
@@ -1313,6 +2016,12 @@ def main():
 
     if analyze_button and valid_url:
         run_analysis(url, cache)
+    else:
+        # Persist previously analyzed results across reruns (e.g., after downloads)
+        prev_summary = st.session_state.get("current_summary")
+        prev_url = st.session_state.get("current_url")
+        if prev_summary:
+            display_results(prev_summary, prev_url)
 
 if __name__ == "__main__":
     main() 

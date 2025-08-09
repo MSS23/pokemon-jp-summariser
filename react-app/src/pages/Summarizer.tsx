@@ -33,6 +33,8 @@ const Summarizer = () => {
   usePerformanceMonitor('Summarizer');
 
   const [url, setUrl] = useState('');
+  const [articleText, setArticleText] = useState('');
+  const [inputMode, setInputMode] = useState<'url' | 'text'>('url');
   const { trackSummary } = useAnalytics();
   const { isDark } = useTheme();
   
@@ -40,14 +42,48 @@ const Summarizer = () => {
   const { summarizeArticle, isLoading, result, error, isAvailable, reset } = useGemini();
 
   // Handle article summarization with Gemini
-  const handleSummarization = useCallback(async (urlToProcess: string) => {
+  const handleSummarization = useCallback(async (urlToProcess: string, directText?: string) => {
     const loadingToast = toast.loading('Analyzing article with Gemini...', {
       icon: '⚡',
     });
 
     try {
-      await summarizeArticle(urlToProcess);
+      await summarizeArticle(urlToProcess, directText);
       trackSummary();
+      
+      // Save the analyzed team to localStorage for the Teams searched page
+      if (result) {
+        try {
+          const existingTeams = localStorage.getItem('analyzedTeams');
+          const teams = existingTeams ? JSON.parse(existingTeams) : [];
+          
+          // Add the new team analysis
+          const newTeam = {
+            ...result,
+            analyzedAt: new Date().toISOString(),
+            id: Date.now().toString()
+          };
+          
+          // Check if this URL has already been analyzed
+          const existingIndex = teams.findIndex((team: any) => team.meta?.source === urlToProcess);
+          if (existingIndex !== -1) {
+            // Update existing entry
+            teams[existingIndex] = newTeam;
+          } else {
+            // Add new entry
+            teams.unshift(newTeam); // Add to beginning of array
+          }
+          
+          // Keep only the last 50 analyses to prevent localStorage from getting too large
+          const trimmedTeams = teams.slice(0, 50);
+          
+          localStorage.setItem('analyzedTeams', JSON.stringify(trimmedTeams));
+          console.log('Team analysis saved to localStorage');
+        } catch (storageError) {
+          console.error('Error saving team to localStorage:', storageError);
+        }
+      }
+      
       toast.success('Team analysis completed successfully!', { id: loadingToast });
     } catch (err: any) {
       let errorMessage = err.message || 'Failed to process article. Please check the URL and try again.';
@@ -62,7 +98,7 @@ const Summarizer = () => {
       toast.error(errorMessage, { id: loadingToast });
       console.error('Error:', err);
     }
-  }, [summarizeArticle, trackSummary]);
+  }, [summarizeArticle, trackSummary, result]);
 
   // Debounced URL validation
   const debouncedUrlValidation = useDebounce((urlToValidate: string) => {
@@ -81,9 +117,17 @@ const Summarizer = () => {
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) {
-      toast.error('Please enter a valid URL');
-      return;
+    
+    if (inputMode === 'url') {
+      if (!url.trim()) {
+        toast.error('Please enter a valid URL');
+        return;
+      }
+    } else {
+      if (!articleText.trim()) {
+        toast.error('Please enter article text');
+        return;
+      }
     }
 
     if (!isAvailable) {
@@ -92,8 +136,13 @@ const Summarizer = () => {
     }
 
     reset(); // Clear previous results
-    await handleSummarization(url);
-  }, [url, handleSummarization, isAvailable, reset]);
+    
+    if (inputMode === 'url') {
+      await handleSummarization(url);
+    } else {
+      await handleSummarization('', articleText);
+    }
+  }, [url, articleText, inputMode, handleSummarization, isAvailable, reset]);
 
   const handleRetry = useCallback(() => {
     if (url.trim()) {
@@ -101,15 +150,17 @@ const Summarizer = () => {
     }
   }, [url, handleSubmit]);
 
-  const handleDownload = useCallback(() => {
+  const handleExportJSON = useCallback(() => {
     if (!result) return;
 
     const data = {
-      title: result.articleTitle,
+      title: result.title,
       summary: result.summary,
-      teams: result.teams,
-      processingTime: result.processingTime,
-      url: url,
+      team: result.team,
+      strengths: result.strengths,
+      weaknesses: result.weaknesses,
+      processingTime: result.meta?.processingTime,
+      source: result.meta?.source,
       generatedAt: new Date().toISOString()
     };
 
@@ -122,13 +173,93 @@ const Summarizer = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url_download);
-  }, [result, url]);
+  }, [result]);
+
+  const formatEVsShowdown = (evs?: Record<string, number>) => {
+    if (!evs) return '';
+    const parts: string[] = [];
+    const order: Array<[keyof typeof evs, string]> = [
+      ['hp', 'HP'], ['attack', 'Atk'], ['defense', 'Def'], ['spAtk', 'SpA'], ['spDef', 'SpD'], ['speed', 'Spe']
+    ];
+    order.forEach(([key, label]) => {
+      const val = (evs as any)[key] ?? 0;
+      if (val && val > 0) parts.push(`${val} ${label}`);
+    });
+    return parts.length ? `EVs: ${parts.join(' / ')}` : '';
+  };
+
+  const toShowdownText = (team: any[]) => {
+    const lines: string[] = [];
+    team.forEach((p) => {
+      const name = p.name || 'Unknown';
+      const item = p.item && p.item !== 'Not specified' ? ` @ ${p.item}` : '';
+      lines.push(`${name}${item}`);
+      if (p.ability && p.ability !== 'Not specified') lines.push(`Ability: ${p.ability}`);
+      if (p.teraType && p.teraType !== 'Not specified') lines.push(`Tera Type: ${p.teraType}`);
+      const evLine = formatEVsShowdown(p.evs);
+      if (evLine) lines.push(evLine);
+      if (p.nature && p.nature !== 'Not specified') lines.push(`${p.nature} Nature`);
+      if (Array.isArray(p.moves)) {
+        p.moves.filter(Boolean).forEach((m: string) => lines.push(`- ${m.trim()}`));
+      }
+      lines.push('');
+    });
+    return lines.join('\n');
+  };
+
+  const handleExportShowdown = useCallback(() => {
+    if (!result?.team?.length) return;
+    const text = toShowdownText(result.team);
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url_download = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url_download;
+    a.download = `team-showdown-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url_download);
+  }, [result]);
+
+  const toCSV = (team: any[]) => {
+    const headers = ['Name','Ability','Item','Nature','Tera Type','EVs','Moves','EV Explanation'];
+    const rows = team.map(p => {
+      const evLine = formatEVsShowdown(p.evs).replace(/^EVs: /,'');
+      const moves = Array.isArray(p.moves) ? p.moves.join(' | ') : '';
+      const cells = [
+        p.name || '',
+        p.ability || '',
+        p.item || '',
+        p.nature || '',
+        p.teraType || '',
+        evLine,
+        moves,
+        p.evExplanation || ''
+      ];
+      return cells.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',');
+    });
+    return [headers.join(','), ...rows].join('\n');
+  };
+
+  const handleExportCSV = useCallback(() => {
+    if (!result?.team?.length) return;
+    const csv = toCSV(result.team);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url_download = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url_download;
+    a.download = `team-${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url_download);
+  }, [result]);
 
   const handleShare = useCallback(() => {
     if (result) {
       const shareData = {
-        title: result.articleTitle,
-        text: `Check out this translated Pokemon VGC article: ${result.articleTitle}`,
+        title: result.title,
+        text: `Check out this translated Pokemon VGC article: ${result.title}`,
         url: window.location.href
       };
       
@@ -178,23 +309,69 @@ const Summarizer = () => {
 
   // Memoized computed values
   const isFormValid = useMemo(() => {
-    return url.trim() && !error && !isLoading;
-  }, [url, error, isLoading]);
+    if (inputMode === 'url') {
+      return url.trim() && !error && !isLoading;
+    } else {
+      return articleText.trim() && !error && !isLoading;
+    }
+  }, [url, articleText, inputMode, error, isLoading]);
 
   const hasTeams = useMemo(() => {
-    return result?.teams && result.teams.length > 0;
+    return result?.team && result.team.length > 0;
+  }, [result]);
+
+  const archetypeTags = useMemo(() => {
+    if (!result) return [] as string[];
+    const tags = new Set<string>();
+    const text = (result.summary || '').toLowerCase();
+    const team = result.team || [];
+
+    const hasMove = (moveName: string) => team.some(p => Array.isArray(p.moves) && p.moves.some(m => m.toLowerCase().includes(moveName)));
+    const hasAnyMove = (names: string[]) => names.some(n => hasMove(n));
+    const hasItem = (itemName: string) => team.some(p => (p.item||'').toLowerCase().includes(itemName));
+    const hasAbility = (abilityName: string) => team.some(p => (p.ability||'').toLowerCase().includes(abilityName));
+
+    // Trick Room
+    if (text.includes('trick room') || hasMove('trick room')) tags.add('Trick Room');
+
+    // Tailwind
+    if (text.includes('tailwind') || hasMove('tailwind')) tags.add('Tailwind');
+
+    // Stall
+    const stallSignals = (
+      hasAnyMove(['protect','leech seed','recover','roost','strength sap','substitute','iron defense','calm mind','toxic']) ||
+      hasItem('leftovers') ||
+      hasAbility('regenerator') ||
+      text.includes('stall')
+    );
+    if (stallSignals) tags.add('Stall');
+
+    // Hyper Offense
+    const offenseSignals = (
+      hasAnyMove(['swords dance','nasty plot','dragon dance','belly drum','tailwind']) ||
+      hasItem('choice band') || hasItem('choice specs') || hasItem('life orb') ||
+      text.includes('hyper offense')
+    );
+    if (offenseSignals) tags.add('Hyper Offense');
+
+    // Balance (default iff none of the above OR explicitly mentioned)
+    if (text.includes('balance') || (!tags.size)) tags.add('Balance');
+
+    // Limit to requested archetypes
+    const order = ['Trick Room','Tailwind','Balance','Hyper Offense','Stall'];
+    return order.filter(t => tags.has(t));
   }, [result]);
 
   // Save teams to localStorage when analysis is complete
   useEffect(() => {
-    if (result?.teams && result.teams.length > 0) {
+    if (result?.team && result.team.length > 0) {
       try {
         // Get existing teams from localStorage
         const existingTeams = localStorage.getItem('translatedTeams');
         const teams = existingTeams ? JSON.parse(existingTeams) : [];
         
         // Create new team entries with proper structure
-        const newTeams = result.teams.map((pokemon: any, index: number) => ({
+        const newTeams = result.team.map((pokemon: any, index: number) => ({
           id: `${Date.now()}-${index}`,
           pokemon: pokemon.name,
           level: 50, // Default level for VGC
@@ -220,7 +397,7 @@ const Summarizer = () => {
           bst: 0, // Base stat total not calculated
           remainingEvs: 0, // Not calculated
           nature: pokemon.nature || 'Not specified',
-          articleTitle: result.articleTitle,
+          articleTitle: result.title,
           translatedDate: new Date().toISOString(),
           articleUrl: url
         }));
@@ -258,31 +435,75 @@ const Summarizer = () => {
           </p>
         </div>
 
-        {/* URL Input Form */}
+        {/* Input Form */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-8 border border-gray-200 dark:border-gray-700">
+          {/* Input Mode Toggle */}
+          <div className="flex space-x-4 mb-6">
+            <button
+              type="button"
+              onClick={() => setInputMode('url')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                inputMode === 'url'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              📄 Article URL
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputMode('text')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                inputMode === 'text'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              📝 Paste Article Text
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Pokemon VGC Article URL
-              </label>
-              <div className="relative">
-                <input
-                  type="url"
-                  id="url"
-                  value={url}
-                  onChange={handleUrlChange}
-                  placeholder="https://pokemon.co.jp/vgc/article..."
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
-                  required
+            {inputMode === 'url' ? (
+              <div>
+                <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Pokemon VGC Article URL
+                </label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    id="url"
+                    value={url}
+                    onChange={handleUrlChange}
+                    placeholder="https://pokemon.co.jp/vgc/article..."
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
+                    required={inputMode === 'url'}
+                    disabled={isLoading}
+                  />
+                  {isLoading && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label htmlFor="articleText" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Paste Article Text (Japanese or English)
+                </label>
+                <textarea
+                  id="articleText"
+                  value={articleText}
+                  onChange={(e) => setArticleText(e.target.value)}
+                  placeholder="Paste the article text here... (Useful when CORS blocks URL access)"
+                  rows={8}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors resize-vertical"
+                  required={inputMode === 'text'}
                   disabled={isLoading}
                 />
-                {isLoading && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
-                  </div>
-                )}
               </div>
-            </div>
+            )}
             <div className="flex gap-3">
               <button
                 type="submit"
@@ -340,14 +561,19 @@ const Summarizer = () => {
                 <div className="flex items-center space-x-4 text-sm">
                   <div className="flex items-center text-gray-600 dark:text-gray-300">
                     <ClockIcon className="h-4 w-4 mr-1" />
-                    Processed in: <span className="text-purple-600 dark:text-purple-400 font-medium ml-1">{result.processingTime || 2.3}s</span>
+                    Processed in: <span className="text-purple-600 dark:text-purple-400 font-medium ml-1">{result.meta?.processingTime || 2.3}s</span>
                   </div>
-                  <button
-                    onClick={handleDownload}
-                    className="flex items-center text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                  >
+                  <button onClick={handleExportShowdown} className="flex items-center text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
                     <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
-                    Download
+                    Export Showdown
+                  </button>
+                  <button onClick={handleExportCSV} className="flex items-center text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                    <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
+                    Export CSV
+                  </button>
+                  <button onClick={handleExportJSON} className="flex items-center text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                    <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
+                    Export JSON
                   </button>
                   <button
                     onClick={handleShare}
@@ -360,8 +586,18 @@ const Summarizer = () => {
               </div>
               
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                {result.articleTitle}
+                {result.title}
               </h3>
+
+              {archetypeTags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {archetypeTags.map(tag => (
+                    <span key={tag} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200 border border-purple-200 dark:border-purple-800">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
 
@@ -371,11 +607,11 @@ const Summarizer = () => {
                             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
                               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
                                 <ChartBarIcon className="h-6 w-6 mr-2 text-blue-500" />
-                                Pokemon Team ({result.teams.length} Pokemon)
+                                Pokemon Team ({result.team.length} Pokemon)
                               </h3>
                               
                               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-                                {result.teams.map((pokemon, index) => (
+                                {result.team.map((pokemon, index) => (
                                   <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-center border border-gray-200 dark:border-gray-600">
                                     <div className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
                                       {pokemon.name}
@@ -396,177 +632,244 @@ const Summarizer = () => {
                             </div>
                           )}
 
-                          {/* Detailed Pokemon Analysis */}
-                          {hasTeams && (
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-                              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
-                                <ChartBarIcon className="h-6 w-6 mr-2 text-blue-500" />
-                                Detailed Pokemon Analysis
-                              </h3>
-                
-                <div className="space-y-6">
-                  {result.teams.map((pokemon, index) => (
-                                                       <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
-                                     {/* Pokemon Header */}
-                                     <div className="flex items-center justify-between mb-4">
-                                       <h4 className="text-lg font-bold text-gray-900 dark:text-white">
-                                         {pokemon.name}
-                                       </h4>
-                                       {pokemon.teraType && pokemon.teraType !== 'Not specified' && (
-                                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${getTypeColor(pokemon.teraType)}`}>
-                                           Tera: {pokemon.teraType}
-                                         </span>
-                                       )}
-                                     </div>
-
-                                     {/* Pokemon Details Grid */}
-                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                       <div className="space-y-2">
-                                         {pokemon.ability && pokemon.ability !== 'Not specified' && (
-                                           <div className="flex items-center">
-                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-300 w-16">Ability:</span>
-                                             <span className="text-sm text-gray-900 dark:text-white">{pokemon.ability}</span>
-                                           </div>
-                                         )}
-                                         
-                                         {pokemon.item && pokemon.item !== 'Not specified' && (
-                                           <div className="flex items-center">
-                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-300 w-16">Item:</span>
-                                             <span className="text-sm text-gray-900 dark:text-white">{pokemon.item}</span>
-                                           </div>
-                                         )}
-                                         
-                                         {pokemon.nature && pokemon.nature !== 'Not specified' && (
-                                           <div className="flex items-center">
-                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-300 w-16">Nature:</span>
-                                             <span className="text-sm text-gray-900 dark:text-white">{pokemon.nature}</span>
-                                           </div>
-                                         )}
-                                       </div>
-
-                                       <div className="space-y-2">
-                                         {pokemon.moves && pokemon.moves.length > 0 && (
-                                           <div>
-                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Moves:</span>
-                                             <div className="flex flex-wrap gap-1 mt-1">
-                                               {pokemon.moves.map((move: string, moveIndex: number) => (
-                                                 <span key={moveIndex} className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded">
-                                                   {move}
-                                                 </span>
-                                               ))}
-                                             </div>
-                                           </div>
-                                         )}
-                                       </div>
-                                     </div>
-
-                                     {/* EV Spread - Similar to the image format */}
-                                     {pokemon.evs && (
-                                       <div className="mb-4">
-                                         <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Stats:</h5>
-                                         <div className="space-y-2">
-                                           <div className="flex items-center justify-between">
-                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400 w-8">HP:</span>
-                                             <div className="flex items-center flex-1 ml-2">
-                                               <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2 mr-2">
-                                                 <div 
-                                                   className="bg-yellow-400 h-2 rounded-full" 
-                                                   style={{ width: `${(pokemon.evs.hp || 0) / 252 * 100}%` }}
-                                                 ></div>
-                                               </div>
-                                               <span className="text-sm text-gray-900 dark:text-white w-8 text-right">{pokemon.evs.hp || 0}</span>
-                                             </div>
-                                           </div>
-                                           <div className="flex items-center justify-between">
-                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400 w-8">Atk:</span>
-                                             <div className="flex items-center flex-1 ml-2">
-                                               <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2 mr-2">
-                                                 <div 
-                                                   className="bg-pink-400 h-2 rounded-full" 
-                                                   style={{ width: `${(pokemon.evs.attack || 0) / 252 * 100}%` }}
-                                                 ></div>
-                                               </div>
-                                               <span className="text-sm text-gray-900 dark:text-white w-8 text-right">{pokemon.evs.attack || 0}</span>
-                                             </div>
-                                           </div>
-                                           <div className="flex items-center justify-between">
-                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400 w-8">Def:</span>
-                                             <div className="flex items-center flex-1 ml-2">
-                                               <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2 mr-2">
-                                                 <div 
-                                                   className="bg-yellow-400 h-2 rounded-full" 
-                                                   style={{ width: `${(pokemon.evs.defense || 0) / 252 * 100}%` }}
-                                                 ></div>
-                                               </div>
-                                               <span className="text-sm text-gray-900 dark:text-white w-8 text-right">{pokemon.evs.defense || 0}</span>
-                                             </div>
-                                           </div>
-                                           <div className="flex items-center justify-between">
-                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400 w-8">SpA:</span>
-                                             <div className="flex items-center flex-1 ml-2">
-                                               <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2 mr-2">
-                                                 <div 
-                                                   className="bg-yellow-400 h-2 rounded-full" 
-                                                   style={{ width: `${(pokemon.evs.spAtk || 0) / 252 * 100}%` }}
-                                                 ></div>
-                                               </div>
-                                               <span className="text-sm text-gray-900 dark:text-white w-8 text-right">{pokemon.evs.spAtk || 0}</span>
-                                             </div>
-                                           </div>
-                                           <div className="flex items-center justify-between">
-                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400 w-8">SpD:</span>
-                                             <div className="flex items-center flex-1 ml-2">
-                                               <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2 mr-2">
-                                                 <div 
-                                                   className="bg-yellow-400 h-2 rounded-full" 
-                                                   style={{ width: `${(pokemon.evs.spDef || 0) / 252 * 100}%` }}
-                                                 ></div>
-                                               </div>
-                                               <span className="text-sm text-gray-900 dark:text-white w-8 text-right">{pokemon.evs.spDef || 0}</span>
-                                             </div>
-                                           </div>
-                                           <div className="flex items-center justify-between">
-                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400 w-8">Spe:</span>
-                                             <div className="flex items-center flex-1 ml-2">
-                                               <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2 mr-2">
-                                                 <div 
-                                                   className="bg-yellow-400 h-2 rounded-full" 
-                                                   style={{ width: `${(pokemon.evs.speed || 0) / 252 * 100}%` }}
-                                                 ></div>
-                                               </div>
-                                               <span className="text-sm text-gray-900 dark:text-white w-8 text-right">{pokemon.evs.speed || 0}</span>
-                                             </div>
-                                           </div>
-                                         </div>
-                                       </div>
-                                     )}
-
-                                     {/* EV Explanation */}
-                                     {pokemon.evExplanation && pokemon.evExplanation !== 'Not specified' && (
-                                       <div className="bg-white dark:bg-gray-600 rounded-lg p-4 border border-gray-200 dark:border-gray-500">
-                                         <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">EV Explanation & Key Calculations:</h5>
-                                         <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                                           {pokemon.evExplanation}
-                                         </p>
-                                       </div>
-                                     )}
-                                   </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                          {/* Detailed Pokemon Analysis - REMOVED - Using text format instead */}
 
             {/* Conclusion Summary */}
             {result.summary && (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <DocumentTextIcon className="h-6 w-6 mr-2 text-purple-500" />
+              <div className="bg-gray-900 text-gray-100 rounded-2xl shadow-lg p-6 border border-gray-700">
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                  <DocumentTextIcon className="h-6 w-6 mr-2 text-purple-400" />
                   Article Summary & Analysis
                 </h3>
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                
+                {/* Article Title */}
+                <div className="mb-6">
+                  <h4 className="text-lg font-bold text-white mb-2">
+                    <strong>TITLE: {result.title}</strong>
+                  </h4>
+                </div>
+
+                {/* Pokemon Details */}
+                {hasTeams && (
+                  <div className="mb-6">
+                    <h4 className="text-lg font-bold text-white mb-4">
+                      <strong>CONCLUSION:</strong>
+                    </h4>
+                    
+                    {/* Pokemon Cards */}
+                    <div className="space-y-6">
+                      {result.team.map((pokemon, index) => {
+                        console.log(`DEBUG: Pokemon ${index + 1} data:`, pokemon);
+                        return (
+                          <div key={index} className="bg-white dark:bg-gray-700 rounded-2xl shadow-lg border-2 border-gray-200 dark:border-gray-600 overflow-hidden">
+                            {/* Pokemon Header with Gradient */}
+                            <div className="bg-gradient-to-r from-blue-500 to-blue-700 text-white p-6 relative">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <div className="bg-white/25 rounded-full w-10 h-10 flex items-center justify-center mr-4 font-bold text-lg border-2 border-white/30">
+                                    {index + 1}
+                                  </div>
+                                  <h5 className="text-2xl font-bold">
+                                    {pokemon.name}
+                                  </h5>
+                                </div>
+                                {pokemon.teraType && pokemon.teraType !== 'Not specified' && (
+                                  <div className="bg-white/20 px-4 py-2 rounded-full font-bold text-sm border border-white/30">
+                                    Tera: {pokemon.teraType}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Content Section */}
+                            <div className="p-6">
+                              {/* Two Column Layout */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                {/* Basic Info Column */}
+                                <div>
+                                  <h6 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                                    ⚡ Basic Info
+                                  </h6>
+                                  <div className="space-y-3">
+                                    {pokemon.ability && pokemon.ability !== 'Not specified' && (
+                                      <div className="bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg p-3">
+                                        <div className="font-bold text-gray-600 dark:text-gray-300 text-sm mb-1">Ability</div>
+                                        <div className="text-gray-900 dark:text-white font-semibold">{pokemon.ability}</div>
+                                      </div>
+                                    )}
+                                    
+                                    {pokemon.item && pokemon.item !== 'Not specified' && (
+                                      <div className="bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg p-3">
+                                        <div className="font-bold text-gray-600 dark:text-gray-300 text-sm mb-1">Item</div>
+                                        <div className="text-gray-900 dark:text-white font-semibold">{pokemon.item}</div>
+                                      </div>
+                                    )}
+                                    
+                                    {pokemon.nature && pokemon.nature !== 'Not specified' && (
+                                      <div className="bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg p-3">
+                                        <div className="font-bold text-gray-600 dark:text-gray-300 text-sm mb-1">Nature</div>
+                                        <div className="text-gray-900 dark:text-white font-semibold">{pokemon.nature}</div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Moves Column */}
+                                <div>
+                                  <h6 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                                    ⚔️ Moves
+                                  </h6>
+                                  {pokemon.moves && pokemon.moves.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                      {pokemon.moves.map((move: string, moveIndex: number) => (
+                                        <span key={moveIndex} className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md">
+                                          {move}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="text-gray-500 dark:text-gray-400 italic text-lg">No moves specified</div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* EV Spread Section */}
+                              {pokemon.evs && (
+                                <div className="mb-6">
+                                  <h6 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                                    📊 EV Spread
+                                  </h6>
+                                  <div className="space-y-3">
+                                    {[
+                                      { key: 'hp', label: 'HP', color: 'bg-red-500' },
+                                      { key: 'attack', label: 'Atk', color: 'bg-orange-500' },
+                                      { key: 'defense', label: 'Def', color: 'bg-yellow-500' },
+                                      { key: 'spAtk', label: 'SpA', color: 'bg-green-500' },
+                                      { key: 'spDef', label: 'SpD', color: 'bg-cyan-500' },
+                                      { key: 'speed', label: 'Spe', color: 'bg-purple-500' }
+                                    ].map((stat) => {
+                                      const evValue = pokemon.evs[stat.key] || 0;
+                                      const percentage = (evValue / 252) * 100;
+                                      return (
+                                        <div key={stat.key} className="bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg p-4">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <span className="font-bold text-gray-700 dark:text-gray-300">{stat.label}</span>
+                                            <span className="font-bold text-gray-900 dark:text-white">{evValue}</span>
+                                          </div>
+                                          <div className="w-full h-3 bg-gray-200 dark:bg-gray-500 rounded-full overflow-hidden border border-gray-300 dark:border-gray-400">
+                                            <div 
+                                              className={`h-full ${stat.color} rounded-full transition-all duration-300`}
+                                              style={{ width: `${percentage}%` }}
+                                            ></div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Fallback EV Display */}
+                              {!pokemon.evs && (
+                                <div className="mb-6">
+                                  <h6 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                                    📊 EV Spread
+                                  </h6>
+                                  <div className="bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg p-4">
+                                    <div className="text-gray-500 dark:text-gray-400 italic">
+                                      EV spread not available
+                                    </div>
+                                    {pokemon.evSpread && (
+                                      <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                        Raw data: {pokemon.evSpread}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* EV Explanation Section */}
+                              {pokemon.evExplanation && pokemon.evExplanation !== 'Not specified' && (
+                                <div>
+                                  <h6 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                                    🧠 Strategy & EV Explanation
+                                  </h6>
+                                  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-5">
+                                    <div className="text-blue-900 dark:text-blue-100 font-medium leading-relaxed whitespace-pre-line">
+                                      {pokemon.evExplanation.split('.').map((sentence, idx) => {
+                                        const trimmed = sentence.trim();
+                                        if (trimmed && trimmed.length > 20) {
+                                          return (
+                                            <div key={idx} className="mb-3 flex items-start">
+                                              <span className="text-blue-600 dark:text-blue-300 mr-2 mt-1">•</span>
+                                              <span>{trimmed}{!trimmed.endsWith('.') ? '.' : ''}</span>
+                                            </div>
+                                          );
+                                        }
+                                        return null;
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Conclusion */}
+                <div className="mb-6">
+                  <h4 className="text-lg font-bold text-white mb-2">
+                    <strong>CONCLUSION:</strong>
+                  </h4>
+                  <div className="text-sm text-gray-300 ml-4">
                     {result.summary}
-                  </p>
+                  </div>
+                </div>
+
+                {/* Team Strengths */}
+                {result.strengths && result.strengths.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-lg font-bold text-white mb-2">
+                      <strong>TEAM STRENGTHS:</strong>
+                    </h4>
+                    <div className="text-sm text-gray-300 ml-4">
+                      <ul className="list-disc list-inside space-y-1">
+                        {result.strengths.map((strength: string, index: number) => (
+                          <li key={index}>{strength}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Team Weaknesses */}
+                {result.weaknesses && result.weaknesses.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-lg font-bold text-white mb-2">
+                      <strong>TEAM WEAKNESSES:</strong>
+                    </h4>
+                    <div className="text-sm text-gray-300 ml-4">
+                      <ul className="list-disc list-inside space-y-1">
+                        {result.weaknesses.map((weakness: string, index: number) => (
+                          <li key={index}>{weakness}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Final Article Summary */}
+                <div>
+                  <h4 className="text-lg font-bold text-white mb-2">
+                    <strong>FINAL ARTICLE SUMMARY:</strong>
+                  </h4>
+                  <div className="text-sm text-gray-300 ml-4">
+                    The article is a reflection on the author's performance in Season 30 of Pokémon SV Double Battles. The author discusses their team composition, strategy, and key insights from their competitive experience.
+                  </div>
                 </div>
               </div>
             )}
