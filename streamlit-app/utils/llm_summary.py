@@ -77,6 +77,19 @@ You must output in this EXACT format:
 - Tera Type: [English Tera Type Name] (if applicable for the format)
 - Nature: [English Nature Name]
 - Moves: [Move 1] / [Move 2] / [Move 3] / [Move 4]
+
+**CRITICAL MOVE EXTRACTION RULES:**
+- **EXTRACT FROM SOURCE ONLY**: Only include moves that are explicitly mentioned in the article or visible in images
+- **DO NOT INFER MOVES**: Do not add moves based on common sets or meta knowledge
+- **VERIFY MOVE NAMES**: Ensure move names match exactly what's shown in the source
+- **COMMON EXTRACTION MISTAKES TO AVOID**:
+  * Garchomp cannot learn Wide Guard - this is a common error
+  * Volcarona cannot learn certain moves like Wide Guard or Quick Guard
+  * Alolan Ninetales has specific move restrictions
+  * Always verify move legality for the specific Pokémon
+- **MOVE FORMAT**: Use exactly 4 moves separated by " / " (e.g., "Protect / Body Press / Heavy Slam / Wide Guard")
+- **MOVE VALIDATION**: If unsure about a move's legality, mark it as "Move verification needed"
+- **SOURCE CITATION**: For each move, be able to point to where it's mentioned in the source material
 - EV Spread: [HP] [Atk] [Def] [SpA] [SpD] [Spe]
 - EV Explanation: [Detailed explanation with specific numbers, percentages, and benchmarks]
 

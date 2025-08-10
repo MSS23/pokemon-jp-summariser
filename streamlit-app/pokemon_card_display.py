@@ -107,19 +107,101 @@ def display_pokemon_card_with_summary(pokemon, index):
             """, unsafe_allow_html=True)
             
             if pokemon.get('moves'):
-                for move in pokemon['moves']:
+                # Display moves with validation status
+                moves = pokemon.get('moves', [])
+                valid_moves = pokemon.get('valid_moves', [])
+                invalid_moves = pokemon.get('invalid_moves', [])
+                
+                # Display all moves with color coding
+                for move in moves:
+                    if move in valid_moves:
+                        # Valid move - blue
+                        move_color = "#3b82f6"
+                        move_bg = "#3b82f6"
+                        move_text_color = "white"
+                    elif move in [m.split(' (')[0] for m in invalid_moves]:
+                        # Invalid move - red
+                        move_color = "#dc2626"
+                        move_bg = "#fef2f2"
+                        move_text_color = "#dc2626"
+                    else:
+                        # Unverified move - orange
+                        move_color = "#f59e0b"
+                        move_bg = "#fef3c7"
+                        move_text_color = "#92400e"
+                    
                     st.markdown(f"""
                     <div style="
-                        background: #3b82f6;
-                        color: white;
+                        background: {move_bg};
+                        color: {move_text_color};
                         padding: 8px 16px;
                         border-radius: 20px;
                         font-size: 1rem;
                         font-weight: 600;
                         display: inline-block;
                         margin: 2px;
-                        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                        border: 2px solid {move_color};
                     ">{move}</div>
+                    """, unsafe_allow_html=True)
+                
+                # Display validation summary
+                if valid_moves and invalid_moves:
+                    st.markdown(f"""
+                    <div style="margin-top: 12px; padding: 8px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0ea5e9;">
+                        <div style="color: #0369a1; font-size: 0.85rem; font-weight: 600;">📊 Move Validation:</div>
+                        <div style="color: #0369a1; font-size: 0.8rem; margin-top: 4px;">
+                            ✅ {len(valid_moves)} valid • ⚠️ {len(invalid_moves)} issues
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                elif valid_moves and not invalid_moves:
+                    st.markdown(f"""
+                    <div style="margin-top: 12px; padding: 8px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #22c55e;">
+                        <div style="color: #15803d; font-size: 0.85rem; font-weight: 600;">✅ All moves validated successfully!</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Display validation issues if any
+                if invalid_moves:
+                    st.markdown("""
+                    <div style="margin-top: 12px;">
+                        <div style="color: #dc2626; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">⚠️ Move Validation Issues:</div>
+                    """, unsafe_allow_html=True)
+                    
+                    for invalid_move in invalid_moves:
+                        st.markdown(f"""
+                        <div style="
+                            background: #fef2f2;
+                            color: #dc2626;
+                            padding: 6px 12px;
+                            border-radius: 16px;
+                            font-size: 0.9rem;
+                            font-weight: 500;
+                            display: inline-block;
+                            margin: 2px;
+                            border: 1px solid #fecaca;
+                        ">{invalid_move}</div>
+                        """, unsafe_allow_html=True)
+                    
+                    st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Show move count and validation status
+                st.markdown(f"""
+                <div style="margin-top: 8px; color: #64748b; font-size: 0.85rem;">
+                    Total moves: {len(moves)} • Validated: {len(valid_moves)} • Issues: {len(invalid_moves)}
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Debug information (only show in development)
+                if pokemon.get('move_validation_issues'):
+                    st.markdown(f"""
+                    <div style="margin-top: 8px; padding: 8px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                        <div style="color: #92400e; font-size: 0.8rem; font-weight: 600;">🔍 Debug Info:</div>
+                        <div style="color: #92400e; font-size: 0.75rem; margin-top: 4px;">
+                            Validation issues detected. Check console for details.
+                        </div>
+                    </div>
                     """, unsafe_allow_html=True)
             else:
                 st.markdown("""

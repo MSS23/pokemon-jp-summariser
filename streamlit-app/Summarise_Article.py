@@ -1879,54 +1879,31 @@ def parse_summary(summary, images_data=None, url: str | None = None):
                 print(f"DEBUG: Found tera: {pokemon_data['tera_type']}")
                 break
         
-        # Extract Moves - improved to stop at next section
-        moves_patterns = [
-            r'moves?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|tera|ev spread|ev explanation))',
-            r'moveset[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|tera|ev spread|ev explanation))',
-            r'- moves?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|tera|ev spread|ev explanation))',
-            r'• moves?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|tera|ev spread|ev explanation))'
-        ]
-        for pattern in moves_patterns:
-            match = re.search(pattern, section_lower)
-            if match:
-                moves_text = match.group(1).strip()
-                # Clean up moves and remove extra text
-                moves_text = re.sub(r'\s*-\s*(?:ability|held item|item|nature|tera|ev spread|ev explanation).*', '', moves_text)
-                # Handle different separators
-                if '/' in moves_text:
-                    moves_list = [move.strip().title() for move in moves_text.split('/')]
-                elif ',' in moves_text:
-                    moves_list = [move.strip().title() for move in moves_text.split(',')]
-                else:
-                    moves_list = [moves_text.title()]
-                
-                # Filter out abilities that might be incorrectly included in moves
-                ability_keywords = ['as one', 'unseen fist', 'grassy surge', 'regenerator', 'quark drive', 'drizzle']
-                filtered_moves = []
-                for move in moves_list:
-                    if move.lower() not in ability_keywords:
-                        filtered_moves.append(move)
-                
-                if filtered_moves:
-                    # Apply move name corrections
-                    corrected_moves = []
-                    for move in filtered_moves:
-                        corrected_move = strip_html_tags(move)
-                        # Move name corrections
-                        move_corrections = {
-                            'Bark Out': 'Snarl',
-                            'Bark out': 'Snarl',
-                            'bark out': 'Snarl'
-                        }
-                        corrected_move = move_corrections.get(corrected_move, corrected_move)
-                        corrected_moves.append(corrected_move)
-                    
-                    pokemon_data['moves'] = corrected_moves
-                    print(f"DEBUG: Found moves: {pokemon_data['moves']}")
-                else:
-                    print(f"DEBUG: No valid moves found after filtering")
-                break
+        # Use the improved move extraction function
+        from utils.shared_utils import extract_moves_from_text
         
+        moves = extract_moves_from_text(section, pokemon_data.get('name'))
+        
+        if moves:
+            print(f"DEBUG: Found moves: {moves}")
+            pokemon_data['moves'] = moves
+            
+            # Validate moves for this Pokémon
+            valid_moves, invalid_moves = validate_pokemon_moves(pokemon_data['name'], moves)
+            pokemon_data['valid_moves'] = valid_moves
+            pokemon_data['invalid_moves'] = invalid_moves
+            
+            if invalid_moves:
+                print(f"DEBUG: Invalid moves detected for {pokemon_data['name']}: {invalid_moves}")
+                pokemon_data['move_validation_issues'] = invalid_moves
+        else:
+            print(f"DEBUG: No moves found for {pokemon_data['name']}")
+            pokemon_data['moves'] = []
+            pokemon_data['valid_moves'] = []
+            pokemon_data['invalid_moves'] = []
+        
+
+
         # Extract EV Spread
         ev_patterns = [
             r'ev spread[:\s]+([^:\n]+)',
@@ -2375,6 +2352,204 @@ def run_analysis(url, cache):
         progress_bar.empty()
         status_text.empty()
         st.session_state["summarising"] = False
+
+def validate_pokemon_moves(pokemon_name: str, moves: list) -> tuple[list, list]:
+    """
+    Validate that moves are legal for the specific Pokémon.
+    Returns (valid_moves, invalid_moves).
+    """
+    if not moves:
+        return [], []
+    
+    # Known movepools for common VGC Pokémon (Scarlet/Violet era)
+    # Updated with more accurate movepools and corrected restrictions
+    pokemon_movepools = {
+        'Zamazenta': {
+            'moves': ['Close Combat', 'Behemoth Bash', 'Wide Guard', 'Protect', 'Body Press', 'Heavy Slam', 'Iron Head', 'Crunch', 'Howl', 'Agility', 'Substitute', 'Swords Dance', 'Snarl', 'Drain Punch', 'Rock Slide', 'Stone Edge', 'Outrage', 'Dragon Claw'],
+            'restricted': []
+        },
+        'Zacian': {
+            'moves': ['Behemoth Blade', 'Sacred Sword', 'Close Combat', 'Play Rough', 'Iron Head', 'Protect', 'Swords Dance', 'Substitute', 'Quick Attack', 'Crunch', 'Howl', 'Psychic Fangs', 'Drain Punch', 'Rock Slide', 'Stone Edge', 'Outrage', 'Dragon Claw'],
+            'restricted': []
+        },
+        'Calyrex Shadow Rider': {
+            'moves': ['Astral Barrage', 'Psyshock', 'Shadow Ball', 'Focus Blast', 'Protect', 'Substitute', 'Nasty Plot', 'Trick Room', 'Will-O-Wisp', 'Encore', 'Psychic', 'Dark Pulse', 'Calm Mind', 'Thunderbolt', 'Energy Ball'],
+            'restricted': []
+        },
+        'Calyrex Ice Rider': {
+            'moves': ['Glacial Lance', 'High Horsepower', 'Close Combat', 'Protect', 'Substitute', 'Swords Dance', 'Trick Room', 'Body Press', 'Heavy Slam', 'Stone Edge', 'Rock Slide', 'Bulk Up', 'Outrage', 'Dragon Claw'],
+            'restricted': []
+        },
+        'Chien-Pao': {
+            'moves': ['Ice Spinner', 'Sucker Punch', 'Ruination', 'Protect', 'Substitute', 'Swords Dance', 'Taunt', 'Encore', 'Crunch', 'Ice Shard', 'Psychic Fangs', 'Sacred Sword', 'Drain Punch', 'Rock Slide', 'Stone Edge'],
+            'restricted': []
+        },
+        'Chi-Yu': {
+            'moves': ['Overheat', 'Dark Pulse', 'Flamethrower', 'Protect', 'Substitute', 'Nasty Plot', 'Trick Room', 'Will-O-Wisp', 'Shadow Ball', 'Psychic', 'Energy Ball', 'Heat Wave', 'Snarl', 'Focus Blast'],
+            'restricted': []
+        },
+        'Amoonguss': {
+            'moves': ['Spore', 'Rage Powder', 'Sludge Bomb', 'Protect', 'Substitute', 'Clear Smog', 'Giga Drain', 'Toxic', 'Foul Play', 'Body Slam', 'Seed Bomb', 'Synthesis', 'Energy Ball', 'Sludge Wave'],
+            'restricted': []
+        },
+        'Dragonite': {
+            'moves': ['Extreme Speed', 'Outrage', 'Rock Slide', 'Protect', 'Substitute', 'Dragon Dance', 'Earthquake', 'Fire Punch', 'Thunder Wave', 'Dragon Claw', 'Iron Head', 'Dragon Rush', 'Aerial Ace', 'Thunderbolt', 'Ice Beam'],
+            'restricted': []
+        },
+        'Iron Valiant': {
+            'moves': ['Close Combat', 'Spirit Break', 'Moonblast', 'Protect', 'Substitute', 'Swords Dance', 'Thunder Wave', 'Encore', 'Taunt', 'Psychic', 'Shadow Ball', 'Aura Sphere', 'Drain Punch', 'Rock Slide', 'Stone Edge'],
+            'restricted': []
+        },
+        'Iron Jugulis': {
+            'moves': ['Dark Pulse', 'Air Slash', 'Flamethrower', 'Protect', 'Substitute', 'Nasty Plot', 'U-turn', 'Heat Wave', 'Hurricane', 'Focus Blast', 'Earth Power', 'Snarl', 'Taunt', 'Shadow Ball', 'Sludge Bomb'],
+            'restricted': []
+        },
+        'Iron Crown': {
+            'moves': ['Tachyon Cutter', 'Psyshock', 'Focus Blast', 'Protect', 'Substitute', 'Calm Mind', 'Thunder Wave', 'Encore', 'Shadow Ball', 'Aura Sphere', 'Flash Cannon', 'Psychic', 'Trick Room', 'Thunderbolt', 'Energy Ball'],
+            'restricted': []
+        },
+        'Miraidon': {
+            'moves': ['Electro Drift', 'Dragon Pulse', 'Protect', 'Substitute', 'Calm Mind', 'Thunder Wave', 'Encore', 'Taunt', 'Thunderbolt', 'Focus Blast', 'U-turn', 'Dragon Claw', 'Thunder', 'Rock Slide', 'Stone Edge'],
+            'restricted': []
+        },
+        'Koraidon': {
+            'moves': ['Collision Course', 'Dragon Claw', 'Protect', 'Substitute', 'Swords Dance', 'Thunder Wave', 'Encore', 'Taunt', 'Fire Fang', 'Rock Slide', 'U-turn', 'Outrage', 'Flare Blitz', 'Earthquake', 'Stone Edge'],
+            'restricted': []
+        },
+        'Urshifu': {
+            'moves': ['Close Combat', 'Surging Strikes', 'Protect', 'Substitute', 'Swords Dance', 'U-turn', 'Rock Slide', 'Earthquake', 'Iron Head', 'Poison Jab', 'Bulk Up', 'Aqua Jet', 'Drain Punch', 'Stone Edge', 'Outrage'],
+            'restricted': []
+        },
+        'Rillaboom': {
+            'moves': ['Grassy Glide', 'Wood Hammer', 'Protect', 'Substitute', 'Swords Dance', 'U-turn', 'Rock Slide', 'Earthquake', 'Drum Beating', 'Bulk Up', 'Taunt', 'Fake Out', 'Drain Punch', 'Stone Edge', 'Outrage'],
+            'restricted': []
+        },
+        'Volcarona': {
+            'moves': ['Fiery Dance', 'Bug Buzz', 'Protect', 'Substitute', 'Quiver Dance', 'U-turn', 'Giga Drain', 'Hurricane', 'Flamethrower', 'Psychic', 'Roost', 'Heat Wave', 'Air Slash', 'Energy Ball', 'Shadow Ball'],
+            'restricted': []
+        },
+        'Alolan Ninetales': {
+            'moves': ['Blizzard', 'Moonblast', 'Protect', 'Substitute', 'Nasty Plot', 'Encore', 'Taunt', 'Aurora Veil', 'Freeze-Dry', 'Dazzling Gleam', 'Hypnosis', 'Ice Beam', 'Dark Pulse', 'Energy Ball', 'Psyshock'],
+            'restricted': []
+        },
+        'Garchomp': {
+            'moves': ['Earthquake', 'Dragon Claw', 'Rock Slide', 'Protect', 'Substitute', 'Swords Dance', 'U-turn', 'Fire Fang', 'Poison Jab', 'Outrage', 'Stone Edge', 'Iron Head', 'Dragon Rush', 'Wide Guard', 'Quick Guard', 'Stealth Rock', 'Dragon Tail'],
+            'restricted': []  # Garchomp CAN learn Wide Guard in Scarlet/Violet
+        },
+        'Grimmsnarl': {
+            'moves': ['Spirit Break', 'Play Rough', 'Protect', 'Substitute', 'Bulk Up', 'Taunt', 'Encore', 'Thunder Wave', 'Foul Play', 'Sucker Punch', 'Drain Punch', 'Light Screen', 'Reflect', 'Dark Pulse', 'Shadow Ball'],
+            'restricted': []
+        },
+        'Incineroar': {
+            'moves': ['Flare Blitz', 'Darkest Lariat', 'Protect', 'Substitute', 'Bulk Up', 'Taunt', 'Encore', 'Will-O-Wisp', 'Fake Out', 'U-turn', 'Earthquake', 'Snarl', 'Parting Shot', 'Rock Slide', 'Stone Edge'],
+            'restricted': []
+        },
+        'Landorus': {
+            'moves': ['Earthquake', 'Rock Slide', 'Protect', 'Substitute', 'Swords Dance', 'U-turn', 'Stone Edge', 'Fly', 'Focus Blast', 'Sludge Bomb', 'Earth Power', 'Superpower', 'Bulk Up', 'Outrage', 'Dragon Claw'],
+            'restricted': []
+        },
+        'Tornadus': {
+            'moves': ['Hurricane', 'Air Slash', 'Protect', 'Substitute', 'Nasty Plot', 'U-turn', 'Focus Blast', 'Heat Wave', 'Dark Pulse', 'Grass Knot', 'Tailwind', 'Bleakwind Storm', 'Bulk Up', 'Rock Slide', 'Stone Edge'],
+            'restricted': []
+        },
+        'Thundurus': {
+            'moves': ['Thunderbolt', 'Thunder', 'Protect', 'Substitute', 'Nasty Plot', 'U-turn', 'Focus Blast', 'Dark Pulse', 'Grass Knot', 'Volt Switch', 'Thunder Wave', 'Wildbolt Storm', 'Bulk Up', 'Rock Slide', 'Stone Edge'],
+            'restricted': []
+        },
+        # Additional VGC Pokémon with expanded movepools
+        'Flutter Mane': {
+            'moves': ['Moonblast', 'Shadow Ball', 'Dazzling Gleam', 'Protect', 'Substitute', 'Nasty Plot', 'Mystical Fire', 'Power Gem', 'Psyshock', 'Thunderbolt', 'Energy Ball', 'Trick Room', 'Calm Mind', 'Focus Blast'],
+            'restricted': []
+        },
+        'Iron Bundle': {
+            'moves': ['Freeze-Dry', 'Hydro Pump', 'Blizzard', 'Protect', 'Substitute', 'Encore', 'Taunt', 'U-turn', 'Aurora Beam', 'Ice Beam', 'Surf', 'Trick Room', 'Focus Blast', 'Energy Ball'],
+            'restricted': []
+        },
+        'Indeedee': {
+            'moves': ['Psychic', 'Dazzling Gleam', 'Protect', 'Substitute', 'Follow Me', 'Helping Hand', 'Heal Pulse', 'Trick Room', 'Shadow Ball', 'Energy Ball', 'Thunderbolt', 'Calm Mind', 'Focus Blast', 'Psyshock'],
+            'restricted': []
+        }
+    }
+    
+    # Normalize Pokémon name for comparison
+    pokemon_name_lower = pokemon_name.lower()
+    
+    # Find the Pokémon in our movepool database
+    pokemon_data = None
+    for name, data in pokemon_movepools.items():
+        if name.lower() == pokemon_name_lower:
+            pokemon_data = data
+            break
+    
+    if not pokemon_data:
+        # If Pokémon not in our database, try to validate against common VGC moves
+        print(f"DEBUG: Pokémon {pokemon_name} not in movepool database, checking against common VGC moves")
+        
+        # Common VGC moves that most Pokémon can learn
+        common_vgc_moves = {
+            'protect', 'substitute', 'swords dance', 'nasty plot', 'calm mind', 'bulk up',
+            'close combat', 'earthquake', 'rock slide', 'stone edge', 'dragon claw', 'outrage',
+            'fire blast', 'flamethrower', 'ice beam', 'blizzard', 'thunderbolt', 'thunder',
+            'psychic', 'shadow ball', 'dark pulse', 'sludge bomb', 'giga drain', 'energy ball',
+            'u-turn', 'fake out', 'encore', 'taunt', 'thunder wave', 'will-o-wisp',
+            'aurora veil', 'tailwind', 'rage powder', 'spore', 'clear smog', 'foul play',
+            'wide guard', 'quick guard', 'crafty shield', 'mat block', 'spiky shield',
+            'king\'s shield', 'baneful bunker', 'obstruct', 'max guard', 'dynamax cannon'
+        }
+        
+        # Check if moves are in common VGC moves
+        valid_moves = []
+        invalid_moves = []
+        
+        for move in moves:
+            move_lower = move.lower()
+            if move_lower in common_vgc_moves:
+                valid_moves.append(move)
+            else:
+                # Mark as potentially invalid but with a note
+                invalid_moves.append(f"{move} (not in common VGC movepool)")
+        
+        return valid_moves, invalid_moves
+    
+    valid_moves = []
+    invalid_moves = []
+    
+    for move in moves:
+        move_lower = move.lower()
+        
+        # Check if move is in the Pokémon's movepool
+        if any(move_lower == known_move.lower() for known_move in pokemon_data['moves']):
+            valid_moves.append(move)
+        else:
+            # Check if it's a restricted move
+            if any(move_lower == restricted_move.lower() for restricted_move in pokemon_data['restricted']):
+                invalid_moves.append(f"{move} (cannot learn this move)")
+            else:
+                # Move not in known movepool, check if it's a common VGC move
+                common_vgc_moves = {
+                    'protect', 'substitute', 'swords dance', 'nasty plot', 'calm mind', 'bulk up',
+                    'close combat', 'earthquake', 'rock slide', 'stone edge', 'dragon claw', 'outrage',
+                    'fire blast', 'flamethrower', 'ice beam', 'blizzard', 'thunderbolt', 'thunder',
+                    'psychic', 'shadow ball', 'dark pulse', 'sludge bomb', 'giga drain', 'energy ball',
+                    'u-turn', 'fake out', 'encore', 'taunt', 'thunder wave', 'will-o-wisp',
+                    'aurora veil', 'tailwind', 'rage powder', 'spore', 'clear smog', 'foul play',
+                    'wide guard', 'quick guard', 'crafty shield', 'mat block', 'spiky shield',
+                    'king\'s shield', 'baneful bunker', 'obstruct', 'max guard', 'dynamax cannon'
+                }
+                
+                if move_lower in common_vgc_moves:
+                    # Common VGC move, likely valid but not in our specific movepool
+                    valid_moves.append(move)
+                    print(f"DEBUG: Move '{move}' is a common VGC move for {pokemon_name}, marking as valid")
+                else:
+                    # Move not in known movepool or common VGC moves
+                    print(f"DEBUG: Move '{move}' not found in known movepool for {pokemon_name}")
+                    invalid_moves.append(f"{move} (move not verified)")
+    
+    if invalid_moves:
+        print(f"DEBUG: Invalid/unverified moves for {pokemon_name}: {invalid_moves}")
+    
+    return valid_moves, invalid_moves
 
 # Main application
 def main():
