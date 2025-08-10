@@ -233,6 +233,42 @@
       "url": "https://note.com/icho_poke/n/n8ffb464e9335?sub_rt=share_pb",
       "title": "【シーズン32ダブル最終14位】ザマ黒馬＋チョッキパオカイ｜ぎんなん",
       "summary_id": "5302f6cd0456"
+    },
+    {
+      "timestamp": "2025-08-10T12:45:26.005709",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-10T12:45:33.501245",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-10T12:45:41.832368",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-10T12:46:08.061043",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-10T12:49:11.192413",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-10T12:50:00.306391",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
     }
   ],
   "downloads": [
@@ -495,6 +531,46 @@
       "timestamp": "2025-08-09T12:05:55.114947",
       "summary_id": "5302f6cd0456",
       "file_type": "csv"
+    },
+    {
+      "timestamp": "2025-08-10T12:45:41.865019",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "txt"
+    },
+    {
+      "timestamp": "2025-08-10T12:45:41.874073",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "json"
+    },
+    {
+      "timestamp": "2025-08-10T12:45:41.884088",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "showdown"
+    },
+    {
+      "timestamp": "2025-08-10T12:45:41.900150",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "csv"
+    },
+    {
+      "timestamp": "2025-08-10T12:50:00.346201",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "txt"
+    },
+    {
+      "timestamp": "2025-08-10T12:50:00.358329",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "json"
+    },
+    {
+      "timestamp": "2025-08-10T12:50:00.369392",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "showdown"
+    },
+    {
+      "timestamp": "2025-08-10T12:50:00.380531",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "csv"
     }
   ],
   "reading_list": [],
@@ -531,6 +607,24 @@
       ],
       "view_count": 23,
       "last_viewed": "2025-08-09T12:06:57.658927",
+      "collections": [],
+      "tags": [],
+      "tournament": ""
+    },
+    "2e18488ca9c6": {
+      "summary_id": "2e18488ca9c6",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "team_names": [
+        "Calyrex Shadow Rider",
+        "Zamazenta",
+        "Chien",
+        "Chi",
+        "Amoonguss",
+        "Rillaboom"
+      ],
+      "view_count": 6,
+      "last_viewed": "2025-08-10T12:50:00.319477",
       "collections": [],
       "tags": [],
       "tournament": ""

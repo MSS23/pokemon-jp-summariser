@@ -376,8 +376,17 @@ st.markdown("""
         .hero-subtitle { font-size: 1rem; }
         .feature-badge { padding: 0.6rem 1rem; font-size: 0.95rem; }
         .modern-card { padding: 20px; }
-        #share-bar { flex-wrap: wrap; }
-        #share-bar button { width: 48%; margin-bottom: 6px; }
+        /* Share bar mobile optimization */
+        #share-bar { 
+            flex-wrap: wrap; 
+            gap: 4px !important;
+        }
+        #share-bar button { 
+            width: calc(50% - 2px); 
+            margin-bottom: 6px; 
+            font-size: 0.75rem !important;
+            padding: 4px 6px !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -806,42 +815,95 @@ def display_article_summary(parsed_data, summary, url):
     </div>
     """, unsafe_allow_html=True)
 
-    # Share controls (copy to clipboard + quick share links)
-    share_col, _ = st.columns([1, 3])
-    with share_col:
-        team_list_for_share = parsed_data.get('pokemon', []) or []
-        fp_share = compute_team_fingerprint(team_list_for_share, parsed_data.get('title'), url)
-        base_url_share = st.session_state.get("_base_url", "http://localhost:8501")
-        permalink_share = build_permalink(base_url_share, fp_share)
-        safe_title = article_block_title or 'Pokemon VGC Team Analysis'
-        import json as _json
-        title_js = _json.dumps(safe_title)
-        link_js = _json.dumps(permalink_share)
-        components.html(
-            """
-            <div id=\"share-bar\" style=\"display:flex;gap:8px;align-items:center;\">
-              <button id=\"copy-link\" style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#0ea5e9;color:white;font-weight:600;cursor:pointer;\">🔗 Copy Link</button>
-              <button id=\"copy-md\" style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#6366f1;color:white;font-weight:600;cursor:pointer;\">📋 Copy Markdown</button>
-              <a id=\"wa\" href=\"#\" target=\"_blank\" style=\"text-decoration:none;\"><button style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#22c55e;color:white;font-weight:600;cursor:pointer;\">🟢 WhatsApp</button></a>
-              <a id=\"tg\" href=\"#\" target=\"_blank\" style=\"text-decoration:none;\"><button style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#0ea5e9;color:white;font-weight:600;cursor:pointer;\">🔵 Telegram</button></a>
-              <a id=\"tw\" href=\"#\" target=\"_blank\" style=\"text-decoration:none;\"><button style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#1d9bf0;color:white;font-weight:600;cursor:pointer;\">𝕏 Share</button></a>
-            </div>
-            <script>
-              const title = """ + title_js + """;
-              const link = """ + link_js + """;
-              const copyText = async (text, el, label) => {
-                try { await navigator.clipboard.writeText(text); el.textContent = '✅ Copied!'; setTimeout(()=>el.textContent=label,1500);} catch(e){ el.textContent = 'Copy failed'; }
-              };
-              document.getElementById('copy-link').onclick = () => copyText(link, document.getElementById('copy-link'), '🔗 Copy Link');
-              document.getElementById('copy-md').onclick = () => copyText('[' + title + '] (' + link + ')', document.getElementById('copy-md'), '📋 Copy Markdown');
-              const encoded = encodeURIComponent(title + ' — ' + link);
-              document.getElementById('wa').href = 'https://wa.me/?text=' + encoded;
-              document.getElementById('tg').href = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(title);
-              document.getElementById('tw').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(link);
-            </script>
-            """,
-            height=64,
-        )
+    # Share controls (copy to clipboard + quick share links) - Fixed layout
+    st.markdown("### 📤 Share This Analysis")
+    
+    team_list_for_share = parsed_data.get('pokemon', []) or []
+    fp_share = compute_team_fingerprint(team_list_for_share, parsed_data.get('title'), url)
+    base_url_share = st.session_state.get("_base_url", "http://localhost:8501")
+    permalink_share = build_permalink(base_url_share, fp_share)
+    safe_title = article_block_title or 'Pokemon VGC Team Analysis'
+    import json as _json
+    title_js = _json.dumps(safe_title)
+    link_js = _json.dumps(permalink_share)
+    
+    # Create a more compact and responsive share bar that won't get cut off
+    components.html(
+        """
+        <style>
+        #share-bar {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            width: 100%;
+            max-width: 100%;
+            padding: 8px 0;
+        }
+        #share-bar button {
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            min-width: fit-content;
+            transition: all 0.2s ease;
+        }
+        #share-bar button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #share-bar a {
+            text-decoration: none;
+        }
+        @media (max-width: 768px) {
+            #share-bar {
+                gap: 4px;
+            }
+            #share-bar button {
+                padding: 5px 8px;
+                font-size: 0.8rem;
+            }
+        }
+        </style>
+        <div id="share-bar">
+          <button id="copy-link" style="background:#0ea5e9;color:white;">🔗 Copy Link</button>
+          <button id="copy-md" style="background:#6366f1;color:white;">📋 Copy Markdown</button>
+          <a id="wa" href="#" target="_blank">
+            <button style="background:#22c55e;color:white;">🟢 WhatsApp</button>
+          </a>
+          <a id="tg" href="#" target="_blank">
+            <button style="background:#0ea5e9;color:white;">🔵 Telegram</button>
+          </a>
+          <a id="tw" href="#" target="_blank">
+            <button style="background:#1d9bf0;color:white;">𝕏 Share</button>
+          </a>
+        </div>
+        <script>
+          const title = """ + title_js + """;
+          const link = """ + link_js + """;
+          const copyText = async (text, el, label) => {
+            try { 
+              await navigator.clipboard.writeText(text); 
+              el.textContent = '✅ Copied!'; 
+              setTimeout(()=>el.textContent=label,1500);
+            } catch(e){ 
+              el.textContent = 'Copy failed'; 
+            }
+          };
+          document.getElementById('copy-link').onclick = () => copyText(link, document.getElementById('copy-link'), '🔗 Copy Link');
+          document.getElementById('copy-md').onclick = () => copyText('[' + title + '] (' + link + ')', document.getElementById('copy-md'), '📋 Copy Markdown');
+          const encoded = encodeURIComponent(title + ' — ' + link);
+          document.getElementById('wa').href = 'https://wa.me/?text=' + encoded;
+          document.getElementById('tg').href = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(title);
+          document.getElementById('tw').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(link);
+        </script>
+        """,
+        height=80,
+    )
 
     # Show team composition overview
     if parsed_data.get('pokemon'):
@@ -853,6 +915,7 @@ def display_article_summary(parsed_data, summary, url):
         
         # Helper to render EV section with proper visualization bars
         def build_ev_block_html(evs: dict | None, ev_text: str | None = None, ev_explanation: str | None = None) -> str:
+            print(f"DEBUG: build_ev_block_html called with - evs: {evs}, ev_text: {ev_text}, ev_explanation: {ev_explanation}")
             if evs:
                 hp = evs.get('hp', 0)
                 atk = evs.get('attack', 0)
@@ -874,66 +937,22 @@ def display_article_summary(parsed_data, summary, url):
                 bars_html = ''
                 for label, value, color in ev_stats:
                     percentage = (value / 252) * 100 if value > 0 else 0
-                    bars_html += f'''
-                    <div style="
-                        background: #f8fafc;
-                        border: 1px solid #e2e8f0;
-                        border-radius: 6px;
-                        padding: 8px 12px;
-                        margin-bottom: 6px;
-                    ">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                            <span style="font-weight: 700; color: #475569; font-size: 0.8rem;">{label}</span>
-                            <span style="font-weight: 700; color: #0f172a; font-size: 0.8rem;">{value}</span>
-                        </div>
-                        <div style="
-                            width: 100%;
-                            height: 8px;
-                            background: #e2e8f0;
-                            border-radius: 4px;
-                            overflow: hidden;
-                            border: 1px solid #cbd5e1;
-                        ">
-                            <div style="
-                                height: 100%;
-                                background: {color};
-                                width: {percentage}%;
-                                border-radius: 3px;
-                            "></div>
-                        </div>
-                    </div>
-                    '''
+                    bar_div = f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px;"><div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;"><span style="font-weight: 700; color: #475569; font-size: 0.8rem;">{label}</span><span style="font-weight: 700; color: #0f172a; font-size: 0.8rem;">{value}</span></div><div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1;"><div style="height: 100%; background: {color}; width: {percentage}%; border-radius: 3px;"></div></div></div>'
+                    bars_html += bar_div
                 
                 # Add EV explanation if available
                 explanation_html = ''
                 if ev_explanation and ev_explanation != 'Not specified' and ev_explanation != 'Not specified in the article or image.':
-                    explanation_html = f'''
-                    <div style="
-                        margin-top: 12px;
-                        padding: 12px;
-                        background: #f0f9ff;
-                        border: 1px solid #bae6fd;
-                        border-radius: 6px;
-                    ">
-                        <div style="font-size:0.8rem;color:#0369a1;margin-bottom:6px;"><strong>🧠 Strategy & EV Explanation:</strong></div>
-                        <div style="font-size:0.75rem;color:#0c4a6e;line-height:1.4;">{ev_explanation}</div>
-                    </div>
-                    '''
+                    explanation_html = f'<div style="margin-top: 12px; padding: 12px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px;"><div style="font-size:0.8rem;color:#0369a1;margin-bottom:6px;"><strong>🧠 Strategy & EV Explanation:</strong></div><div style="font-size:0.75rem;color:#0c4a6e;line-height:1.4;">{ev_explanation}</div></div>'
                 
-                return (
-                    '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">'
-                    '<div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div>'
-                    f'{bars_html}'
-                    f'{explanation_html}'
-                    '</div>'
-                )
+                result = f'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;"><div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div>{bars_html}{explanation_html}</div>'
+                print(f"DEBUG: build_ev_block_html returning (evs case): {result[:100]}...")
+                return result
             elif ev_text:
-                return (
-                    '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">'
-                    '<div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div>'
-                    f'<div style="font-size:0.8rem;color:#64748b;line-height:1.4;">{ev_text}</div>'
-                    '</div>'
-                )
+                result = f'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;"><div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div><div style="font-size:0.8rem;color:#64748b;line-height:1.4;">{ev_text}</div></div>'
+                print(f"DEBUG: build_ev_block_html returning (ev_text case): {result[:100]}...")
+                return result
+            print("DEBUG: build_ev_block_html returning empty string")
             return ''
 
         # Display team members in a grid
@@ -942,9 +961,17 @@ def display_article_summary(parsed_data, summary, url):
             col_idx = i % 3
             with team_cols[col_idx]:
                 # Prepare EV spread display
-                ev_spread_html = build_ev_block_html(pokemon.get('evs'), pokemon.get('ev_spread'), pokemon.get('ev_explanation'))
+                pokemon_evs = pokemon.get('evs')
+                pokemon_ev_spread = pokemon.get('ev_spread')
+                pokemon_ev_explanation = pokemon.get('ev_explanation')
                 
-                st.markdown(f"""
+                # Debug: Print what we're getting
+                print(f"DEBUG: Pokemon {pokemon.get('name', 'Unknown')} - EVs: {pokemon_evs}, EV Spread: {pokemon_ev_spread}, EV Explanation: {pokemon_ev_explanation}")
+                
+                ev_spread_html = build_ev_block_html(pokemon_evs, pokemon_ev_spread, pokemon_ev_explanation)
+                
+                # Build the complete HTML for the Pokemon card
+                pokemon_card_html = f"""
                 <div style="background: white; border: 2px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
                     <div style="display: flex; align-items: center; margin-bottom: 8px;">
                         <div style="background: #3b82f6; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; margin-right: 8px;">{i+1}</div>
@@ -957,7 +984,12 @@ def display_article_summary(parsed_data, summary, url):
                     </div>
                     {ev_spread_html}
                 </div>
-                """, unsafe_allow_html=True)
+                """
+                
+                # Debug: Print the final HTML
+                print(f"DEBUG: Final Pokemon card HTML for {pokemon.get('name', 'Unknown')}: {pokemon_card_html[:200]}...")
+                
+                st.markdown(pokemon_card_html, unsafe_allow_html=True)
 
     # Extract and display strengths and weaknesses
     strengths, weaknesses = extract_strengths_weaknesses(summary)
@@ -1292,6 +1324,49 @@ def display_side_by_side_translation(parsed_data: dict, english_summary: str, ur
     #sbs-container a { pointer-events: none !important; text-decoration: none !important; color: inherit !important; }
     /* Also disable any anchor/link interactions in the cross-reference area */
     #xref-container a { pointer-events: none !important; text-decoration: none !important; color: inherit !important; }
+    
+    /* Dark mode text readability improvements */
+    .side-by-side-panel {
+        background: var(--background-color, #ffffff) !important;
+        border: 1px solid var(--border-color, #e5e7eb) !important;
+        border-radius: 10px !important;
+        padding: 12px !important;
+        height: 420px !important;
+        overflow: auto !important;
+        font-size: 0.95rem !important;
+        line-height: 1.6 !important;
+        color: var(--text-color, #1f2937) !important;
+    }
+    
+    /* Ensure highlighted terms are visible in both light and dark modes */
+    .side-by-side-panel mark.term {
+        background-color: #fbbf24 !important;
+        color: #1f2937 !important;
+        padding: 2px 4px !important;
+        border-radius: 4px !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Dark mode specific overrides */
+    @media (prefers-color-scheme: dark) {
+        .side-by-side-panel {
+            background: #1e293b !important;
+            border-color: #475569 !important;
+            color: #f1f5f9 !important;
+        }
+        
+        .side-by-side-panel mark.term {
+            background-color: #fbbf24 !important;
+            color: #1f2937 !important;
+        }
+    }
+    
+    /* Streamlit dark mode detection */
+    [data-testid="stAppViewContainer"] .side-by-side-panel {
+        background: #1e293b !important;
+        border-color: #475569 !important;
+        color: #f1f5f9 !important;
+    }
     </style>
     <div id="sbs-container" style="margin-top: 24px;">
         <h3 style="color: var(--text-primary); font-size: 1.4rem; font-weight: 700; text-align: center;">🧭 Side-by-Side Translation (Original vs English)</h3>
@@ -1308,16 +1383,16 @@ def display_side_by_side_translation(parsed_data: dict, english_summary: str, ur
     terms = build_highlight_terms(parsed_data)
     left, right = st.columns(2)
     with left:
-        st.markdown("<div style='font-weight:700; color:#334155; margin-bottom:8px;'>🇯🇵 Original</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:700; color:var(--text-color, #334155); margin-bottom:8px;'>🇯🇵 Original</div>", unsafe_allow_html=True)
         left_html = highlight_text_html(article_text or "", terms)
-        st.markdown(f"<div style='background:#ffffff; border:1px solid #e5e7eb; border-radius:10px; padding:12px; height:420px; overflow:auto; font-size:0.95rem; line-height:1.6;'>{left_html}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='side-by-side-panel'>{left_html}</div>", unsafe_allow_html=True)
     with right:
-        st.markdown("<div style='font-weight:700; color:#334155; margin-bottom:8px;'>🇬🇧 English (AI Summary)</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:700; color:var(--text-color, #334155); margin-bottom:8px;'>🇬🇧 English (AI Summary)</div>", unsafe_allow_html=True)
         right_html = highlight_text_html(english_summary or "", terms)
-        st.markdown(f"<div style='background:#ffffff; border:1px solid #e5e7eb; border-radius:10px; padding:12px; height:420px; overflow:auto; font-size:0.95rem; line-height:1.6;'>{right_html}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='side-by-side-panel'>{right_html}</div>", unsafe_allow_html=True)
 
     # Word mapping helper: select an English term and show likely Japanese variants
-    st.markdown("<div id='xref-container' style='margin-top:16px; font-weight:700; color:#334155;'>🔎 Cross-reference terms</div>", unsafe_allow_html=True)
+    st.markdown("<div id='xref-container' style='margin-top:16px; font-weight:700; color:var(--text-color, #334155);'>🔎 Cross-reference terms</div>", unsafe_allow_html=True)
     english_options = sorted(set([t for t in terms if t in EN_TO_JP]))
     # Guard: ensure options list is stable to avoid UI reselection causing reruns to jump
     if "xref_en_options" not in st.session_state:
@@ -1339,7 +1414,7 @@ def display_side_by_side_translation(parsed_data: dict, english_summary: str, ur
         else:
             st.write("No mapping available yet; copy a Japanese token from the left and we will enhance mappings.")
 
-    st.markdown("<div style='margin-top:8px; font-weight:700; color:#334155;'>🔄 Reverse lookup (Japanese → English)</div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:8px; font-weight:700; color:var(--text-color, #334155);'>🔄 Reverse lookup (Japanese → English)</div>", unsafe_allow_html=True)
     jp_selected = st.text_input(
         "Paste a Japanese term to see common English equivalents",
         value=st.session_state.get("xref_jp_to_en", ""),
