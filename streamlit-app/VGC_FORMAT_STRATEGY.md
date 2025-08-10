@@ -4,6 +4,8 @@
 
 This document outlines the comprehensive approach for handling multiple VGC Regulations/Formats in the Pokemon Team Analyzer application. The system uses a **hybrid approach** that combines user selection with AI auto-detection for maximum accuracy and future-proofing.
 
+**IMPORTANT CORRECTION**: Regulations A-I are all Pokemon Scarlet and Violet rulesets, not tied to specific years. The year does not denote the regulation letter.
+
 ## Why Hybrid Approach is Optimal
 
 ### 1. **User Expertise + AI Intelligence**
@@ -12,7 +14,7 @@ This document outlines the comprehensive approach for handling multiple VGC Regu
 - **Best of both worlds** - human knowledge + machine learning
 
 ### 2. **Future-Proof Architecture**
-- **Easy to add new regulations** (2025, 2026, etc.)
+- **Easy to add new regulations** (J, K, L, etc.)
 - **Dynamic format management** through configuration files
 - **Extensible prompt system** that adapts to any format
 
@@ -27,42 +29,41 @@ This document outlines the comprehensive approach for handling multiple VGC Regu
 ### Format Selection UI
 ```
 🤖 Auto-detect (Recommended)     ← AI automatically identifies format
-🏆 VGC 2024 - Regulation F      ← Current competitive format
-🏆 VGC 2023 - Regulation E      ← Recent format
-📚 VGC 2022 - Regulation D      ← Historical format
-📚 VGC 2019 - Regulation A      ← Historical format
+🏆 VGC 2025 - Regulation I      ← Current competitive format (Scarlet/Violet)
+🏆 VGC 2024 - Regulation H      ← Previous format (Scarlet/Violet)
+🏆 VGC 2023 - Regulation G      ← Previous format (Scarlet/Violet)
+📚 VGC 2022 - Regulation F      ← Historical format (Sword/Shield)
+📚 VGC 2017 - Regulation A      ← Historical format (Sword/Shield)
 ⚙️ Custom Format                 ← User-defined rules
 ```
 
 ### Format Status System
-- **Active**: Current competitive format (VGC 2024)
-- **Predicted**: Upcoming formats (VGC 2025)
-- **Historical**: Past formats (VGC 2019-2023)
+- **Active**: Current competitive format (VGC 2025 - Regulation I)
+- **Historical**: Past formats (VGC 2017-2024)
 - **Custom**: User-defined formats
 
 ## AI Auto-Detection Capabilities
 
 ### Detection Methods
 1. **Mechanic Detection**
-   - Tera Types → VGC 2023-2024+
-   - Dynamax → VGC 2019-2022
-   - Z-Moves → VGC 2017-2018
-   - Mega Evolution → VGC 2014-2016
+   - Tera Types → VGC 2023-2025+ (Regulations G, H, I)
+   - Dynamax → VGC 2017-2022 (Regulations A-F)
+   - Z-Moves → VGC 2017-2018 (Regulations A-B)
+   - Mega Evolution → Not available in Sword/Shield or Scarlet/Violet
 
 2. **Pokemon Availability**
-   - Modern Pokemon (Gen 9) → VGC 2023-2024+
-   - Sword/Shield Pokemon → VGC 2019-2022
-   - Restricted Legendaries → Format-specific years
+   - Modern Pokemon (Gen 9) → VGC 2023-2025+ (Regulations G, H, I)
+   - Sword/Shield Pokemon → VGC 2017-2022 (Regulations A-F)
+   - Restricted Legendaries → Format-specific availability
 
 3. **Move Legality**
-   - Tera Blast → VGC 2023-2024+
-   - Max Moves → VGC 2019-2022
+   - Tera Blast → VGC 2023-2025+ (Regulations G, H, I)
+   - Max Moves → VGC 2017-2022 (Regulations A-F)
    - Signature moves → Format-specific availability
 
 ### Detection Accuracy
-- **High accuracy** for modern formats (2023-2024)
-- **Good accuracy** for recent formats (2019-2022)
-- **Moderate accuracy** for older formats (pre-2019)
+- **High accuracy** for modern formats (2023-2025, Regulations G-I)
+- **Good accuracy** for recent formats (2017-2022, Regulations A-F)
 - **Fallback to manual selection** when unclear
 
 ## Future-Proofing Features
@@ -73,11 +74,11 @@ This document outlines the comprehensive approach for handling multiple VGC Regu
 from utils.vgc_format_config import add_new_format
 
 vgc2026_data = {
-    "name": "VGC 2026 - Regulation H",
+    "name": "VGC 2026 - Regulation J",
     "description": "Future VGC format",
-    "mechanics": ["Tera Types", "4v4 Doubles", "New Mechanics"],
+    "mechanics": ["Tera Types", "4v4 Doubles", "New Mechanics", "Scarlet/Violet mechanics"],
     "year": 2026,
-    "regulation": "H",
+    "regulation": "J",
     "status": "predicted"
 }
 
@@ -103,13 +104,13 @@ add_new_format("vgc2026", vgc2026_data)
 # In vgc_format_config.py
 def add_2026_format():
     vgc2026_data = {
-        "name": "VGC 2026 - Regulation H",
+        "name": "VGC 2026 - Regulation J",
         "description": "Future VGC format with new mechanics",
-        "mechanics": ["Tera Types", "4v4 Doubles", "New Mechanics"],
+        "mechanics": ["Tera Types", "4v4 Doubles", "New Mechanics", "Scarlet/Violet mechanics"],
         "restricted": ["TBD"],
         "key_features": ["Future format", "New Pokemon"],
         "year": 2026,
-        "regulation": "H",
+        "regulation": "J",
         "status": "predicted"
     }
     return add_new_format("vgc2026", vgc2026_data)
@@ -187,3 +188,5 @@ The hybrid approach provides the optimal balance of:
 - **Maintainability** for developers
 
 This system will continue to work effectively as new VGC regulations are introduced, requiring minimal updates while maintaining high accuracy and user satisfaction.
+
+**Note**: Regulations A-I are all Pokemon Scarlet and Violet rulesets, with Tera mechanics. The year does not determine the regulation letter - they are separate progression systems.

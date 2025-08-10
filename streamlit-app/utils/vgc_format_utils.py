@@ -8,75 +8,82 @@ from typing import Dict, List, Tuple, Optional
 
 # VGC Format Definitions
 VGC_FORMATS = {
-    "vgc2025": {
-        "name": "VGC 2025 - Regulation G (Predicted)",
-        "description": "Upcoming VGC format with potential new mechanics and Pokemon",
-        "mechanics": ["Tera Types", "4v4 Doubles", "Potential New Mechanics"],
-        "restricted": ["Miraidon", "Koraidon", "Calyrex", "Zacian", "Zamazenta"],
-        "key_features": ["Future format", "Potential new Pokemon", "Meta evolution"],
-        "year": 2025,
-        "regulation": "G",
-        "status": "predicted"
+    "auto": {
+        "name": "Auto-Detect Format",
+        "description": "AI automatically detects the VGC format based on team composition and article content",
+        "mechanics": "Auto-detected",
+        "restricted_pokemon": "Auto-detected",
+        "status": "auto"
     },
-    "vgc2024": {
-        "name": "VGC 2024 - Regulation F",
-        "description": "Latest VGC format with Tera mechanics and new Pokemon",
-        "mechanics": ["Tera Types", "4v4 Doubles", "No Dynamax"],
-        "restricted": ["Miraidon", "Koraidon", "Calyrex", "Zacian", "Zamazenta"],
-        "key_features": ["Tera Type changes", "Scarlet/Violet Pokemon", "Modern meta strategies"],
-        "year": 2024,
-        "regulation": "F",
+    "vgc2025": {
+        "name": "VGC 2025 - Regulation I",
+        "description": "Pokemon Scarlet and Violet - Latest competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "active"
     },
+    "vgc2024": {
+        "name": "VGC 2024 - Regulation H",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "historical"
+    },
     "vgc2023": {
-        "name": "VGC 2023 - Regulation E", 
-        "description": "Previous year's format with Tera mechanics",
-        "mechanics": ["Tera Types", "4v4 Doubles", "No Dynamax"],
-        "restricted": ["Miraidon", "Koraidon", "Calyrex", "Zacian", "Zamazenta"],
-        "key_features": ["Tera Type changes", "Scarlet/Violet Pokemon", "Established meta"],
-        "year": 2023,
-        "regulation": "E",
+        "name": "VGC 2023 - Regulation G",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
     },
     "vgc2022": {
-        "name": "VGC 2022 - Regulation D",
-        "description": "Format with Dynamax mechanics",
-        "mechanics": ["Dynamax", "4v4 Doubles", "No Tera Types"],
-        "restricted": ["Calyrex", "Zacian", "Zamazenta", "Eternatus"],
-        "key_features": ["Dynamax strategies", "Sword/Shield Pokemon", "Max moves"],
-        "year": 2022,
-        "regulation": "D",
+        "name": "VGC 2022 - Regulation F",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
     },
     "vgc2021": {
-        "name": "VGC 2021 - Regulation C",
-        "description": "Format with Dynamax mechanics",
-        "mechanics": ["Dynamax", "4v4 Doubles", "No Tera Types"],
-        "restricted": ["Calyrex", "Zacian", "Zamazenta", "Eternatus"],
-        "key_features": ["Dynamax strategies", "Sword/Shield Pokemon", "Max moves"],
-        "year": 2021,
-        "regulation": "C",
+        "name": "VGC 2021 - Regulation E",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
     },
     "vgc2020": {
-        "name": "VGC 2020 - Regulation B",
-        "description": "Format with Dynamax mechanics",
-        "mechanics": ["Dynamax", "4v4 Doubles", "No Tera Types"],
-        "restricted": ["Calyrex", "Zacian", "Zamazenta", "Eternatus"],
-        "key_features": ["Dynamax strategies", "Sword/Shield Pokemon", "Max moves"],
-        "year": 2020,
-        "regulation": "B",
+        "name": "VGC 2020 - Regulation D",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
     },
     "vgc2019": {
-        "name": "VGC 2019 - Regulation A",
-        "description": "Format with Dynamax mechanics",
-        "mechanics": ["Dynamax", "4v4 Doubles", "No Tera Types"],
-        "restricted": ["Calyrex", "Zacian", "Zamazenta", "Eternatus"],
-        "key_features": ["Dynamax strategies", "Sword/Shield Pokemon", "Max moves"],
-        "year": 2019,
-        "regulation": "A",
+        "name": "VGC 2019 - Regulation C",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
+    },
+    "vgc2018": {
+        "name": "VGC 2018 - Regulation B",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "historical"
+    },
+    "vgc2017": {
+        "name": "VGC 2017 - Regulation A",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "historical"
+    },
+    "custom": {
+        "name": "Custom Format",
+        "description": "User-defined VGC format with custom rules",
+        "mechanics": "Custom",
+        "restricted_pokemon": "Custom",
+        "status": "custom"
     }
 }
 
@@ -160,73 +167,42 @@ def detect_format_from_team(team_data: List[Dict], summary_text: str) -> str:
     
     summary_lower = summary_text.lower()
     
-    # Enhanced detection patterns
-    detection_patterns = [
-        # Tera Types (VGC 2023-2024+)
-        (r"tera\s*type", "VGC 2023-2024+ (Tera Types)"),
-        (r"tera\s*blast", "VGC 2023-2024+ (Tera Types)"),
-        (r"tera\s*form", "VGC 2023-2024+ (Tera Types)"),
-        
-        # Dynamax (VGC 2019-2022)
-        (r"dynamax", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*move", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*knuckle", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*flare", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*quake", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*geyser", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*lightning", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*starfall", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*phantasm", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*wyrmwind", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*ooze", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*steelspike", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*flutterby", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*airstream", "VGC 2019-2022 (Dynamax)"),
-        (r"max\s*guard", "VGC 2019-2022 (Dynamax)"),
-        
-        # Z-Moves (VGC 2017-2018)
-        (r"z-move", "VGC 2017-2018 (Z-Moves)"),
-        (r"z\s*move", "VGC 2017-2018 (Z-Moves)"),
-        (r"z\s*crystal", "VGC 2017-2018 (Z-Moves)"),
-        
-        # Mega Evolution (VGC 2014-2016)
-        (r"mega\s*evolution", "VGC 2014-2016 (Mega Evolution)"),
-        (r"mega\s*[a-z]+", "VGC 2014-2016 (Mega Evolution)"),
-        
-        # Specific Pokemon indicators
-        (r"miraidon", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"koraidon", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"iron\s*[a-z]+", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"roaring\s*moon", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"flutter\s*mane", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"chien-pao", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"chi-yu", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"calyrex", "VGC 2019-2022 (Sword/Shield)"),
-        (r"zacian", "VGC 2019-2022 (Sword/Shield)"),
-        (r"zamazenta", "VGC 2019-2022 (Sword/Shield)"),
-        (r"eternatus", "VGC 2019-2022 (Sword/Shield)"),
-        
-        # Move availability indicators
-        (r"tera\s*blast", "VGC 2023-2024+ (Tera Types)"),
-        (r"population\s*bomb", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"bitter\s*blade", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"torch\s*song", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"aqua\s*step", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"wave\s*crash", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"glaive\s*rush", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"order\s*up", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"spicy\s*extract", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"triple\s*arrows", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"ceaseless\s*edge", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"bleakwind\s*storm", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"wildbolt\s*storm", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"sandsear\s*storm", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"springtide\s*storm", "VGC 2023-2024+ (Scarlet/Violet)"),
-        (r"freezing\s*glare", "VGC 2020-2022 (Sword/Shield)"),
-        (r"thunderous\s*kick", "VGC 2020-2022 (Sword/Shield)"),
-        (r"fiery\s*wrath", "VGC 2020-2022 (Sword/Shield)"),
-        (r"wicked\s*blow", "VGC 2020-2022 (Sword/Shield)"),
-    ]
+            # Enhanced detection patterns
+        detection_patterns = [
+            # Tera Types (VGC 2017-2025+ - Regulations A-I, all Scarlet/Violet)
+            (r"tera\s*type", "VGC 2017-2025+ (Tera Types - Regulations A-I, Scarlet/Violet Era)"),
+            (r"tera\s*blast", "VGC 2017-2025+ (Tera Types - Regulations A-I, Scarlet/Violet Era)"),
+            (r"tera\s*form", "VGC 2017-2025+ (Tera Types - Regulations A-I, Scarlet/Violet Era)"),
+            
+            # Specific Pokemon indicators (all from Scarlet/Violet era)
+            (r"miraidon", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"koraidon", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"iron\s*[a-z]+", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"roaring\s*moon", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"flutter\s*mane", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"chien-pao", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"chi-yu", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"calyrex", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"zacian", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"zamazenta", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"eternatus", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            
+            # Move availability indicators (all from Scarlet/Violet era)
+            (r"population\s*bomb", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"bitter\s*blade", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"torch\s*song", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"aqua\s*step", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"wave\s*crash", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"glaive\s*rush", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"order\s*up", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"spicy\s*extract", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"triple\s*arrows", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"ceaseless\s*edge", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"bleakwind\s*storm", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"wildbolt\s*storm", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"sandsear\s*storm", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"springtide\s*storm", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+        ]
     
     # Check for pattern matches
     for pattern, format_name in detection_patterns:
@@ -234,34 +210,24 @@ def detect_format_from_team(team_data: List[Dict], summary_text: str) -> str:
             return format_name
     
     # Check team composition for Pokemon availability
-    modern_pokemon = ["miraidon", "koraidon", "iron", "roaring", "flutter", "chien-pao", "chi-yu", "tinkaton", "annihilape", "palafin"]
-    sword_shield_pokemon = ["calyrex", "zacian", "zamazenta", "eternatus", "urshifu", "regieleki", "regidrago"]
+    scarlet_violet_pokemon = ["miraidon", "koraidon", "iron", "roaring", "flutter", "chien-pao", "chi-yu", "tinkaton", "annihilape", "palafin", "calyrex", "zacian", "zamazenta", "eternatus", "urshifu", "regieleki", "regidrago"]
     
     team_text = " ".join([str(pokemon) for pokemon in team_data]).lower()
     
-    # Count modern vs older Pokemon
-    modern_count = sum(1 for pokemon in modern_pokemon if pokemon in team_text)
-    sword_shield_count = sum(1 for pokemon in sword_shield_pokemon if pokemon in team_text)
-    
-    if modern_count > sword_shield_count and modern_count > 0:
-        return "VGC 2023-2024+ (Modern Pokemon Detected)"
-    elif sword_shield_count > 0:
-        return "VGC 2019-2022 (Sword/Shield Era)"
+    # All Pokemon are from Scarlet/Violet era (Regulations A-I)
+    if any(pokemon in team_text for pokemon in scarlet_violet_pokemon):
+        return "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"
     
     # Check for specific mechanics in team data
     for pokemon in team_data:
         pokemon_str = str(pokemon).lower()
         
-        # Check for Tera types in Pokemon data
+        # Check for Tera types in Pokemon data (all Regulations A-I)
         if "tera" in pokemon_str:
-            return "VGC 2023-2024+ (Tera Types)"
-        
-        # Check for Dynamax indicators
-        if any(term in pokemon_str for term in ["dynamax", "max", "gigantamax"]):
-            return "VGC 2019-2022 (Dynamax)"
+            return "VGC 2017-2025+ (Tera Types - Regulations A-I, Scarlet/Violet Era)"
     
-    # Default based on most recent format if unclear
-    return "VGC 2024 (Format Unclear - Manual Selection Recommended)"
+    # Default - all formats are Scarlet/Violet era with Tera mechanics
+    return "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"
 
 def get_format_analysis_prompt(format_key: str, custom_format_name: str = None) -> str:
     """Get a prompt specifically for analyzing teams in a given format"""
@@ -421,14 +387,14 @@ def generate_future_proof_prompt(base_prompt: str, format_key: str, custom_forma
 - **FORMAT-SPECIFIC ANALYSIS**: Provide detailed analysis for the detected format
 - **META POSITIONING**: Consider how the team fits in the current meta for that format
 
-**FORMAT DETECTION EXAMPLES:**
-- If you see Tera types mentioned → VGC 2023-2024+
-- If you see Dynamax mentioned → VGC 2019-2022  
-- If you see Z-Moves mentioned → VGC 2017-2018
-- If you see Mega Evolution mentioned → VGC 2014-2016
-- If you see restricted legendaries → Check specific years
-- If you see modern Pokemon (Gen 9) → VGC 2023-2024+
-- If you see older Pokemon only → VGC 2019-2022 or earlier
+        **FORMAT DETECTION EXAMPLES:**
+        - If you see Tera types mentioned → VGC 2017-2025+ (Regulations A-I, all Scarlet/Violet)
+        - If you see Scarlet/Violet Pokemon → VGC 2017-2025+ (Regulations A-I, all Scarlet/Violet)
+        - If you see Miraidon/Koraidon → VGC 2017-2025+ (Regulations A-I, all Scarlet/Violet)
+        - If you see Iron Pokemon → VGC 2017-2025+ (Regulations A-I, all Scarlet/Violet)
+        - If you see Paradox Pokemon → VGC 2017-2025+ (Regulations A-I, all Scarlet/Violet)
+        - If you see restricted legendaries → Check specific regulations within A-I
+        - All formats A-I are Scarlet/Violet era with Tera mechanics
 
 **FUTURE-PROOF ANALYSIS:**
 - Consider how the team might adapt to future regulations

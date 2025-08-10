@@ -12,27 +12,82 @@ CONFIG_FILE = os.path.join(os.path.dirname(__file__), "vgc_formats.json")
 
 # Default VGC format definitions
 DEFAULT_VGC_FORMATS = {
+    "auto": {
+        "name": "Auto-Detect Format",
+        "description": "AI automatically detects the VGC format based on team composition and article content",
+        "mechanics": "Auto-detected",
+        "restricted_pokemon": "Auto-detected",
+        "status": "auto"
+    },
     "vgc2025": {
-        "name": "VGC 2025 - Regulation G (Predicted)",
-        "description": "Upcoming VGC format with potential new mechanics and Pokemon",
-        "mechanics": ["Tera Types", "4v4 Doubles", "Potential New Mechanics"],
-        "restricted": ["Miraidon", "Koraidon", "Calyrex", "Zacian", "Zamazenta"],
-        "key_features": ["Future format", "Potential new Pokemon", "Meta evolution"],
-        "year": 2025,
-        "regulation": "G",
-        "status": "predicted",
-        "meta_notes": "Format details will be updated as information becomes available"
+        "name": "VGC 2025 - Regulation I",
+        "description": "Pokemon Scarlet and Violet - Latest competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "active"
     },
     "vgc2024": {
-        "name": "VGC 2024 - Regulation F",
-        "description": "Latest VGC format with Tera mechanics and new Pokemon",
-        "mechanics": ["Tera Types", "4v4 Doubles", "No Dynamax"],
-        "restricted": ["Miraidon", "Koraidon", "Calyrex", "Zacian", "Zamazenta"],
-        "key_features": ["Tera Type changes", "Scarlet/Violet Pokemon", "Modern meta strategies"],
-        "year": 2024,
-        "regulation": "F",
-        "status": "active",
-        "meta_notes": "Current competitive format with established meta"
+        "name": "VGC 2024 - Regulation H",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "historical"
+    },
+    "vgc2023": {
+        "name": "VGC 2023 - Regulation G",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "historical"
+    },
+    "vgc2022": {
+        "name": "VGC 2022 - Regulation F",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "historical"
+    },
+    "vgc2021": {
+        "name": "VGC 2021 - Regulation E",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "historical"
+    },
+    "vgc2020": {
+        "name": "VGC 2020 - Regulation D",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "historical"
+    },
+    "vgc2019": {
+        "name": "VGC 2019 - Regulation C",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "historical"
+    },
+    "vgc2018": {
+        "name": "VGC 2018 - Regulation B",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "historical"
+    },
+    "vgc2017": {
+        "name": "VGC 2017 - Regulation A",
+        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+        "mechanics": "Tera Types, Scarlet/Violet mechanics",
+        "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+        "status": "historical"
+    },
+    "custom": {
+        "name": "Custom Format",
+        "description": "User-defined VGC format with custom rules",
+        "mechanics": "Custom",
+        "restricted_pokemon": "Custom",
+        "status": "custom"
     }
 }
 
@@ -132,13 +187,13 @@ def import_formats_from_json(filepath: str) -> bool:
 def add_2026_format():
     """Example function to add VGC 2026 format when it becomes available"""
     vgc2026_data = {
-        "name": "VGC 2026 - Regulation H",
-        "description": "Future VGC format with new mechanics and Pokemon",
-        "mechanics": ["Tera Types", "4v4 Doubles", "New Mechanics"],
+        "name": "VGC 2026 - Regulation J",
+        "description": "Future VGC format with potential new mechanics and Pokemon",
+        "mechanics": ["Tera Types", "4v4 Doubles", "Potential New Mechanics", "Scarlet/Violet mechanics"],
         "restricted": ["TBD"],
-        "key_features": ["Future format", "New Pokemon", "Meta evolution"],
+        "key_features": ["Future format", "Potential new Pokemon", "Meta evolution"],
         "year": 2026,
-        "regulation": "H",
+        "regulation": "J",
         "status": "predicted",
         "meta_notes": "Format details will be updated as information becomes available"
     }
