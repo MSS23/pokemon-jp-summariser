@@ -382,36 +382,60 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Simple login gate using streamlit-authenticator
+# Simple login gate using custom authentication (avoiding streamlit-authenticator issues)
 AUTH_REQUIRED = True
 if AUTH_REQUIRED:
-    if stauth is None:
-        st.stop()
     try:
         credentials = st.secrets["credentials"]
-        cookie_cfg = st.secrets["cookie"]
-        preauth = st.secrets.get("preauthorized", {})
-    except Exception:
-        st.error("Authentication is not configured. Add 'credentials' and 'cookie' in Streamlit secrets.")
-        st.info("Example secrets structure provided after deployment.")
+        # Check if user is already authenticated
+        if "authenticated" not in st.session_state:
+            st.session_state["authenticated"] = False
+        
+        if not st.session_state["authenticated"]:
+            st.title("🔐 Login Required")
+            st.write("Please log in to access the Pokemon Translation Web App.")
+            
+            # Simple login form
+            with st.form("login_form"):
+                username = st.text_input("Username")
+                password = st.text_input("Password", type="password")
+                submit_button = st.form_submit_button("Login")
+                
+                if submit_button:
+                    if username in credentials["usernames"]:
+                        user_data = credentials["usernames"][username]
+                        
+                        # Hash the entered password to compare with stored hash
+                        import hashlib
+                        entered_password_hash = hashlib.sha256(password.encode()).hexdigest()
+                        
+                        if user_data["password"] == entered_password_hash:
+                            st.session_state["authenticated"] = True
+                            st.session_state["username"] = username
+                            st.session_state["user_name"] = user_data["name"]
+                            st.success(f"Welcome back, {user_data['name']}!")
+                            st.rerun()
+                        else:
+                            st.error("Invalid password")
+                    else:
+                        st.error("User not found")
+            
+            st.stop()
+        else:
+            # User is authenticated, show logout option
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.success(f"Welcome back, {st.session_state['user_name']}!")
+            with col2:
+                if st.button("Logout"):
+                    st.session_state["authenticated"] = False
+                    st.session_state["username"] = None
+                    st.session_state["user_name"] = None
+                    st.rerun()
+    except Exception as e:
+        st.error(f"Authentication configuration error: {str(e)}")
+        st.info("Please check your secrets.toml configuration.")
         st.stop()
-
-    authenticator = stauth.Authenticate(
-        credentials,
-        cookie_cfg.get("name", "streamlit_auth"),
-        cookie_cfg.get("key", "super-secret-cookie-key"),
-        cookie_cfg.get("expiry_days", 7),
-        preauth,
-    )
-
-    name, authentication_status, username = authenticator.login("Login", "main")
-    if authentication_status is False:
-        st.error("Invalid username or password")
-        st.stop()
-    elif authentication_status is None:
-        st.stop()
-    else:
-        authenticator.logout("Logout", "sidebar")
 
 # Accessibility controls defaults
 if "a11y_font_px" not in st.session_state:
@@ -794,7 +818,7 @@ def display_article_summary(parsed_data, summary, url):
         title_js = _json.dumps(safe_title)
         link_js = _json.dumps(permalink_share)
         components.html(
-            f"""
+            """
             <div id=\"share-bar\" style=\"display:flex;gap:8px;align-items:center;\">
               <button id=\"copy-link\" style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#0ea5e9;color:white;font-weight:600;cursor:pointer;\">🔗 Copy Link</button>
               <button id=\"copy-md\" style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#6366f1;color:white;font-weight:600;cursor:pointer;\">📋 Copy Markdown</button>
@@ -803,20 +827,20 @@ def display_article_summary(parsed_data, summary, url):
               <a id=\"tw\" href=\"#\" target=\"_blank\" style=\"text-decoration:none;\"><button style=\"padding:8px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#1d9bf0;color:white;font-weight:600;cursor:pointer;\">𝕏 Share</button></a>
             </div>
             <script>
-              const title = {title_js};
-              const link = {link_js};
+              const title = """ + title_js + """;
+              const link = """ + link_js + """;
               const copyText = async (text, el, label) => {
                 try { await navigator.clipboard.writeText(text); el.textContent = '✅ Copied!'; setTimeout(()=>el.textContent=label,1500);} catch(e){ el.textContent = 'Copy failed'; }
               };
               document.getElementById('copy-link').onclick = () => copyText(link, document.getElementById('copy-link'), '🔗 Copy Link');
-              document.getElementById('copy-md').onclick = () => copyText(`[${'{'}title{'}'}] (${ '{'}link{'}'})`, document.getElementById('copy-md'), '📋 Copy Markdown');
-              const encoded = encodeURIComponent(`${'{'}title{'}'} — ${'{'}link{'}'}`);
-              document.getElementById('wa').href = `https://wa.me/?text=${'{'}encoded{'}'}`;
-              document.getElementById('tg').href = `https://t.me/share/url?url=${'{'}encodeURIComponent(link){'}'}&text=${'{'}encodeURIComponent(title){'}'}`;
-              document.getElementById('tw').href = `https://twitter.com/intent/tweet?text=${'{'}encodeURIComponent(title){'}'}&url=${'{'}encodeURIComponent(link){'}'}`;
+              document.getElementById('copy-md').onclick = () => copyText('[' + title + '] (' + link + ')', document.getElementById('copy-md'), '📋 Copy Markdown');
+              const encoded = encodeURIComponent(title + ' — ' + link);
+              document.getElementById('wa').href = 'https://wa.me/?text=' + encoded;
+              document.getElementById('tg').href = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(title);
+              document.getElementById('tw').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(link);
             </script>
             """,
-            height=56,
+            height=64,
         )
 
     # Show team composition overview
