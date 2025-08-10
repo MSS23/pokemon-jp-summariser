@@ -940,12 +940,7 @@ def display_article_summary(parsed_data, summary, url):
                     bar_div = f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px;"><div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;"><span style="font-weight: 700; color: #475569; font-size: 0.8rem;">{label}</span><span style="font-weight: 700; color: #0f172a; font-size: 0.8rem;">{value}</span></div><div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1;"><div style="height: 100%; background: {color}; width: {percentage}%; border-radius: 3px;"></div></div></div>'
                     bars_html += bar_div
                 
-                # Add EV explanation if available
-                explanation_html = ''
-                if ev_explanation and ev_explanation != 'Not specified' and ev_explanation != 'Not specified in the article or image.':
-                    explanation_html = f'<div style="margin-top: 12px; padding: 12px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px;"><div style="font-size:0.8rem;color:#0369a1;margin-bottom:6px;"><strong>🧠 Strategy & EV Explanation:</strong></div><div style="font-size:0.75rem;color:#0c4a6e;line-height:1.4;">{ev_explanation}</div></div>'
-                
-                result = f'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;"><div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div>{bars_html}{explanation_html}</div>'
+                result = f'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;"><div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div>{bars_html}</div>'
                 print(f"DEBUG: build_ev_block_html returning (evs case): {result[:100]}...")
                 return result
             elif ev_text:
