@@ -851,24 +851,87 @@ def display_article_summary(parsed_data, summary, url):
         </div>
         """, unsafe_allow_html=True)
         
-        # Helper to render EV section without markdown code formatting
-        def build_ev_block_html(evs: dict | None, ev_text: str | None = None) -> str:
+        # Helper to render EV section with proper visualization bars
+        def build_ev_block_html(evs: dict | None, ev_text: str | None = None, ev_explanation: str | None = None) -> str:
             if evs:
-                hp = evs.get('hp', 0); atk = evs.get('attack', 0); deff = evs.get('defense', 0)
-                spa = evs.get('sp_attack', 0); spd = evs.get('sp_defense', 0); spe = evs.get('speed', 0)
+                hp = evs.get('hp', 0)
+                atk = evs.get('attack', 0)
+                deff = evs.get('defense', 0)
+                spa = evs.get('sp_attack', 0)
+                spd = evs.get('sp_defense', 0)
+                spe = evs.get('speed', 0)
+                
+                # Create visual EV bars
+                ev_stats = [
+                    ('HP', hp, '#ef4444'),
+                    ('Atk', atk, '#f97316'),
+                    ('Def', deff, '#eab308'),
+                    ('SpA', spa, '#22c55e'),
+                    ('SpD', spd, '#06b6d4'),
+                    ('Spe', spe, '#8b5cf6')
+                ]
+                
+                bars_html = ''
+                for label, value, color in ev_stats:
+                    percentage = (value / 252) * 100 if value > 0 else 0
+                    bars_html += f'''
+                    <div style="
+                        background: #f8fafc;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 6px;
+                        padding: 8px 12px;
+                        margin-bottom: 6px;
+                    ">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                            <span style="font-weight: 700; color: #475569; font-size: 0.8rem;">{label}</span>
+                            <span style="font-weight: 700; color: #0f172a; font-size: 0.8rem;">{value}</span>
+                        </div>
+                        <div style="
+                            width: 100%;
+                            height: 8px;
+                            background: #e2e8f0;
+                            border-radius: 4px;
+                            overflow: hidden;
+                            border: 1px solid #cbd5e1;
+                        ">
+                            <div style="
+                                height: 100%;
+                                background: {color};
+                                width: {percentage}%;
+                                border-radius: 3px;
+                            "></div>
+                        </div>
+                    </div>
+                    '''
+                
+                # Add EV explanation if available
+                explanation_html = ''
+                if ev_explanation and ev_explanation != 'Not specified' and ev_explanation != 'Not specified in the article or image.':
+                    explanation_html = f'''
+                    <div style="
+                        margin-top: 12px;
+                        padding: 12px;
+                        background: #f0f9ff;
+                        border: 1px solid #bae6fd;
+                        border-radius: 6px;
+                    ">
+                        <div style="font-size:0.8rem;color:#0369a1;margin-bottom:6px;"><strong>🧠 Strategy & EV Explanation:</strong></div>
+                        <div style="font-size:0.75rem;color:#0c4a6e;line-height:1.4;">{ev_explanation}</div>
+                    </div>
+                    '''
+                
                 return (
-                    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;">'
-                    '<div style="font-size:0.8rem;color:#64748b;margin-bottom:4px;"><strong>EV Spread:</strong></div>'
-                    f'<div style="font-size:0.75rem;color:#64748b;line-height:1.3;">'
-                    f'HP: {hp} | Atk: {atk} | Def: {deff} '
-                    f'| SpA: {spa} | SpD: {spd} | Spe: {spe}'
-                    '</div></div>'
+                    '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">'
+                    '<div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div>'
+                    f'{bars_html}'
+                    f'{explanation_html}'
+                    '</div>'
                 )
-            if ev_text:
+            elif ev_text:
                 return (
-                    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;">'
-                    '<div style="font-size:0.8rem;color:#64748b;margin-bottom:4px;"><strong>EV Spread:</strong></div>'
-                    f'<div style="font-size:0.75rem;color:#64748b;line-height:1.3;">{ev_text}</div>'
+                    '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">'
+                    '<div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div>'
+                    f'<div style="font-size:0.8rem;color:#64748b;line-height:1.4;">{ev_text}</div>'
                     '</div>'
                 )
             return ''
@@ -879,7 +942,7 @@ def display_article_summary(parsed_data, summary, url):
             col_idx = i % 3
             with team_cols[col_idx]:
                 # Prepare EV spread display
-                ev_spread_html = build_ev_block_html(pokemon.get('evs'), pokemon.get('ev_spread'))
+                ev_spread_html = build_ev_block_html(pokemon.get('evs'), pokemon.get('ev_spread'), pokemon.get('ev_explanation'))
                 
                 st.markdown(f"""
                 <div style="background: white; border: 2px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
