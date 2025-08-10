@@ -9,13 +9,16 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 from utils.shared_utils import fetch_article_text_and_images
 from utils.llm_summary import prompt_template, restricted_poke
+from utils.vgc_format_utils import generate_format_specific_prompt, get_format_info
 
-def llm_summary_gemini(url):
+def llm_summary_gemini(url, vgc_format="auto", custom_format_name=None):
     """
-    Generate summary using Google Gemini LLM with enhanced EV extraction from images
+    Generate summary using Google Gemini LLM with enhanced EV extraction from images and VGC format support
     
     Args:
         url (str): Article URL to summarize
+        vgc_format (str): Selected VGC format for analysis
+        custom_format_name (str): Custom format name if vgc_format is "custom"
     
     Returns:
         str: Generated summary
@@ -32,9 +35,25 @@ def llm_summary_gemini(url):
         filtered_images = image_urls  # Use all images for now to avoid function issues
         
         print(f"DEBUG - Found {len(image_urls)} total images, filtered to {len(filtered_images)} potential team images")
+        print(f"DEBUG - Using VGC format: {vgc_format}")
         
-        # Create enhanced prompt with EV focus
-        enhanced_prompt = prompt_template.format(restrict_poke=restricted_poke, text=article_text)
+        # Generate format-specific prompt
+        format_specific_prompt = generate_format_specific_prompt(
+            prompt_template, 
+            vgc_format, 
+            custom_format_name
+        )
+        
+        # Also generate future-proof prompt for enhanced analysis
+        from utils.vgc_format_utils import generate_future_proof_prompt
+        future_proof_prompt = generate_future_proof_prompt(
+            prompt_template,
+            vgc_format,
+            custom_format_name
+        )
+        
+        # Use the future-proof prompt for enhanced analysis
+        enhanced_prompt = future_proof_prompt.format(restrict_poke=restricted_poke, text=article_text)
         
         # Initialize Gemini with optimal settings for image analysis
         chat = ChatGoogleGenerativeAI(
@@ -49,11 +68,17 @@ def llm_summary_gemini(url):
         message = HumanMessage(content=content_parts)
         
         # Generate response
-        print("DEBUG - Sending request to Gemini with enhanced EV extraction prompt...")
+        print(f"DEBUG - Sending request to Gemini with {vgc_format} format analysis...")
         response = chat.invoke([message])
         
         # Post-process response to ensure EV data is captured
         processed_response = str(response.content)
+        
+        # Add format information to response if not auto-detection
+        if vgc_format != "auto":
+            format_info = get_format_info(vgc_format)
+            format_header = f"\n**ANALYSIS FORMAT: {format_info['name']}**\n"
+            processed_response = format_header + processed_response
         
         return processed_response
         

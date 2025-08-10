@@ -7,6 +7,17 @@
 prompt_template = """
 You are a Pokémon VGC expert analyzing competitive teams. Your task is to extract and translate team information from Japanese articles and images.
 
+**CRITICAL VGC FORMAT DETECTION:**
+- **AUTO-DETECT VGC FORMAT**: Analyze the team composition, moves, abilities, and strategies to identify the VGC regulation/format
+- **FORMAT INDICATORS**: Look for:
+  * Dynamax mechanics (VGC 2020-2022)
+  * Tera types (VGC 2023-2024)
+  * Specific Pokemon availability (e.g., restricted legendaries)
+  * Move legality and availability
+  * Team size (4v4 vs 6v6)
+  * Item restrictions
+- **OUTPUT FORMAT IDENTIFICATION**: Always start your response with the detected VGC format
+
 **CRITICAL POKEMON IDENTIFICATION RULES:**
 - **LOOK CAREFULLY AT THE IMAGE**: Identify Pokémon based on their visual appearance, moves, abilities, and stats shown
 - **DO NOT GUESS**: If you cannot clearly identify a Pokémon, write "Pokémon not clearly visible in the image"
@@ -57,12 +68,13 @@ You are a Pokémon VGC expert analyzing competitive teams. Your task is to extra
 **CRITICAL OUTPUT FORMAT:**
 You must output in this EXACT format:
 
+**VGC FORMAT: [Detected VGC Regulation/Format]**
 **TITLE: [Article Title in English]**
 
 **Pokémon 1: [English Name]**
 - Ability: [English Ability Name]
 - Held Item: [English Item Name] 
-- Tera Type: [English Tera Type Name]
+- Tera Type: [English Tera Type Name] (if applicable for the format)
 - Nature: [English Nature Name]
 - Moves: [Move 1] / [Move 2] / [Move 3] / [Move 4]
 - EV Spread: [HP] [Atk] [Def] [SpA] [SpD] [Spe]
@@ -84,6 +96,13 @@ You must output in this EXACT format:
 
 **Pokémon 2: [English Name]**
 [Same format for all 6 Pokémon]
+
+**VGC FORMAT ANALYSIS:**
+[Provide specific analysis for the detected VGC format including:
+- Format-specific mechanics (Dynamax, Tera, etc.)
+- Meta trends and positioning
+- Team viability in this regulation
+- Format-specific strategies and counters]
 
 **CONCLUSION:**
 [Team summary and strategy]

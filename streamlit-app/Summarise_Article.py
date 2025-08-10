@@ -609,7 +609,93 @@ def display_url_input(cache):
         </p>
     """, unsafe_allow_html=True)
     
-
+    # VGC Format Selection
+    st.markdown("""
+    <div style="margin-bottom: 20px;">
+        <h3 style="margin: 0 0 12px 0; color: var(--text-primary); font-size: 1.2rem; font-weight: 600;">
+            🏆 VGC Regulation/Format
+        </h3>
+        <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.9rem;">
+            Choose a specific VGC format or let AI auto-detect from the team composition
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Format selection with auto-detect as default
+    if "vgc_format" not in st.session_state:
+        st.session_state["vgc_format"] = "auto"
+    
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        # Use dynamic format list from utilities
+        from utils.vgc_format_utils import get_available_formats, get_format_status_info
+        
+        available_formats = get_available_formats()
+        vgc_format = st.selectbox(
+            "VGC Format",
+            options=available_formats,
+            format_func=lambda x: x[1],
+            key="vgc_format_select",
+            help="Select the VGC regulation/format for accurate team analysis. Auto-detect is recommended for most cases."
+        )
+        
+        # Extract the format key
+        selected_format = vgc_format[0] if isinstance(vgc_format, tuple) else vgc_format
+        st.session_state["vgc_format"] = selected_format
+        
+        # Show custom format input if selected
+        if selected_format == "custom":
+            custom_format = st.text_input(
+                "Custom Format Name",
+                value=st.session_state.get("custom_format_name", ""),
+                placeholder="e.g., VGC 2025 Regulation G, Custom Tournament Rules, Regional Format",
+                help="Enter a custom VGC format name for specialized analysis"
+            )
+            st.session_state["custom_format_name"] = custom_format
+    
+    with col2:
+        # Show enhanced format info using new status system
+        status_info = get_format_status_info(selected_format)
+        
+        if selected_format == "auto":
+            st.markdown(f"""
+            <div style="background: {status_info['color']}20; border: 2px solid {status_info['color']}; border-radius: 8px; padding: 16px; margin-top: 20px;">
+                <div style="font-size: 0.9rem; color: {status_info['color']}; margin-bottom: 8px;">
+                    <strong>{status_info['icon']} {status_info['status_text']}</strong>
+                </div>
+                <div style="font-size: 0.8rem; color: {status_info['color']}; line-height: 1.4;">
+                    {status_info['description']}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        elif selected_format == "custom" and st.session_state.get("custom_format_name"):
+            st.markdown(f"""
+            <div style="background: {status_info['color']}20; border: 2px solid {status_info['color']}; border-radius: 8px; padding: 16px; margin-top: 20px;">
+                <div style="font-size: 0.9rem; color: {status_info['color']}; margin-bottom: 8px;">
+                    <strong>{status_info['icon']} {status_info['status_text']}</strong>
+                </div>
+                <div style="font-size: 0.8rem; color: {status_info['color']}; line-height: 1.4;">
+                    {st.session_state.get("custom_format_name", "Custom Format")}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            from utils.vgc_format_utils import get_format_info
+            format_info = get_format_info(selected_format)
+            
+            st.markdown(f"""
+            <div style="background: {status_info['color']}20; border: 2px solid {status_info['color']}; border-radius: 8px; padding: 16px; margin-top: 20px;">
+                <div style="font-size: 0.9rem; color: {status_info['color']}; margin-bottom: 8px;">
+                    <strong>{status_info['icon']} {status_info['status_text']}</strong>
+                </div>
+                <div style="font-size: 0.8rem; color: {status_info['color']}; line-height: 1.4;">
+                    {format_info['description']}
+                </div>
+                <div style="font-size: 0.7rem; color: {status_info['color']}; margin-top: 8px; opacity: 0.8;">
+                    Mechanics: {', '.join(format_info['mechanics'][:2])}...
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     url = st.text_input(
         "Article URL",
@@ -705,7 +791,7 @@ def display_results(summary, url):
     )
 
     if view == "Team Summary":
-        display_team_summary(parsed_data)
+        display_team_summary(parsed_data, summary)
     elif view == "Pokémon Details":
         display_pokemon_details(parsed_data)
     elif view == "Article Summary":
@@ -722,7 +808,51 @@ def display_results(summary, url):
     </div>
     """, unsafe_allow_html=True)
 
-def display_team_summary(parsed_data):
+def extract_detected_vgc_format(parsed_data: dict, summary: str) -> str:
+    """Extract the detected VGC format from the analysis summary"""
+    try:
+        # Look for VGC format in the summary
+        if summary:
+            # Check for format indicators in the summary
+            summary_lower = summary.lower()
+            
+            # Look for VGC format patterns
+            vgc_patterns = [
+                r"vgc\s*(\d{4})",
+                r"regulation\s*([a-f])",
+                r"format:\s*([^\\n]+)",
+                r"vgc\s*format:\s*([^\\n]+)"
+            ]
+            
+            for pattern in vgc_patterns:
+                match = re.search(pattern, summary_lower)
+                if match:
+                    if pattern.startswith("vgc\\s*(\\d{4})"):
+                        year = match.group(1)
+                        return f"VGC {year} - Detected from Analysis"
+                    elif pattern.startswith("regulation\\s*([a-f])"):
+                        reg = match.group(1).upper()
+                        return f"VGC Regulation {reg} - Detected from Analysis"
+                    else:
+                        return f"{match.group(1).title()} - Detected from Analysis"
+            
+            # Check for specific mechanics
+            if "tera" in summary_lower:
+                return "VGC 2023-2024 (Tera Types) - Detected from Analysis"
+            elif "dynamax" in summary_lower:
+                return "VGC 2019-2022 (Dynamax) - Detected from Analysis"
+        
+        # Fallback: check parsed data for format information
+        if parsed_data.get('vgc_format'):
+            return parsed_data['vgc_format']
+        
+        return None
+        
+    except Exception as e:
+        print(f"Error extracting VGC format: {e}")
+        return None
+
+def display_team_summary(parsed_data, summary=None):
     # Ensure we never show a placeholder title
     resolved_title = parsed_data.get('title') or 'Team Analysis'
     if not resolved_title or resolved_title.strip().lower() == 'not specified':
@@ -743,6 +873,42 @@ def display_team_summary(parsed_data):
             <div style="position: absolute; top: -20px; right: -20px; width: 120px; height: 120px; background: rgba(255, 255, 255, 0.08); border-radius: 50%;"></div>
             <h2 style="margin: 0 0 8px 0; font-size: 2rem; font-weight: 700; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);">📰 {resolved_title}</h2>
             <p style="margin: 0; font-size: 1.1rem; opacity: 0.9; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);">Analyzed with Google Gemini AI</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Display VGC Format Information
+        vgc_format = st.session_state.get("vgc_format", "auto")
+        custom_format_name = st.session_state.get("custom_format_name", "")
+        
+        if vgc_format == "auto":
+            # Try to extract detected format from the summary
+            detected_format = extract_detected_vgc_format(parsed_data, summary)
+            if detected_format:
+                format_display = detected_format
+                format_icon = "🤖"
+                format_color = "#0ea5e9"
+            else:
+                format_display = "Auto-detection in progress..."
+                format_icon = "🤖"
+                format_color = "#6b7280"
+        elif vgc_format == "custom" and custom_format_name:
+            format_display = custom_format_name
+            format_icon = "⚙️"
+            format_color = "#f59e0b"
+        else:
+            from utils.vgc_format_utils import get_format_info
+            format_info = get_format_info(vgc_format)
+            format_display = format_info["name"]
+            format_icon = "🏆"
+            format_color = "#10b981"
+        
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, {format_color}20 0%, {format_color}10 100%); border: 2px solid {format_color}; border-radius: 12px; padding: 20px; max-width: 1000px; margin: 0 auto 24px auto; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px;">
+                <span style="font-size: 1.5rem;">{format_icon}</span>
+                <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: {format_color};">VGC Format Analysis</h3>
+            </div>
+            <p style="margin: 0; font-size: 1.1rem; color: #374151; font-weight: 500;">{format_display}</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2120,9 +2286,17 @@ def run_analysis(url, cache):
                     
                     # Use retry decorator if available
                     if ERROR_RECOVERY_AVAILABLE:
-                        summary = retry_api_call(llm_summary_gemini)(url)
+                        summary = retry_api_call(llm_summary_gemini)(
+                            url, 
+                            st.session_state.get("vgc_format", "auto"),
+                            st.session_state.get("custom_format_name", None)
+                        )
                     else:
-                        summary = llm_summary_gemini(url)
+                        summary = llm_summary_gemini(
+                            url, 
+                            st.session_state.get("vgc_format", "auto"),
+                            st.session_state.get("custom_format_name", None)
+                        )
                     
                     if not isinstance(summary, str):
                         summary = str(summary)
