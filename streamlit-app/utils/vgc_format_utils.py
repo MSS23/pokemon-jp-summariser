@@ -167,8 +167,8 @@ def detect_format_from_team(team_data: List[Dict], summary_text: str) -> str:
     
     summary_lower = summary_text.lower()
     
-            # Enhanced detection patterns
-        detection_patterns = [
+    # Enhanced detection patterns
+    detection_patterns = [
             # Tera Types (VGC 2017-2025+ - Regulations A-I, all Scarlet/Violet)
             (r"tera\s*type", "VGC 2017-2025+ (Tera Types - Regulations A-I, Scarlet/Violet Era)"),
             (r"tera\s*blast", "VGC 2017-2025+ (Tera Types - Regulations A-I, Scarlet/Violet Era)"),
