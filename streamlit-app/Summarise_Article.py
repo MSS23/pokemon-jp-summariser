@@ -1985,15 +1985,13 @@ def parse_summary(summary, images_data=None, url: str | None = None):
                     pokemon_data['tera_type'] = strip_html_tags(tera_text.title())
                     break
         
-        # Use the improved move extraction function
+            # Use the improved move extraction function
             moves = extract_moves_from_text(section, pokemon_data.get('name'))
             
             if moves:
                 pokemon_data['moves'] = moves
             else:
                 pokemon_data['moves'] = []
-        
-
 
             # Extract EV Spread
             ev_patterns = [
