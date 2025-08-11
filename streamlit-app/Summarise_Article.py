@@ -1195,7 +1195,6 @@ def display_article_summary(parsed_data, summary, url):
         
         # Helper to render EV section with proper visualization bars
         def build_ev_block_html(evs: dict | None, ev_text: str | None = None, ev_explanation: str | None = None) -> str:
-    
             if evs:
                 hp = evs.get('hp', 0)
                 atk = evs.get('attack', 0)
@@ -1752,8 +1751,6 @@ END OF ANALYSIS
     return comprehensive
 
 def parse_summary(summary, images_data=None, url: str | None = None):
-
-    
     parsed_data = {
         'title': 'Not specified',
         'pokemon': [],

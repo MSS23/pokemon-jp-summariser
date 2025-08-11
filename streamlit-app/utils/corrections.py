@@ -124,8 +124,8 @@ def validate_ev_spread(evs: Dict[str, int]) -> Tuple[bool, str]:
     
     total = sum(evs.values())
     
-            if total > 508:
-            return False, f"Total EVs ({total}) exceed maximum (508)"
+    if total > 508:
+        return False, f"Total EVs ({total}) exceed maximum (508)"
     
     if total < 0:
         return False, f"Total EVs ({total}) cannot be negative"
@@ -137,7 +137,7 @@ def validate_ev_spread(evs: Dict[str, int]) -> Tuple[bool, str]:
         if value < 0:
             return False, f"{stat.title()} EVs ({value}) cannot be negative"
     
-            return True, f"Valid EV spread: {total}/508 total"
+    return True, f"Valid EV spread: {total}/508 total"
 
 def get_user_session_id() -> str:
     """Generate a unique session ID for the current user"""
@@ -370,9 +370,9 @@ def repair_parsed_data(parsed_data: Dict[str, Any]) -> bool:
             # Repair EV issues
             if 'evs' in pokemon and pokemon['evs']:
                 total = sum(pokemon['evs'].values())
-                        if total > 508:
-            # Scale down EVs proportionally
-            scale_factor = 508 / total
+                if total > 508:
+                    # Scale down EVs proportionally
+                    scale_factor = 508 / total
                     for stat in pokemon['evs']:
                         pokemon['evs'][stat] = int(pokemon['evs'][stat] * scale_factor)
         
