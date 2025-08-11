@@ -1884,234 +1884,221 @@ def parse_summary(summary, images_data=None, url: str | None = None):
                 pokemon_data['name'] = corrected_name
     
             else:
-    
                 continue
 
-        # Extract all data using comprehensive regex patterns
-        section_lower = section.lower()
+            # Extract all data using comprehensive regex patterns
+            section_lower = section.lower()
+            
+            # Extract Ability - improved to stop at next section
+            ability_patterns = [
+                r'ability[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))',
+                r'abilities?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))',
+                r'- ability[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))',
+                r'• ability[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))'
+            ]
+            for pattern in ability_patterns:
+                match = re.search(pattern, section_lower)
+                if match:
+                    ability_text = match.group(1).strip()
+                    # Clean up common ability names and remove extra text
+                    ability_text = re.sub(r'\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation).*', '', ability_text)
+                    pokemon_data['ability'] = strip_html_tags(ability_text.title())
+                    break
+            
+            # Extract Item - improved to stop at next section
+            item_patterns = [
+                r'(?:held\s+)?item[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation))',
+                r'- (?:held\s+)?item[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation))',
+                r'• (?:held\s+)?item[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation))'
+            ]
+            for pattern in item_patterns:
+                match = re.search(pattern, section_lower)
+                if match:
+                    item_text = match.group(1).strip()
+                    # Clean up common item names and remove extra text
+                    item_text = re.sub(r'\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation).*', '', item_text)
+                    # Apply item corrections
+                    corrected_item = strip_html_tags(item_text.title())
+                    item_corrections = {
+                        'Choice Band': 'Assault Vest',  # Rillaboom correction
+                        'choice band': 'Assault Vest',
+                        'CHOICE BAND': 'Assault Vest'
+                    }
+                    corrected_item = item_corrections.get(corrected_item, corrected_item)
+                    pokemon_data['item'] = corrected_item
+                    break
+            
+            # Extract Nature - improved to stop at next section
+            nature_patterns = [
+                r'nature[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))',
+                r'natures?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))',
+                r'- nature[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))',
+                r'• nature[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))'
+            ]
+            for pattern in nature_patterns:
+                match = re.search(pattern, section_lower)
+                if match:
+                    nature_text = match.group(1).strip()
+                    # Clean up common nature names and remove extra text
+                    nature_text = re.sub(r'\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation).*', '', nature_text)
+                    # Clean up common nature names
+                    nature_mapping = {
+                        'Adamant': 'Adamant',
+                        'Jolly': 'Jolly', 
+                        'Modest': 'Modest',
+                        'Timid': 'Timid',
+                        'Bold': 'Bold',
+                        'Impish': 'Impish',
+                        'Calm': 'Calm',
+                        'Careful': 'Careful',
+                        'Naive': 'Naive',
+                        'Hasty': 'Hasty',
+                        'Naughty': 'Naughty',
+                        'Lonely': 'Lonely',
+                        'Mild': 'Mild',
+                        'Quiet': 'Quiet',
+                        'Rash': 'Rash',
+                        'Brave': 'Brave',
+                        'Relaxed': 'Relaxed',
+                        'Sassy': 'Sassy',
+                        'Gentle': 'Gentle',
+                        'Lax': 'Lax'
+                    }
+                    pokemon_data['nature'] = strip_html_tags(nature_mapping.get(nature_text.title(), nature_text.title()))
+                    break
         
-        # Extract Ability - improved to stop at next section
-        ability_patterns = [
-            r'ability[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))',
-            r'abilities?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))',
-            r'- ability[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))',
-            r'• ability[:\s]+([^-•\n]+?)(?=\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation))'
-        ]
-        for pattern in ability_patterns:
-            match = re.search(pattern, section_lower)
-            if match:
-                ability_text = match.group(1).strip()
-                # Clean up common ability names and remove extra text
-                ability_text = re.sub(r'\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation).*', '', ability_text)
-                pokemon_data['ability'] = strip_html_tags(ability_text.title())
-
-                break
-        
-        # Extract Item - improved to stop at next section
-        item_patterns = [
-            r'(?:held\s+)?item[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation))',
-            r'- (?:held\s+)?item[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation))',
-            r'• (?:held\s+)?item[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation))'
-        ]
-        for pattern in item_patterns:
-            match = re.search(pattern, section_lower)
-            if match:
-                item_text = match.group(1).strip()
-                # Clean up common item names and remove extra text
-                item_text = re.sub(r'\s*-\s*(?:ability|nature|tera|moves|ev spread|ev explanation).*', '', item_text)
-                # Apply item corrections
-                corrected_item = strip_html_tags(item_text.title())
-                item_corrections = {
-                    'Choice Band': 'Assault Vest',  # Rillaboom correction
-                    'choice band': 'Assault Vest',
-                    'CHOICE BAND': 'Assault Vest'
-                }
-                corrected_item = item_corrections.get(corrected_item, corrected_item)
-                pokemon_data['item'] = corrected_item
-
-                break
-        
-        # Extract Nature - improved to stop at next section
-        nature_patterns = [
-            r'nature[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))',
-            r'natures?[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))',
-            r'- nature[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))',
-            r'• nature[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation))'
-        ]
-        for pattern in nature_patterns:
-            match = re.search(pattern, section_lower)
-            if match:
-                nature_text = match.group(1).strip()
-                # Clean up common nature names and remove extra text
-                nature_text = re.sub(r'\s*-\s*(?:ability|held item|item|tera|moves|ev spread|ev explanation).*', '', nature_text)
-                # Clean up common nature names
-                nature_mapping = {
-                    'Adamant': 'Adamant',
-                    'Jolly': 'Jolly', 
-                    'Modest': 'Modest',
-                    'Timid': 'Timid',
-                    'Bold': 'Bold',
-                    'Impish': 'Impish',
-                    'Calm': 'Calm',
-                    'Careful': 'Careful',
-                    'Naive': 'Naive',
-                    'Hasty': 'Hasty',
-                    'Naughty': 'Naughty',
-                    'Lonely': 'Lonely',
-                    'Mild': 'Mild',
-                    'Quiet': 'Quiet',
-                    'Rash': 'Rash',
-                    'Brave': 'Brave',
-                    'Relaxed': 'Relaxed',
-                    'Sassy': 'Sassy',
-                    'Gentle': 'Gentle',
-                    'Lax': 'Lax'
-                }
-                pokemon_data['nature'] = strip_html_tags(nature_mapping.get(nature_text.title(), nature_text.title()))
-
-                break
-        
-        # Extract Tera Type - improved to stop at next section
-        tera_patterns = [
-            r'tera[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))',
-            r'tera type[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))',
-            r'- tera[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))',
-            r'• tera[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))'
-        ]
-        for pattern in tera_patterns:
-            match = re.search(pattern, section_lower)
-            if match:
-                tera_text = match.group(1).strip()
-                # Clean up tera type and remove extra text
-                tera_text = re.sub(r'\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation).*', '', tera_text)
-                # Remove accidental leading 'type:' captured from 'Tera Type:'
-                tera_text = re.sub(r'^type:\s*', '', tera_text, flags=re.IGNORECASE)
-                pokemon_data['tera_type'] = strip_html_tags(tera_text.title())
-
-                break
+            # Extract Tera Type - improved to stop at next section
+            tera_patterns = [
+                r'tera[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))',
+                r'tera type[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))',
+                r'- tera[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))',
+                r'• tera[:\s]+([^-•\n]+?)(?=\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation))'
+            ]
+            for pattern in tera_patterns:
+                match = re.search(pattern, section_lower)
+                if match:
+                    tera_text = match.group(1).strip()
+                    # Clean up tera type and remove extra text
+                    tera_text = re.sub(r'\s*-\s*(?:ability|held item|item|nature|moves|ev spread|ev explanation).*', '', tera_text)
+                    # Remove accidental leading 'type:' captured from 'Tera Type:'
+                    tera_text = re.sub(r'^type:\s*', '', tera_text, flags=re.IGNORECASE)
+                    pokemon_data['tera_type'] = strip_html_tags(tera_text.title())
+                    break
         
         # Use the improved move extraction function
-        moves = extract_moves_from_text(section, pokemon_data.get('name'))
-        
-        if moves:
-
-            pokemon_data['moves'] = moves
+            moves = extract_moves_from_text(section, pokemon_data.get('name'))
             
-            # Store moves without validation
-            pokemon_data['moves'] = moves
-        else:
-            pokemon_data['moves'] = []
+            if moves:
+                pokemon_data['moves'] = moves
+            else:
+                pokemon_data['moves'] = []
         
 
 
-        # Extract EV Spread
-        ev_patterns = [
-            r'ev spread[:\s]+([^:\n]+)',
-            r'evs?[:\s]+([^:\n]+)',
-            r'effort values?[:\s]+([^:\n]+)',
-            r'- ev spread[:\s]+([^:\n]+)',
-            r'• ev spread[:\s]+([^:\n]+)',
-            r'ev spread[:\s]*(\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+)'  # Direct number format
-        ]
-        for pattern in ev_patterns:
-            match = re.search(pattern, section_lower)
-            if match:
-                ev_text = match.group(1).strip()
+            # Extract EV Spread
+            ev_patterns = [
+                r'ev spread[:\s]+([^:\n]+)',
+                r'evs?[:\s]+([^:\n]+)',
+                r'effort values?[:\s]+([^:\n]+)',
+                r'- ev spread[:\s]+([^:\n]+)',
+                r'• ev spread[:\s]+([^:\n]+)',
+                r'ev spread[:\s]*(\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+)'  # Direct number format
+            ]
+            for pattern in ev_patterns:
+                match = re.search(pattern, section_lower)
+                if match:
+                    ev_text = match.group(1).strip()
 
-                # Parse EV values
-                evs = {'hp': 0, 'attack': 0, 'defense': 0, 'sp_attack': 0, 'sp_defense': 0, 'speed': 0}
+                    # Parse EV values
+                    evs = {'hp': 0, 'attack': 0, 'defense': 0, 'sp_attack': 0, 'sp_defense': 0, 'speed': 0}
                 
-                # Try different EV parsing patterns
-                ev_parse_patterns = [
-                    # Japanese format: H244 A252 B4 D4 S4
-                    r'H(\d+)\s+A(\d+)\s+B(\d+)\s+C(\d+)\s+D(\d+)\s+S(\d+)',
-                    r'H(\d+)\s+A(\d+)\s+B(\d+)\s+D(\d+)\s+S(\d+)',  # Missing C (SpA)
-                    # Standard format: 244 252 4 4 4 4 (space separated) - 6 numbers
-                    r'^(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$',
-                    r'(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)',
-                    r'(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',
-                    # 5-number format: 44 4 252 28 180 (HP, Def, SpA, SpD, Spe) - Attack assumed 0
-                    r'^(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$',
-                    r'(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',
-                    r'HP:\s*(\d+).*?Atk:\s*(\d+).*?Def:\s*(\d+).*?SpA:\s*(\d+).*?SpD:\s*(\d+).*?Spe:\s*(\d+)'
-                ]
+                    # Try different EV parsing patterns
+                    ev_parse_patterns = [
+                        # Japanese format: H244 A252 B4 D4 S4
+                        r'H(\d+)\s+A(\d+)\s+B(\d+)\s+C(\d+)\s+D(\d+)\s+S(\d+)',
+                        r'H(\d+)\s+A(\d+)\s+B(\d+)\s+D(\d+)\s+S(\d+)',  # Missing C (SpA)
+                        # Standard format: 244 252 4 4 4 4 (space separated) - 6 numbers
+                        r'^(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$',
+                        r'(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)',
+                        r'(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',
+                        # 5-number format: 44 4 252 28 180 (HP, Def, SpA, SpD, Spe) - Attack assumed 0
+                        r'^(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$',
+                        r'(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',
+                        r'HP:\s*(\d+).*?Atk:\s*(\d+).*?Def:\s*(\d+).*?SpD:\s*(\d+).*?Spe:\s*(\d+)'
+                    ]
                 
-                for i, ev_parse_pattern in enumerate(ev_parse_patterns):
-                    ev_match = re.search(ev_parse_pattern, ev_text, re.IGNORECASE)
-                    if ev_match:
-
-                        # Handle Japanese format (H=HP, A=Attack, B=Defense, C=SpA, D=SpD, S=Speed)
-                        if ev_parse_pattern.startswith(r'H(\d+)'):
-                            # Japanese format
-                            if len(ev_match.groups()) == 6:
-                                # Full format: H244 A252 B4 C4 D4 S4
-                                evs['hp'] = int(ev_match.group(1))
-                                evs['attack'] = int(ev_match.group(2))
-                                evs['defense'] = int(ev_match.group(3))
-                                evs['sp_attack'] = int(ev_match.group(4))
-                                evs['sp_defense'] = int(ev_match.group(5))
-                                evs['speed'] = int(ev_match.group(6))
-                            elif len(ev_match.groups()) == 5:
-                                # Missing C (SpA): H244 A252 B4 D4 S4
-                                evs['hp'] = int(ev_match.group(1))
-                                evs['attack'] = int(ev_match.group(2))
-                                evs['defense'] = int(ev_match.group(3))
-                                evs['sp_attack'] = 0  # Missing C
-                                evs['sp_defense'] = int(ev_match.group(4))
-                                evs['speed'] = int(ev_match.group(5))
-                        else:
-                            # Standard format
-                            if len(ev_match.groups()) == 6:
-                                # 6-number format: HP, Atk, Def, SpA, SpD, Spe
-                                stats = ['hp', 'attack', 'defense', 'sp_attack', 'sp_defense', 'speed']
-                                for j, stat in enumerate(stats):
-                                    try:
-                                        evs[stat] = int(ev_match.group(j + 1))
-                                    except (ValueError, IndexError):
-                                        pass
-                            elif len(ev_match.groups()) == 5:
-                                # 5-number format: HP, Def, SpA, SpD, Spe (Attack assumed 0)
-                                # Based on the Iron Valiant example: 44 4 252 28 180
-                                try:
+                    for i, ev_parse_pattern in enumerate(ev_parse_patterns):
+                        ev_match = re.search(ev_parse_pattern, ev_text, re.IGNORECASE)
+                        if ev_match:
+                            # Handle Japanese format (H=HP, A=Attack, B=Defense, C=SpA, D=SpD, S=Speed)
+                            if ev_parse_pattern.startswith(r'H(\d+)'):
+                                # Japanese format
+                                if len(ev_match.groups()) == 6:
+                                    # Full format: H244 A252 B4 C4 D4 S4
                                     evs['hp'] = int(ev_match.group(1))
-                                    evs['attack'] = 0  # Assumed 0 for 5-number format
-                                    evs['defense'] = int(ev_match.group(2))
-                                    evs['sp_attack'] = int(ev_match.group(3))
+                                    evs['attack'] = int(ev_match.group(2))
+                                    evs['defense'] = int(ev_match.group(3))
+                                    evs['sp_attack'] = int(ev_match.group(4))
+                                    evs['sp_defense'] = int(ev_match.group(5))
+                                    evs['speed'] = int(ev_match.group(6))
+                                elif len(ev_match.groups()) == 5:
+                                    # Missing C (SpA): H244 A252 B4 D4 S4
+                                    evs['hp'] = int(ev_match.group(1))
+                                    evs['attack'] = int(ev_match.group(2))
+                                    evs['defense'] = int(ev_match.group(3))
+                                    evs['sp_attack'] = 0  # Missing C
                                     evs['sp_defense'] = int(ev_match.group(4))
                                     evs['speed'] = int(ev_match.group(5))
-                                except (ValueError, IndexError):
-                                    pass
-                        break
+                            else:
+                                # Standard format
+                                if len(ev_match.groups()) == 6:
+                                    # 6-number format: HP, Atk, Def, SpA, SpD, Spe
+                                    stats = ['hp', 'attack', 'defense', 'sp_attack', 'sp_defense', 'speed']
+                                    for j, stat in enumerate(stats):
+                                        try:
+                                            evs[stat] = int(ev_match.group(j + 1))
+                                        except (ValueError, IndexError):
+                                            pass
+                                elif len(ev_match.groups()) == 5:
+                                    # 5-number format: HP, Def, SpA, SpD, Spe (Attack assumed 0)
+                                    # Based on the Iron Valiant example: 44 4 252 28 180
+                                    try:
+                                        evs['hp'] = int(ev_match.group(1))
+                                        evs['attack'] = 0  # Assumed 0 for 5-number format
+                                        evs['defense'] = int(ev_match.group(2))
+                                        evs['sp_attack'] = int(ev_match.group(3))
+                                        evs['sp_defense'] = int(ev_match.group(4))
+                                        evs['speed'] = int(ev_match.group(5))
+                                    except (ValueError, IndexError):
+                                        pass
+                            break
                 
-                # Ensure EVs add up to 508 or less
-                total_evs = sum(evs.values())
-                if total_evs > 508 and total_evs > 0:
-                    scale_factor = 508 / total_evs
-                    for stat in evs:
-                        evs[stat] = int(evs[stat] * scale_factor)
-                
-                pokemon_data['evs'] = evs
-
-
-                break
+                    # Ensure EVs add up to 508 or less
+                    total_evs = sum(evs.values())
+                    if total_evs > 508 and total_evs > 0:
+                        scale_factor = 508 / total_evs
+                        for stat in evs:
+                            evs[stat] = int(evs[stat] * scale_factor)
+                    
+                    pokemon_data['evs'] = evs
+                    break
         
-        # Extract EV Explanation
-        ev_explanation_patterns = [
-            r'ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)',
-            r'ev reasoning[:\s]+([^:\n]+(?:\n[^:\n]+)*)',
-            r'- ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)',
-            r'• ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)'
-        ]
-        for pattern in ev_explanation_patterns:
-            match = re.search(pattern, section_lower)
-            if match:
-                pokemon_data['ev_explanation'] = strip_html_tags(match.group(1).strip())
+            # Extract EV Explanation
+            ev_explanation_patterns = [
+                r'ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)',
+                r'ev reasoning[:\s]+([^:\n]+(?:\n[^:\n]+)*)',
+                r'- ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)',
+                r'• ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)'
+            ]
+            for pattern in ev_explanation_patterns:
+                match = re.search(pattern, section_lower)
+                if match:
+                    pokemon_data['ev_explanation'] = strip_html_tags(match.group(1).strip())
+                    break
 
-                break
-
-        # Only add if we have at least a name
-        if pokemon_data.get('name'):
-            parsed_data['pokemon'].append(pokemon_data)
+            # Only add if we have at least a name
+            if pokemon_data.get('name'):
+                parsed_data['pokemon'].append(pokemon_data)
 
 
     # Try different conclusion patterns

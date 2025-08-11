@@ -179,7 +179,7 @@ def display_pokemon_card_with_summary(pokemon, index):
             if evs:
                 # Calculate total EVs
                 total_evs = sum(evs.values())
-                ev_color = "#22c55e" if total_evs <= 510 else "#ef4444"
+                ev_color = "#22c55e" if total_evs <= 508 else "#ef4444"
                 
                 st.markdown(f"""
                 <div style="
@@ -190,7 +190,7 @@ def display_pokemon_card_with_summary(pokemon, index):
                     margin-bottom: 12px;
                 ">
                     <div style="color: #15803d; font-weight: 600; margin-bottom: 8px;">
-                        Total EVs: <span style="color: {ev_color}; font-weight: 700;">{total_evs}/510</span>
+                        Total EVs: <span style="color: {ev_color}; font-weight: 700;">{total_evs}/508</span>
                     </div>
                 """, unsafe_allow_html=True)
                 
@@ -386,22 +386,18 @@ def display_pokemon_card_with_summary(pokemon, index):
             if not current_moves:
                 current_moves = []
             
-            # Create move selection dropdowns
-            corrected_moves = []
-            for i in range(4):  # Pokemon can have up to 4 moves
-                move_options = get_all_team_moves(parsed_data)
-                if i < len(current_moves):
-                    default_index = move_options.index(current_moves[i]) if current_moves[i] in move_options else 0
-                else:
-                    default_index = 0
-                
-                selected_move = st.selectbox(
-                    f"Move {i+1}",
-                    options=move_options,
-                    index=default_index,
-                    key=f"move_{pokemon.get('name', 'unknown')}_{i}"
-                )
-                corrected_moves.append(selected_move)
+                         # Create move text input fields
+             corrected_moves = []
+             for i in range(4):  # Pokemon can have up to 4 moves
+                 current_move = current_moves[i] if i < len(current_moves) else ""
+                 
+                 corrected_move = st.text_input(
+                     f"Move {i+1}",
+                     value=current_move,
+                     key=f"move_{pokemon.get('name', 'unknown')}_{i}",
+                     placeholder="Enter move name"
+                 )
+                 corrected_moves.append(corrected_move)
             
             # Remove empty moves
             corrected_moves = [move for move in corrected_moves if move and move.strip()]
@@ -459,10 +455,10 @@ def display_pokemon_card_with_summary(pokemon, index):
             total_evs = sum(corrected_evs.values())
             is_valid, validation_message = validate_ev_spread(corrected_evs)
             
-            if is_valid:
-                st.success(f"**Total EVs: {total_evs}/510** ✅ {validation_message}")
-            else:
-                st.error(f"**Total EVs: {total_evs}/510** ❌ {validation_message}")
+                         if is_valid:
+                 st.success(f"**Total EVs: {total_evs}/508** ✅ {validation_message}")
+             else:
+                 st.error(f"**Total EVs: {total_evs}/508** ❌ {validation_message}")
             
             # Show current vs corrected EVs
             if corrected_evs != current_evs:
