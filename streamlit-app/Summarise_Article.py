@@ -23,8 +23,10 @@ from utils.workspace import (
     compute_summary_id,
     log_view,
     log_download,
+    upsert_summary,
 )
 from utils.permalinks import compute_team_fingerprint, build_permalink
+from utils.vgc_format_utils import get_available_formats, get_format_status_info, get_format_info
 import streamlit.components.v1 as components
 
 # Add error handling for imports
@@ -38,7 +40,7 @@ except ImportError as e:
 
 # Import shared utilities
 try:
-    from utils.shared_utils import extract_pokemon_names, strip_html_tags, fetch_article_text_and_images
+    from utils.shared_utils import extract_pokemon_names, strip_html_tags, fetch_article_text_and_images, extract_moves_from_text
 except ImportError as e:
     st.error(f"Failed to import shared utilities: {e}")
     def extract_pokemon_names(summary):
@@ -47,6 +49,8 @@ except ImportError as e:
         return text
     def fetch_article_text_and_images(url: str):
         return "", []
+    def extract_moves_from_text(text: str, pokemon_name: str = None):
+        return []
 
 
 
@@ -628,8 +632,6 @@ def display_url_input(cache):
     col1, col2 = st.columns([2, 1])
     with col1:
         # Use dynamic format list from utilities
-        from utils.vgc_format_utils import get_available_formats, get_format_status_info
-        
         available_formats = get_available_formats()
         vgc_format = st.selectbox(
             "VGC Format",
@@ -680,7 +682,6 @@ def display_url_input(cache):
             </div>
             """, unsafe_allow_html=True)
         else:
-            from utils.vgc_format_utils import get_format_info
             format_info = get_format_info(selected_format)
             
             st.markdown(f"""
@@ -750,6 +751,8 @@ def display_url_input(cache):
 
 def display_results(summary, url):
     parsed_data = parse_summary(summary, url=url)
+    # Store parsed_data in session state for feedback system
+    st.session_state["parsed_data"] = parsed_data
     # Compute a stable id for logging and sharing
     summary_id = compute_summary_id(url, parsed_data.get('title'), summary)
     st.session_state["current_summary_id"] = summary_id
@@ -761,7 +764,6 @@ def display_results(summary, url):
         tournament_guess = ''
         if 'world' in (parsed_data.get('title','').lower()):
             tournament_guess = 'Worlds'
-        from utils.workspace import upsert_summary
         upsert_summary(summary_id, url or '', parsed_data.get('title') or 'VGC Team Analysis', team_names, tournament_guess)
     except Exception:
         pass
@@ -807,6 +809,116 @@ def display_results(summary, url):
         💡 <strong>Tip:</strong> JSON and CSV are best for data analysis, Excel for detailed spreadsheets, and PDF for sharing reports
     </div>
     """, unsafe_allow_html=True)
+
+def show_corrections_summary(parsed_data):
+    """Display a comprehensive summary of corrections made to the Pokemon data"""
+    try:
+        if 'corrections_made' not in st.session_state:
+            return
+        
+        corrections = st.session_state.get('corrections_made', [])
+        if not corrections:
+            return
+        
+        st.markdown("""
+        <div style="margin: 24px 0;">
+            <h3 style="color: #1e293b; font-size: 1.4rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center;">
+                🔧 Corrections Made
+            </h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Group corrections by Pokemon
+        pokemon_corrections = {}
+        for correction in corrections:
+            pokemon_name = correction.get('pokemon_name', 'Unknown')
+            if pokemon_name not in pokemon_corrections:
+                pokemon_corrections[pokemon_name] = []
+            pokemon_corrections[pokemon_name].append(correction)
+        
+        # Display corrections grouped by Pokemon
+        for pokemon_name, pokemon_corr_list in pokemon_corrections.items():
+            st.markdown(f"""
+            <div style="
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 16px;
+            ">
+                <div style="color: #1e293b; font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center;">
+                    🎯 {pokemon_name}
+                </div>
+            """, unsafe_allow_html=True)
+            
+            for correction in pokemon_corr_list:
+                field = correction.get('field', 'Unknown')
+                old_value = correction.get('old_value', 'Unknown')
+                new_value = correction.get('new_value', 'Unknown')
+                timestamp = correction.get('timestamp', '')
+                correction_id = correction.get('correction_id', '')
+                
+                # Format timestamp
+                try:
+                    if timestamp:
+                        dt = datetime.fromisoformat(timestamp)
+                        formatted_time = dt.strftime("%H:%M:%S")
+                    else:
+                        formatted_time = "Unknown"
+                except:
+                    formatted_time = "Unknown"
+                
+                st.markdown(f"""
+                <div style="
+                    background: #f0fdf4;
+                    border: 1px solid #22c55e;
+                    border-radius: 8px;
+                    padding: 16px;
+                    margin-bottom: 12px;
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <div style="color: #15803d; font-size: 1rem; font-weight: 600;">
+                            {field.title()}
+                        </div>
+                        <div style="color: #16a34a; font-size: 0.8rem; font-style: italic;">
+                            {formatted_time}
+                        </div>
+                    </div>
+                    <div style="color: #15803d; font-size: 0.9rem; margin-bottom: 8px;">
+                        <strong>Before:</strong> {old_value}<br>
+                        <strong>After:</strong> {new_value}
+                    </div>
+                    <div style="color: #16a34a; font-size: 0.8rem; margin-top: 8px; font-style: italic;">
+                        ✅ Corrected and saved for all users
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Add a summary section
+        total_corrections = len(corrections)
+        unique_pokemon = len(pokemon_corrections)
+        
+        st.markdown(f"""
+        <div style="
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        ">
+            <div style="color: #0369a1; font-size: 1rem; font-weight: 600; text-align: center;">
+                📊 Summary: {total_corrections} corrections made across {unique_pokemon} Pokemon
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Clear corrections after displaying (optional - you can remove this if you want to keep them)
+        # st.session_state['corrections_made'] = []
+        
+    except Exception as e:
+        st.warning(f"Could not display corrections summary: {e}")
 
 def extract_detected_vgc_format(parsed_data: dict, summary: str) -> str:
     """Extract the detected VGC format from the analysis summary"""
@@ -896,7 +1008,6 @@ def display_team_summary(parsed_data, summary=None):
             format_icon = "⚙️"
             format_color = "#f59e0b"
         else:
-            from utils.vgc_format_utils import get_format_info
             format_info = get_format_info(vgc_format)
             format_display = format_info["name"]
             format_icon = "🏆"
@@ -980,6 +1091,9 @@ def display_article_summary(parsed_data, summary, url):
         <p style="margin: 0; opacity: 0.9; font-size: 0.9rem;">Source: {url}</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Show corrections summary if any exist
+    show_corrections_summary(parsed_data)
 
     # Share controls (copy to clipboard + quick share links) - Fixed layout
     st.markdown("### 📤 Share This Analysis")
@@ -1081,7 +1195,7 @@ def display_article_summary(parsed_data, summary, url):
         
         # Helper to render EV section with proper visualization bars
         def build_ev_block_html(evs: dict | None, ev_text: str | None = None, ev_explanation: str | None = None) -> str:
-            print(f"DEBUG: build_ev_block_html called with - evs: {evs}, ev_text: {ev_text}, ev_explanation: {ev_explanation}")
+    
             if evs:
                 hp = evs.get('hp', 0)
                 atk = evs.get('attack', 0)
@@ -1107,13 +1221,13 @@ def display_article_summary(parsed_data, summary, url):
                     bars_html += bar_div
                 
                 result = f'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;"><div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div>{bars_html}</div>'
-                print(f"DEBUG: build_ev_block_html returning (evs case): {result[:100]}...")
+    
                 return result
             elif ev_text:
                 result = f'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;"><div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div><div style="font-size:0.8rem;color:#64748b;line-height:1.4;">{ev_text}</div></div>'
-                print(f"DEBUG: build_ev_block_html returning (ev_text case): {result[:100]}...")
+
                 return result
-            print("DEBUG: build_ev_block_html returning empty string")
+
             return ''
 
         # Display team members in a grid
@@ -1127,7 +1241,7 @@ def display_article_summary(parsed_data, summary, url):
                 pokemon_ev_explanation = pokemon.get('ev_explanation')
                 
                 # Debug: Print what we're getting
-                print(f"DEBUG: Pokemon {pokemon.get('name', 'Unknown')} - EVs: {pokemon_evs}, EV Spread: {pokemon_ev_spread}, EV Explanation: {pokemon_ev_explanation}")
+        
                 
                 ev_spread_html = build_ev_block_html(pokemon_evs, pokemon_ev_spread, pokemon_ev_explanation)
                 
@@ -1148,7 +1262,7 @@ def display_article_summary(parsed_data, summary, url):
                 """
                 
                 # Debug: Print the final HTML
-                print(f"DEBUG: Final Pokemon card HTML for {pokemon.get('name', 'Unknown')}: {pokemon_card_html[:200]}...")
+        
                 
                 st.markdown(pokemon_card_html, unsafe_allow_html=True)
 
@@ -1638,8 +1752,7 @@ END OF ANALYSIS
     return comprehensive
 
 def parse_summary(summary, images_data=None, url: str | None = None):
-    # Debug: Print the first 500 characters of the summary to see the format
-    print("DEBUG: Summary starts with:", summary[:500])
+
     
     parsed_data = {
         'title': 'Not specified',
@@ -1681,13 +1794,13 @@ def parse_summary(summary, images_data=None, url: str | None = None):
     pokemon_numbered = re.findall(r'Pokémon\s*\d+[:\s]+(.*?)(?=Pokémon\s*\d+|CONCLUSION|FINAL|$)', summary, re.DOTALL | re.IGNORECASE)
     if pokemon_numbered:
         pokemon_sections = pokemon_numbered
-        print(f"DEBUG: Found {len(pokemon_sections)} Pokémon using numbered method")
+
     
     # Method 2: Look for Pokémon with dashes
     if not pokemon_sections:
         pokemon_dashed = re.split(r'\n\s*-\s*', summary)
         pokemon_sections = [section for section in pokemon_dashed if any(keyword in section.lower() for keyword in ['ability:', 'item:', 'moves:', 'ev spread:', 'nature:', 'tera:'])]
-        print(f"DEBUG: Found {len(pokemon_sections)} Pokémon using dash method")
+
     
     # Method 3: Look for specific patterns
     if not pokemon_sections:
@@ -1703,7 +1816,7 @@ def parse_summary(summary, images_data=None, url: str | None = None):
         for pattern in split_patterns:
             if pattern in summary:
                 pokemon_sections = summary.split(pattern)[1:]
-                print(f"DEBUG: Found {len(pokemon_sections)} Pokémon using pattern: {pattern}")
+        
                 break
     
     # Method 4: Look for any section with Pokémon data
@@ -1714,67 +1827,65 @@ def parse_summary(summary, images_data=None, url: str | None = None):
         for section in sections:
             if any(keyword in section.lower() for keyword in ['ability:', 'item:', 'moves:', 'ev spread:', 'nature:', 'tera:']) and len(section.strip()) > 50:
                 pokemon_sections.append(section)
-        print(f"DEBUG: Found {len(pokemon_sections)} Pokémon using section method")
+
     
     # Method 5: Last resort - look for any numbered entries
     if not pokemon_sections:
         pokemon_matches = re.findall(r'\d+[\.:]\s*([^\n]+)', summary)
         if pokemon_matches:
             pokemon_sections = [f"1: {name}" for name in pokemon_matches]
-            print(f"DEBUG: Found {len(pokemon_matches)} Pokémon using numbered matches")
     
-    print(f"DEBUG: Total Pokémon sections found: {len(pokemon_sections)}")
-    if pokemon_sections:
-        print(f"DEBUG: First Pokémon section: {pokemon_sections[0][:200]}...")
+    
 
-    for i, section in enumerate(pokemon_sections):
-        pokemon_data = {}
-        print(f"DEBUG: Processing Pokémon {i+1}")
-        print(f"DEBUG: Section preview: {section[:200]}...")
-        
-        # Method 1: Extract name from the beginning of the section
-        pokemon_name = None
-        
-        # Look for Pokémon name patterns
-        name_patterns = [
-            r'^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',  # Capitalized words at start
-            r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\s*:)',  # Before colon
-            r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\s*-)',  # Before dash
-            r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\n)',    # Before newline
-        ]
-        
-        for pattern in name_patterns:
-            name_match = re.search(pattern, section)
-            if name_match:
-                pokemon_name = name_match.group(1).strip()
-                break
-        
-        # Method 2: Look for common Pokémon names in the section
-        if not pokemon_name:
-            common_pokemon = [
-                'Calyrex Shadow Rider', 'Calyrex Ice Rider', 'Zamazenta', 'Zacian',
-                'Chien-Pao', 'Chi-Yu', 'Amoonguss', 'Dragonite', 'Iron Valiant',
-                'Iron Jugulis', 'Iron Crown', 'Miraidon', 'Koraidon', 'Urshifu', 
-                'Rillaboom', 'Volcarona'
+    if pokemon_sections:
+        for i, section in enumerate(pokemon_sections):
+            pokemon_data = {}
+
+
+            
+            # Method 1: Extract name from the beginning of the section
+            pokemon_name = None
+            
+            # Look for Pokémon name patterns
+            name_patterns = [
+                r'^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',  # Capitalized words at start
+                r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\s*:)',  # Before colon
+                r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\s*-)',  # Before dash
+                r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\n)',    # Before newline
             ]
-            for pokemon in common_pokemon:
-                if pokemon.lower() in section.lower():
-                    pokemon_name = pokemon
+            
+            for pattern in name_patterns:
+                name_match = re.search(pattern, section)
+                if name_match:
+                    pokemon_name = name_match.group(1).strip()
                     break
-        
-        if pokemon_name:
-            # Apply Pokemon name corrections
-            corrected_name = strip_html_tags(pokemon_name)
-            pokemon_corrections = {
-                'Iron Crown': 'Iron Jugulis',
-                'iron crown': 'Iron Jugulis'
-            }
-            corrected_name = pokemon_corrections.get(corrected_name, corrected_name)
-            pokemon_data['name'] = corrected_name
-            print(f"DEBUG: Found name: {pokemon_data['name']}")
-        else:
-            print(f"DEBUG: No name found for Pokémon {i+1}")
-            continue
+            
+            # Method 2: Look for common Pokémon names in the section
+            if not pokemon_name:
+                common_pokemon = [
+                    'Calyrex Shadow Rider', 'Calyrex Ice Rider', 'Zamazenta', 'Zacian',
+                    'Chien-Pao', 'Chi-Yu', 'Amoonguss', 'Dragonite', 'Iron Valiant',
+                    'Iron Jugulis', 'Iron Crown', 'Miraidon', 'Koraidon', 'Urshifu', 
+                    'Rillaboom', 'Volcarona'
+                ]
+                for pokemon in common_pokemon:
+                    if pokemon.lower() in section.lower():
+                        pokemon_name = pokemon
+                        break
+            
+            if pokemon_name:
+                # Apply Pokemon name corrections
+                corrected_name = strip_html_tags(pokemon_name)
+                pokemon_corrections = {
+                    'Iron Crown': 'Iron Jugulis',
+                    'iron crown': 'Iron Jugulis'
+                }
+                corrected_name = pokemon_corrections.get(corrected_name, corrected_name)
+                pokemon_data['name'] = corrected_name
+    
+            else:
+    
+                continue
 
         # Extract all data using comprehensive regex patterns
         section_lower = section.lower()
@@ -1793,7 +1904,7 @@ def parse_summary(summary, images_data=None, url: str | None = None):
                 # Clean up common ability names and remove extra text
                 ability_text = re.sub(r'\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation).*', '', ability_text)
                 pokemon_data['ability'] = strip_html_tags(ability_text.title())
-                print(f"DEBUG: Found ability: {pokemon_data['ability']}")
+
                 break
         
         # Extract Item - improved to stop at next section
@@ -1817,7 +1928,7 @@ def parse_summary(summary, images_data=None, url: str | None = None):
                 }
                 corrected_item = item_corrections.get(corrected_item, corrected_item)
                 pokemon_data['item'] = corrected_item
-                print(f"DEBUG: Found item: {pokemon_data['item']}")
+
                 break
         
         # Extract Nature - improved to stop at next section
@@ -1857,7 +1968,7 @@ def parse_summary(summary, images_data=None, url: str | None = None):
                     'Lax': 'Lax'
                 }
                 pokemon_data['nature'] = strip_html_tags(nature_mapping.get(nature_text.title(), nature_text.title()))
-                print(f"DEBUG: Found nature: {pokemon_data['nature']}")
+
                 break
         
         # Extract Tera Type - improved to stop at next section
@@ -1876,31 +1987,20 @@ def parse_summary(summary, images_data=None, url: str | None = None):
                 # Remove accidental leading 'type:' captured from 'Tera Type:'
                 tera_text = re.sub(r'^type:\s*', '', tera_text, flags=re.IGNORECASE)
                 pokemon_data['tera_type'] = strip_html_tags(tera_text.title())
-                print(f"DEBUG: Found tera: {pokemon_data['tera_type']}")
+
                 break
         
         # Use the improved move extraction function
-        from utils.shared_utils import extract_moves_from_text
-        
         moves = extract_moves_from_text(section, pokemon_data.get('name'))
         
         if moves:
-            print(f"DEBUG: Found moves: {moves}")
+
             pokemon_data['moves'] = moves
             
-            # Validate moves for this Pokémon
-            valid_moves, invalid_moves = validate_pokemon_moves(pokemon_data['name'], moves)
-            pokemon_data['valid_moves'] = valid_moves
-            pokemon_data['invalid_moves'] = invalid_moves
-            
-            if invalid_moves:
-                print(f"DEBUG: Invalid moves detected for {pokemon_data['name']}: {invalid_moves}")
-                pokemon_data['move_validation_issues'] = invalid_moves
+            # Store moves without validation
+            pokemon_data['moves'] = moves
         else:
-            print(f"DEBUG: No moves found for {pokemon_data['name']}")
             pokemon_data['moves'] = []
-            pokemon_data['valid_moves'] = []
-            pokemon_data['invalid_moves'] = []
         
 
 
@@ -1917,7 +2017,7 @@ def parse_summary(summary, images_data=None, url: str | None = None):
             match = re.search(pattern, section_lower)
             if match:
                 ev_text = match.group(1).strip()
-                print(f"DEBUG: Raw EV text extracted: '{ev_text}'")
+
                 # Parse EV values
                 evs = {'hp': 0, 'attack': 0, 'defense': 0, 'sp_attack': 0, 'sp_defense': 0, 'speed': 0}
                 
@@ -1939,8 +2039,7 @@ def parse_summary(summary, images_data=None, url: str | None = None):
                 for i, ev_parse_pattern in enumerate(ev_parse_patterns):
                     ev_match = re.search(ev_parse_pattern, ev_text, re.IGNORECASE)
                     if ev_match:
-                        print(f"DEBUG: EV pattern {i} matched: {ev_parse_pattern}")
-                        print(f"DEBUG: EV match groups: {ev_match.groups()}")
+
                         # Handle Japanese format (H=HP, A=Attack, B=Defense, C=SpA, D=SpD, S=Speed)
                         if ev_parse_pattern.startswith(r'H(\d+)'):
                             # Japanese format
@@ -1992,8 +2091,8 @@ def parse_summary(summary, images_data=None, url: str | None = None):
                         evs[stat] = int(evs[stat] * scale_factor)
                 
                 pokemon_data['evs'] = evs
-                print(f"DEBUG: Found EVs: {evs}")
-                print(f"DEBUG: EV parsing breakdown - HP:{evs['hp']}, Atk:{evs['attack']}, Def:{evs['defense']}, SpA:{evs['sp_attack']}, SpD:{evs['sp_defense']}, Spe:{evs['speed']}")
+
+
                 break
         
         # Extract EV Explanation
@@ -2007,15 +2106,13 @@ def parse_summary(summary, images_data=None, url: str | None = None):
             match = re.search(pattern, section_lower)
             if match:
                 pokemon_data['ev_explanation'] = strip_html_tags(match.group(1).strip())
-                print(f"DEBUG: Found EV explanation: {pokemon_data['ev_explanation'][:100]}...")
+
                 break
 
         # Only add if we have at least a name
         if pokemon_data.get('name'):
             parsed_data['pokemon'].append(pokemon_data)
-            print(f"DEBUG: Added Pokémon {i+1}: {pokemon_data}")
-        else:
-            print(f"DEBUG: Skipping Pokémon {i+1} - no name found")
+
 
     # Try different conclusion patterns
     conclusion_patterns = [
@@ -2353,203 +2450,7 @@ def run_analysis(url, cache):
         status_text.empty()
         st.session_state["summarising"] = False
 
-def validate_pokemon_moves(pokemon_name: str, moves: list) -> tuple[list, list]:
-    """
-    Validate that moves are legal for the specific Pokémon.
-    Returns (valid_moves, invalid_moves).
-    """
-    if not moves:
-        return [], []
-    
-    # Known movepools for common VGC Pokémon (Scarlet/Violet era)
-    # Updated with more accurate movepools and corrected restrictions
-    pokemon_movepools = {
-        'Zamazenta': {
-            'moves': ['Close Combat', 'Behemoth Bash', 'Wide Guard', 'Protect', 'Body Press', 'Heavy Slam', 'Iron Head', 'Crunch', 'Howl', 'Agility', 'Substitute', 'Swords Dance', 'Snarl', 'Drain Punch', 'Rock Slide', 'Stone Edge', 'Outrage', 'Dragon Claw'],
-            'restricted': []
-        },
-        'Zacian': {
-            'moves': ['Behemoth Blade', 'Sacred Sword', 'Close Combat', 'Play Rough', 'Iron Head', 'Protect', 'Swords Dance', 'Substitute', 'Quick Attack', 'Crunch', 'Howl', 'Psychic Fangs', 'Drain Punch', 'Rock Slide', 'Stone Edge', 'Outrage', 'Dragon Claw'],
-            'restricted': []
-        },
-        'Calyrex Shadow Rider': {
-            'moves': ['Astral Barrage', 'Psyshock', 'Shadow Ball', 'Focus Blast', 'Protect', 'Substitute', 'Nasty Plot', 'Trick Room', 'Will-O-Wisp', 'Encore', 'Psychic', 'Dark Pulse', 'Calm Mind', 'Thunderbolt', 'Energy Ball'],
-            'restricted': []
-        },
-        'Calyrex Ice Rider': {
-            'moves': ['Glacial Lance', 'High Horsepower', 'Close Combat', 'Protect', 'Substitute', 'Swords Dance', 'Trick Room', 'Body Press', 'Heavy Slam', 'Stone Edge', 'Rock Slide', 'Bulk Up', 'Outrage', 'Dragon Claw'],
-            'restricted': []
-        },
-        'Chien-Pao': {
-            'moves': ['Ice Spinner', 'Sucker Punch', 'Ruination', 'Protect', 'Substitute', 'Swords Dance', 'Taunt', 'Encore', 'Crunch', 'Ice Shard', 'Psychic Fangs', 'Sacred Sword', 'Drain Punch', 'Rock Slide', 'Stone Edge'],
-            'restricted': []
-        },
-        'Chi-Yu': {
-            'moves': ['Overheat', 'Dark Pulse', 'Flamethrower', 'Protect', 'Substitute', 'Nasty Plot', 'Trick Room', 'Will-O-Wisp', 'Shadow Ball', 'Psychic', 'Energy Ball', 'Heat Wave', 'Snarl', 'Focus Blast'],
-            'restricted': []
-        },
-        'Amoonguss': {
-            'moves': ['Spore', 'Rage Powder', 'Sludge Bomb', 'Protect', 'Substitute', 'Clear Smog', 'Giga Drain', 'Toxic', 'Foul Play', 'Body Slam', 'Seed Bomb', 'Synthesis', 'Energy Ball', 'Sludge Wave'],
-            'restricted': []
-        },
-        'Dragonite': {
-            'moves': ['Extreme Speed', 'Outrage', 'Rock Slide', 'Protect', 'Substitute', 'Dragon Dance', 'Earthquake', 'Fire Punch', 'Thunder Wave', 'Dragon Claw', 'Iron Head', 'Dragon Rush', 'Aerial Ace', 'Thunderbolt', 'Ice Beam'],
-            'restricted': []
-        },
-        'Iron Valiant': {
-            'moves': ['Close Combat', 'Spirit Break', 'Moonblast', 'Protect', 'Substitute', 'Swords Dance', 'Thunder Wave', 'Encore', 'Taunt', 'Psychic', 'Shadow Ball', 'Aura Sphere', 'Drain Punch', 'Rock Slide', 'Stone Edge'],
-            'restricted': []
-        },
-        'Iron Jugulis': {
-            'moves': ['Dark Pulse', 'Air Slash', 'Flamethrower', 'Protect', 'Substitute', 'Nasty Plot', 'U-turn', 'Heat Wave', 'Hurricane', 'Focus Blast', 'Earth Power', 'Snarl', 'Taunt', 'Shadow Ball', 'Sludge Bomb'],
-            'restricted': []
-        },
-        'Iron Crown': {
-            'moves': ['Tachyon Cutter', 'Psyshock', 'Focus Blast', 'Protect', 'Substitute', 'Calm Mind', 'Thunder Wave', 'Encore', 'Shadow Ball', 'Aura Sphere', 'Flash Cannon', 'Psychic', 'Trick Room', 'Thunderbolt', 'Energy Ball'],
-            'restricted': []
-        },
-        'Miraidon': {
-            'moves': ['Electro Drift', 'Dragon Pulse', 'Protect', 'Substitute', 'Calm Mind', 'Thunder Wave', 'Encore', 'Taunt', 'Thunderbolt', 'Focus Blast', 'U-turn', 'Dragon Claw', 'Thunder', 'Rock Slide', 'Stone Edge'],
-            'restricted': []
-        },
-        'Koraidon': {
-            'moves': ['Collision Course', 'Dragon Claw', 'Protect', 'Substitute', 'Swords Dance', 'Thunder Wave', 'Encore', 'Taunt', 'Fire Fang', 'Rock Slide', 'U-turn', 'Outrage', 'Flare Blitz', 'Earthquake', 'Stone Edge'],
-            'restricted': []
-        },
-        'Urshifu': {
-            'moves': ['Close Combat', 'Surging Strikes', 'Protect', 'Substitute', 'Swords Dance', 'U-turn', 'Rock Slide', 'Earthquake', 'Iron Head', 'Poison Jab', 'Bulk Up', 'Aqua Jet', 'Drain Punch', 'Stone Edge', 'Outrage'],
-            'restricted': []
-        },
-        'Rillaboom': {
-            'moves': ['Grassy Glide', 'Wood Hammer', 'Protect', 'Substitute', 'Swords Dance', 'U-turn', 'Rock Slide', 'Earthquake', 'Drum Beating', 'Bulk Up', 'Taunt', 'Fake Out', 'Drain Punch', 'Stone Edge', 'Outrage'],
-            'restricted': []
-        },
-        'Volcarona': {
-            'moves': ['Fiery Dance', 'Bug Buzz', 'Protect', 'Substitute', 'Quiver Dance', 'U-turn', 'Giga Drain', 'Hurricane', 'Flamethrower', 'Psychic', 'Roost', 'Heat Wave', 'Air Slash', 'Energy Ball', 'Shadow Ball'],
-            'restricted': []
-        },
-        'Alolan Ninetales': {
-            'moves': ['Blizzard', 'Moonblast', 'Protect', 'Substitute', 'Nasty Plot', 'Encore', 'Taunt', 'Aurora Veil', 'Freeze-Dry', 'Dazzling Gleam', 'Hypnosis', 'Ice Beam', 'Dark Pulse', 'Energy Ball', 'Psyshock'],
-            'restricted': []
-        },
-        'Garchomp': {
-            'moves': ['Earthquake', 'Dragon Claw', 'Rock Slide', 'Protect', 'Substitute', 'Swords Dance', 'U-turn', 'Fire Fang', 'Poison Jab', 'Outrage', 'Stone Edge', 'Iron Head', 'Dragon Rush', 'Wide Guard', 'Quick Guard', 'Stealth Rock', 'Dragon Tail'],
-            'restricted': []  # Garchomp CAN learn Wide Guard in Scarlet/Violet
-        },
-        'Grimmsnarl': {
-            'moves': ['Spirit Break', 'Play Rough', 'Protect', 'Substitute', 'Bulk Up', 'Taunt', 'Encore', 'Thunder Wave', 'Foul Play', 'Sucker Punch', 'Drain Punch', 'Light Screen', 'Reflect', 'Dark Pulse', 'Shadow Ball'],
-            'restricted': []
-        },
-        'Incineroar': {
-            'moves': ['Flare Blitz', 'Darkest Lariat', 'Protect', 'Substitute', 'Bulk Up', 'Taunt', 'Encore', 'Will-O-Wisp', 'Fake Out', 'U-turn', 'Earthquake', 'Snarl', 'Parting Shot', 'Rock Slide', 'Stone Edge'],
-            'restricted': []
-        },
-        'Landorus': {
-            'moves': ['Earthquake', 'Rock Slide', 'Protect', 'Substitute', 'Swords Dance', 'U-turn', 'Stone Edge', 'Fly', 'Focus Blast', 'Sludge Bomb', 'Earth Power', 'Superpower', 'Bulk Up', 'Outrage', 'Dragon Claw'],
-            'restricted': []
-        },
-        'Tornadus': {
-            'moves': ['Hurricane', 'Air Slash', 'Protect', 'Substitute', 'Nasty Plot', 'U-turn', 'Focus Blast', 'Heat Wave', 'Dark Pulse', 'Grass Knot', 'Tailwind', 'Bleakwind Storm', 'Bulk Up', 'Rock Slide', 'Stone Edge'],
-            'restricted': []
-        },
-        'Thundurus': {
-            'moves': ['Thunderbolt', 'Thunder', 'Protect', 'Substitute', 'Nasty Plot', 'U-turn', 'Focus Blast', 'Dark Pulse', 'Grass Knot', 'Volt Switch', 'Thunder Wave', 'Wildbolt Storm', 'Bulk Up', 'Rock Slide', 'Stone Edge'],
-            'restricted': []
-        },
-        # Additional VGC Pokémon with expanded movepools
-        'Flutter Mane': {
-            'moves': ['Moonblast', 'Shadow Ball', 'Dazzling Gleam', 'Protect', 'Substitute', 'Nasty Plot', 'Mystical Fire', 'Power Gem', 'Psyshock', 'Thunderbolt', 'Energy Ball', 'Trick Room', 'Calm Mind', 'Focus Blast'],
-            'restricted': []
-        },
-        'Iron Bundle': {
-            'moves': ['Freeze-Dry', 'Hydro Pump', 'Blizzard', 'Protect', 'Substitute', 'Encore', 'Taunt', 'U-turn', 'Aurora Beam', 'Ice Beam', 'Surf', 'Trick Room', 'Focus Blast', 'Energy Ball'],
-            'restricted': []
-        },
-        'Indeedee': {
-            'moves': ['Psychic', 'Dazzling Gleam', 'Protect', 'Substitute', 'Follow Me', 'Helping Hand', 'Heal Pulse', 'Trick Room', 'Shadow Ball', 'Energy Ball', 'Thunderbolt', 'Calm Mind', 'Focus Blast', 'Psyshock'],
-            'restricted': []
-        }
-    }
-    
-    # Normalize Pokémon name for comparison
-    pokemon_name_lower = pokemon_name.lower()
-    
-    # Find the Pokémon in our movepool database
-    pokemon_data = None
-    for name, data in pokemon_movepools.items():
-        if name.lower() == pokemon_name_lower:
-            pokemon_data = data
-            break
-    
-    if not pokemon_data:
-        # If Pokémon not in our database, try to validate against common VGC moves
-        print(f"DEBUG: Pokémon {pokemon_name} not in movepool database, checking against common VGC moves")
-        
-        # Common VGC moves that most Pokémon can learn
-        common_vgc_moves = {
-            'protect', 'substitute', 'swords dance', 'nasty plot', 'calm mind', 'bulk up',
-            'close combat', 'earthquake', 'rock slide', 'stone edge', 'dragon claw', 'outrage',
-            'fire blast', 'flamethrower', 'ice beam', 'blizzard', 'thunderbolt', 'thunder',
-            'psychic', 'shadow ball', 'dark pulse', 'sludge bomb', 'giga drain', 'energy ball',
-            'u-turn', 'fake out', 'encore', 'taunt', 'thunder wave', 'will-o-wisp',
-            'aurora veil', 'tailwind', 'rage powder', 'spore', 'clear smog', 'foul play',
-            'wide guard', 'quick guard', 'crafty shield', 'mat block', 'spiky shield',
-            'king\'s shield', 'baneful bunker', 'obstruct', 'max guard', 'dynamax cannon'
-        }
-        
-        # Check if moves are in common VGC moves
-        valid_moves = []
-        invalid_moves = []
-        
-        for move in moves:
-            move_lower = move.lower()
-            if move_lower in common_vgc_moves:
-                valid_moves.append(move)
-            else:
-                # Mark as potentially invalid but with a note
-                invalid_moves.append(f"{move} (not in common VGC movepool)")
-        
-        return valid_moves, invalid_moves
-    
-    valid_moves = []
-    invalid_moves = []
-    
-    for move in moves:
-        move_lower = move.lower()
-        
-        # Check if move is in the Pokémon's movepool
-        if any(move_lower == known_move.lower() for known_move in pokemon_data['moves']):
-            valid_moves.append(move)
-        else:
-            # Check if it's a restricted move
-            if any(move_lower == restricted_move.lower() for restricted_move in pokemon_data['restricted']):
-                invalid_moves.append(f"{move} (cannot learn this move)")
-            else:
-                # Move not in known movepool, check if it's a common VGC move
-                common_vgc_moves = {
-                    'protect', 'substitute', 'swords dance', 'nasty plot', 'calm mind', 'bulk up',
-                    'close combat', 'earthquake', 'rock slide', 'stone edge', 'dragon claw', 'outrage',
-                    'fire blast', 'flamethrower', 'ice beam', 'blizzard', 'thunderbolt', 'thunder',
-                    'psychic', 'shadow ball', 'dark pulse', 'sludge bomb', 'giga drain', 'energy ball',
-                    'u-turn', 'fake out', 'encore', 'taunt', 'thunder wave', 'will-o-wisp',
-                    'aurora veil', 'tailwind', 'rage powder', 'spore', 'clear smog', 'foul play',
-                    'wide guard', 'quick guard', 'crafty shield', 'mat block', 'spiky shield',
-                    'king\'s shield', 'baneful bunker', 'obstruct', 'max guard', 'dynamax cannon'
-                }
-                
-                if move_lower in common_vgc_moves:
-                    # Common VGC move, likely valid but not in our specific movepool
-                    valid_moves.append(move)
-                    print(f"DEBUG: Move '{move}' is a common VGC move for {pokemon_name}, marking as valid")
-                else:
-                    # Move not in known movepool or common VGC moves
-                    print(f"DEBUG: Move '{move}' not found in known movepool for {pokemon_name}")
-                    invalid_moves.append(f"{move} (move not verified)")
-    
-    if invalid_moves:
-        print(f"DEBUG: Invalid/unverified moves for {pokemon_name}: {invalid_moves}")
-    
-    return valid_moves, invalid_moves
+
 
 # Main application
 def main():
