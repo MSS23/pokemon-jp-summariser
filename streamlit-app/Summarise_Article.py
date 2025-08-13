@@ -928,12 +928,14 @@ def extract_detected_vgc_format(parsed_data: dict, summary: str) -> str:
             # Check for format indicators in the summary
             summary_lower = summary.lower()
             
-            # Look for VGC format patterns
+            # Look for VGC format patterns with improved detection
             vgc_patterns = [
                 r"vgc\s*(\d{4})",
                 r"regulation\s*([a-f])",
                 r"format:\s*([^\\n]+)",
-                r"vgc\s*format:\s*([^\\n]+)"
+                r"vgc\s*format:\s*([^\\n]+)",
+                r"vgc\s*format\s*([a-i])",
+                r"format\s*([a-i])"
             ]
             
             for pattern in vgc_patterns:
@@ -941,21 +943,41 @@ def extract_detected_vgc_format(parsed_data: dict, summary: str) -> str:
                 if match:
                     if pattern.startswith("vgc\\s*(\\d{4})"):
                         year = match.group(1)
-                        return f"VGC {year} - Detected from Analysis"
-                    elif pattern.startswith("regulation\\s*([a-f])"):
+                        # Map year to letter format
+                        year_to_letter = {
+                            "2025": "I", "2024": "H", "2023": "G", "2022": "F", 
+                            "2021": "E", "2020": "D", "2019": "C", "2018": "B", "2017": "A"
+                        }
+                        letter = year_to_letter.get(year, year)
+                        return f"VGC Format {letter} (Regulation {letter}) - Detected from Analysis"
+                    elif pattern.startswith("regulation\\s*([a-f])") or pattern.startswith("format\\s*([a-i])"):
                         reg = match.group(1).upper()
-                        return f"VGC Regulation {reg} - Detected from Analysis"
+                        return f"VGC Format {reg} (Regulation {reg}) - Detected from Analysis"
+                    elif pattern.startswith("vgc\\s*format\\s*([a-i])"):
+                        reg = match.group(1).upper()
+                        return f"VGC Format {reg} (Regulation {reg}) - Detected from Analysis"
                     else:
                         return f"{match.group(1).title()} - Detected from Analysis"
             
-            # Check for specific mechanics
+            # Check for specific mechanics and map to specific formats
             if "tera" in summary_lower:
-                return "VGC Formats A-I (Tera Types) - Detected from Analysis"
+                # Tera types are in Formats A-I (Scarlet/Violet era)
+                return "VGC Format I (Regulation I) - Tera Types Era - Detected from Analysis"
             elif "dynamax" in summary_lower:
-                return "VGC Formats A-I (Dynamax) - Detected from Analysis"
+                # Dynamax is in Formats A-E (Sword/Shield era)
+                return "VGC Format E (Regulation E) - Dynamax Era - Detected from Analysis"
+            elif "z-move" in summary_lower or "z-moves" in summary_lower:
+                # Z-moves are in Formats A-C (Sun/Moon era)
+                return "VGC Format C (Regulation C) - Z-Move Era - Detected from Analysis"
+            elif "mega evolution" in summary_lower or "mega" in summary_lower:
+                # Mega Evolution is in Formats A-B (X/Y era)
+                return "VGC Format B (Regulation B) - Mega Evolution Era - Detected from Analysis"
         
         # Fallback: check parsed data for format information
         if parsed_data.get('vgc_format'):
+            format_info = get_format_info(parsed_data['vgc_format'])
+            if format_info:
+                return f"{format_info['name']} - From Team Data"
             return parsed_data['vgc_format']
         
         return None
@@ -997,29 +1019,47 @@ def display_team_summary(parsed_data, summary=None):
             detected_format = extract_detected_vgc_format(parsed_data, summary)
             if detected_format:
                 format_display = detected_format
-                format_icon = "🤖"
+                format_icon = "🎯"
                 format_color = "#0ea5e9"
+                # Add a success indicator for auto-detection
+                format_details = "<br><span style='font-size: 0.9rem; color: #059669; font-weight: 600;'>✓ Format Successfully Detected from Team Analysis</span>"
             else:
                 format_display = "Auto-detection in progress..."
                 format_icon = "🤖"
                 format_color = "#6b7280"
+                format_details = "<br><span style='font-size: 0.9rem; color: #6b7280; font-style: italic;'>Analyzing team composition and mechanics...</span>"
         elif vgc_format == "custom" and custom_format_name:
             format_display = custom_format_name
             format_icon = "⚙️"
             format_color = "#f59e0b"
+            format_details = "<br><span style='font-size: 0.9rem; color: #d97706; font-style: italic;'>Custom format specified by user</span>"
         else:
             format_info = get_format_info(vgc_format)
             format_display = format_info["name"]
             format_icon = "🏆"
             format_color = "#10b981"
+            format_details = "<br><span style='font-size: 0.9rem; color: #059669; font-style: italic;'>Manually selected format</span>"
+        
+
+        
+        # Add a success banner for successful auto-detection
+        success_banner = ""
+        if vgc_format == "auto" and detected_format:
+            success_banner = f"""
+            <div style="background: linear-gradient(135deg, #10b98120 0%, #05966910 100%); border: 1px solid #10b981; border-radius: 8px; padding: 12px; margin: 0 auto 16px auto; max-width: 1000px; text-align: center;">
+                <span style="color: #059669; font-weight: 600; font-size: 0.9rem;">🎯 VGC Format Successfully Identified!</span>
+            </div>
+            """
         
         st.markdown(f"""
+        {success_banner}
         <div style="background: linear-gradient(135deg, {format_color}20 0%, {format_color}10 100%); border: 2px solid {format_color}; border-radius: 12px; padding: 20px; max-width: 1000px; margin: 0 auto 24px auto; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
             <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px;">
                 <span style="font-size: 1.5rem;">{format_icon}</span>
                 <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: {format_color};">VGC Format Analysis</h3>
             </div>
             <p style="margin: 0; font-size: 1.1rem; color: #374151; font-weight: 500;">{format_display}</p>
+            {format_details}
         </div>
         """, unsafe_allow_html=True)
 
@@ -1193,7 +1233,7 @@ def display_article_summary(parsed_data, summary, url):
         </div>
         """, unsafe_allow_html=True)
         
-        # Helper to render EV section with proper visualization bars
+        # Helper to render EV section with enhanced visualization and readability
         def build_ev_block_html(evs: dict | None, ev_text: str | None = None, ev_explanation: str | None = None) -> str:
             if evs:
                 hp = evs.get('hp', 0)
@@ -1203,27 +1243,83 @@ def display_article_summary(parsed_data, summary, url):
                 spd = evs.get('sp_defense', 0)
                 spe = evs.get('speed', 0)
                 
-                # Create visual EV bars
+                # Create enhanced visual EV bars with better styling
                 ev_stats = [
-                    ('HP', hp, '#ef4444'),
-                    ('Atk', atk, '#f97316'),
-                    ('Def', deff, '#eab308'),
-                    ('SpA', spa, '#22c55e'),
-                    ('SpD', spd, '#06b6d4'),
-                    ('Spe', spe, '#8b5cf6')
+                    ('HP', hp, '#ef4444', '#dc2626'),
+                    ('Atk', atk, '#f97316', '#ea580c'),
+                    ('Def', deff, '#eab308', '#ca8a04'),
+                    ('SpA', spa, '#22c55e', '#16a34a'),
+                    ('SpD', spd, '#06b6d4', '#0891b2'),
+                    ('Spe', spe, '#8b5cf6', '#7c3aed')
                 ]
                 
                 bars_html = ''
-                for label, value, color in ev_stats:
+                for label, value, color, dark_color in ev_stats:
                     percentage = (value / 252) * 100 if value > 0 else 0
-                    bar_div = f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px;"><div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;"><span style="font-weight: 700; color: #475569; font-size: 0.8rem;">{label}</span><span style="font-weight: 700; color: #0f172a; font-size: 0.8rem;">{value}</span></div><div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1;"><div style="height: 100%; background: {color}; width: {percentage}%; border-radius: 3px;"></div></div></div>'
+                    
+                    # Enhanced bar styling with better contrast and readability
+                    bar_div = f'''
+                    <div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); 
+                                border: 2px solid #e2e8f0; 
+                                border-radius: 8px; 
+                                padding: 12px 16px; 
+                                margin-bottom: 8px; 
+                                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-weight: 800; color: #1e293b; font-size: 0.9rem; letter-spacing: 0.025em; text-transform: uppercase;">{label}</span>
+                            <span style="font-weight: 900; color: #0f172a; font-size: 1rem; background: {color}20; padding: 4px 8px; border-radius: 6px; border: 1px solid {color}40;">{value}</span>
+                        </div>
+                        <div style="width: 100%; height: 12px; background: #f1f5f9; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; position: relative;">
+                            <div style="height: 100%; background: linear-gradient(90deg, {color} 0%, {dark_color} 100%); width: {percentage}%; border-radius: 6px; transition: width 0.3s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);"></div>
+                            {f'<div style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; font-weight: 700; color: #64748b; text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);">{percentage:.0f}%</div>' if percentage > 0 else ''}
+                        </div>
+                    </div>'''
                     bars_html += bar_div
                 
-                result = f'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;"><div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div>{bars_html}</div>'
+                # Add EV explanation if available
+                explanation_html = ''
+                if ev_explanation:
+                    explanation_html = f'''
+                    <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
+                                border: 2px solid #0ea5e9; 
+                                border-radius: 8px; 
+                                padding: 12px 16px; 
+                                margin-top: 12px;">
+                        <div style="font-weight: 700; color: #0369a1; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center;">
+                            <span style="margin-right: 6px;">💡</span> EV Strategy
+                        </div>
+                        <div style="font-size: 0.85rem; color: #0c4a6e; line-height: 1.5; font-style: italic;">
+                            {ev_explanation}
+                        </div>
+                    </div>'''
+                
+                result = f'''
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
+                    <div style="font-size: 1rem; color: #1e293b; margin-bottom: 16px; font-weight: 800; display: flex; align-items: center;">
+                        <span style="margin-right: 8px; font-size: 1.2rem;">📊</span> EV Investment Spread
+                    </div>
+                    {bars_html}
+                    {explanation_html}
+                </div>'''
     
                 return result
             elif ev_text:
-                result = f'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;"><div style="font-size:0.9rem;color:#64748b;margin-bottom:8px;"><strong>📊 EV Spread:</strong></div><div style="font-size:0.8rem;color:#64748b;line-height:1.4;">{ev_text}</div></div>'
+                result = f'''
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
+                    <div style="font-size: 1rem; color: #1e293b; margin-bottom: 16px; font-weight: 800; display: flex; align-items: center;">
+                        <span style="margin-right: 8px; font-size: 1.2rem;">📊</span> EV Investment Spread
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); 
+                                border: 2px solid #e2e8f0; 
+                                border-radius: 8px; 
+                                padding: 12px 16px; 
+                                font-size: 0.9rem; 
+                                color: #475569; 
+                                line-height: 1.5; 
+                                font-weight: 500;">
+                        {ev_text}
+                    </div>
+                </div>'''
 
                 return result
 
@@ -1244,17 +1340,40 @@ def display_article_summary(parsed_data, summary, url):
                 
                 ev_spread_html = build_ev_block_html(pokemon_evs, pokemon_ev_spread, pokemon_ev_explanation)
                 
-                # Build the complete HTML for the Pokemon card
+                # Build the complete HTML for the Pokemon card with enhanced styling
                 pokemon_card_html = f"""
-                <div style="background: white; border: 2px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
-                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                        <div style="background: #3b82f6; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; margin-right: 8px;">{i+1}</div>
-                        <h4 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #1e293b;">{pokemon.get('name', 'Unknown')}</h4>
+                <div style="background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%); 
+                            border: 2px solid #e2e8f0; 
+                            border-radius: 12px; 
+                            padding: 20px; 
+                            margin-bottom: 20px; 
+                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+                            transition: all 0.2s ease;">
+                    <div style="display: flex; align-items: center; margin-bottom: 16px;">
+                        <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); 
+                                    color: white; 
+                                    border-radius: 50%; 
+                                    width: 28px; 
+                                    height: 28px; 
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: center; 
+                                    font-weight: 800; 
+                                    font-size: 0.9rem; 
+                                    margin-right: 12px; 
+                                    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">{i+1}</div>
+                        <h4 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #1e293b; letter-spacing: 0.025em;">{pokemon.get('name', 'Unknown')}</h4>
                     </div>
-                    <div style="font-size: 0.9rem; color: #64748b;">
-                        <div><strong>Ability:</strong> {pokemon.get('ability', 'Not specified')}</div>
-                        <div><strong>Item:</strong> {pokemon.get('item', 'Not specified')}</div>
-                        <div><strong>Tera:</strong> {pokemon.get('tera_type', 'Not specified')}</div>
+                    <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); 
+                                border: 1px solid #e2e8f0; 
+                                border-radius: 8px; 
+                                padding: 16px; 
+                                margin-bottom: 16px;">
+                        <div style="font-size: 0.95rem; color: #475569; line-height: 1.6;">
+                            <div style="margin-bottom: 8px;"><span style="font-weight: 700; color: #1e293b;">🎯 Ability:</span> <span style="font-weight: 500;">{pokemon.get('ability', 'Not specified')}</span></div>
+                            <div style="margin-bottom: 8px;"><span style="font-weight: 700; color: #1e293b;">🛡️ Item:</span> <span style="font-weight: 500;">{pokemon.get('item', 'Not specified')}</span></div>
+                            <div><span style="font-weight: 700; color: #1e293b;">✨ Tera:</span> <span style="font-weight: 500;">{pokemon.get('tera_type', 'Not specified')}</span></div>
+                        </div>
                     </div>
                     {ev_spread_html}
                 </div>
