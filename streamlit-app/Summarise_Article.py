@@ -650,7 +650,7 @@ def display_url_input(cache):
             custom_format = st.text_input(
                 "Custom Format Name",
                 value=st.session_state.get("custom_format_name", ""),
-                placeholder="e.g., VGC 2025 Regulation G, Custom Tournament Rules, Regional Format",
+                placeholder="e.g., VGC Format I, Custom Tournament Rules, Regional Format",
                 help="Enter a custom VGC format name for specialized analysis"
             )
             st.session_state["custom_format_name"] = custom_format
@@ -950,9 +950,9 @@ def extract_detected_vgc_format(parsed_data: dict, summary: str) -> str:
             
             # Check for specific mechanics
             if "tera" in summary_lower:
-                return "VGC 2023-2024 (Tera Types) - Detected from Analysis"
+                return "VGC Formats A-I (Tera Types) - Detected from Analysis"
             elif "dynamax" in summary_lower:
-                return "VGC 2019-2022 (Dynamax) - Detected from Analysis"
+                return "VGC Formats A-I (Dynamax) - Detected from Analysis"
         
         # Fallback: check parsed data for format information
         if parsed_data.get('vgc_format'):

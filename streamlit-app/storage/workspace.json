@@ -269,6 +269,54 @@
       "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
       "title": "Teru Fes x Viera Cup Winner",
       "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-13T18:43:35.802484",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-13T18:43:43.096963",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-13T18:43:49.269218",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-13T18:43:55.784353",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-13T18:44:00.629709",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-13T18:44:04.383099",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-13T18:44:06.120815",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-13T18:45:19.899269",
+      "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
+      "title": "Teru Fes x Viera Cup Winner",
+      "summary_id": "2e18488ca9c6"
     }
   ],
   "downloads": [
@@ -571,6 +619,26 @@
       "timestamp": "2025-08-10T12:50:00.380531",
       "summary_id": "2e18488ca9c6",
       "file_type": "csv"
+    },
+    {
+      "timestamp": "2025-08-13T18:43:55.813748",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "txt"
+    },
+    {
+      "timestamp": "2025-08-13T18:43:55.825074",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "json"
+    },
+    {
+      "timestamp": "2025-08-13T18:43:55.834588",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "showdown"
+    },
+    {
+      "timestamp": "2025-08-13T18:43:55.848392",
+      "summary_id": "2e18488ca9c6",
+      "file_type": "csv"
     }
   ],
   "reading_list": [],
@@ -623,8 +691,8 @@
         "Amoonguss",
         "Rillaboom"
       ],
-      "view_count": 6,
-      "last_viewed": "2025-08-10T12:50:00.319477",
+      "view_count": 14,
+      "last_viewed": "2025-08-13T18:45:19.915778",
       "collections": [],
       "tags": [],
       "tournament": ""

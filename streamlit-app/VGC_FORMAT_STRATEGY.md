@@ -29,36 +29,36 @@ This document outlines the comprehensive approach for handling multiple VGC Regu
 ### Format Selection UI
 ```
 🤖 Auto-detect (Recommended)     ← AI automatically identifies format
-🏆 VGC 2025 - Regulation I      ← Current competitive format (Scarlet/Violet)
-🏆 VGC 2024 - Regulation H      ← Previous format (Scarlet/Violet)
-🏆 VGC 2023 - Regulation G      ← Previous format (Scarlet/Violet)
-📚 VGC 2022 - Regulation F      ← Historical format (Sword/Shield)
-📚 VGC 2017 - Regulation A      ← Historical format (Sword/Shield)
+🏆 VGC Format I      ← Current competitive format (Scarlet/Violet)
+🏆 VGC Format H      ← Previous format (Scarlet/Violet)
+🏆 VGC Format G      ← Previous format (Scarlet/Violet)
+📚 VGC Format F      ← Historical format (Scarlet/Violet)
+📚 VGC Format A      ← Historical format (Scarlet/Violet)
 ⚙️ Custom Format                 ← User-defined rules
 ```
 
 ### Format Status System
-- **Active**: Current competitive format (VGC 2025 - Regulation I)
-- **Historical**: Past formats (VGC 2017-2024)
+- **Active**: Current competitive format (VGC Format I)
+- **Historical**: Past formats (VGC Formats A-H)
 - **Custom**: User-defined formats
 
 ## AI Auto-Detection Capabilities
 
 ### Detection Methods
 1. **Mechanic Detection**
-   - Tera Types → VGC 2023-2025+ (Regulations G, H, I)
-   - Dynamax → VGC 2017-2022 (Regulations A-F)
-   - Z-Moves → VGC 2017-2018 (Regulations A-B)
+   - Tera Types → VGC Formats A-I (Scarlet/Violet Era)
+- Dynamax → VGC Formats A-I (Dynamax Era)
+- Z-Moves → VGC Formats A-I (Z-Move Era)
    - Mega Evolution → Not available in Sword/Shield or Scarlet/Violet
 
 2. **Pokemon Availability**
-   - Modern Pokemon (Gen 9) → VGC 2023-2025+ (Regulations G, H, I)
-   - Sword/Shield Pokemon → VGC 2017-2022 (Regulations A-F)
+   - Modern Pokemon (Gen 9) → VGC Formats A-I (Scarlet/Violet Era)
+- Sword/Shield Pokemon → VGC Formats A-I (Sword/Shield Era)
    - Restricted Legendaries → Format-specific availability
 
 3. **Move Legality**
-   - Tera Blast → VGC 2023-2025+ (Regulations G, H, I)
-   - Max Moves → VGC 2017-2022 (Regulations A-F)
+   - Tera Blast → VGC Formats A-I (Scarlet/Violet Era)
+- Max Moves → VGC Formats A-I (Dynamax Era)
    - Signature moves → Format-specific availability
 
 ### Detection Accuracy
@@ -73,16 +73,15 @@ This document outlines the comprehensive approach for handling multiple VGC Regu
 # Easy to add new formats
 from utils.vgc_format_config import add_new_format
 
-vgc2026_data = {
-    "name": "VGC 2026 - Regulation J",
+vgc_j_data = {
+    "name": "VGC Format J",
     "description": "Future VGC format",
     "mechanics": ["Tera Types", "4v4 Doubles", "New Mechanics", "Scarlet/Violet mechanics"],
-    "year": 2026,
     "regulation": "J",
     "status": "predicted"
 }
 
-add_new_format("vgc2026", vgc2026_data)
+add_new_format("vgc_j", vgc_j_data)
 ```
 
 ### 2. **Adaptive Prompt System**
@@ -102,18 +101,17 @@ add_new_format("vgc2026", vgc2026_data)
 ### Step 1: Update Configuration
 ```python
 # In vgc_format_config.py
-def add_2026_format():
-    vgc2026_data = {
-        "name": "VGC 2026 - Regulation J",
+def add_j_format():
+    vgc_j_data = {
+        "name": "VGC Format J",
         "description": "Future VGC format with new mechanics",
         "mechanics": ["Tera Types", "4v4 Doubles", "New Mechanics", "Scarlet/Violet mechanics"],
         "restricted": ["TBD"],
         "key_features": ["Future format", "New Pokemon"],
-        "year": 2026,
         "regulation": "J",
         "status": "predicted"
     }
-    return add_new_format("vgc2026", vgc2026_data)
+    return add_new_format("vgc_j", vgc_j_data)
 ```
 
 ### Step 2: Update Detection Patterns
@@ -121,11 +119,11 @@ def add_2026_format():
 # In vgc_format_utils.py
 detection_patterns = [
     # Add new mechanics
-    (r"new_mechanic", "VGC 2026+ (New Mechanics)"),
+    (r"new_mechanic", "VGC Format J+ (New Mechanics)"),
     # Add new Pokemon
-    (r"new_pokemon", "VGC 2026+ (New Pokemon)"),
+    (r"new_pokemon", "VGC Format J+ (New Pokemon)"),
     # Add new moves
-    (r"new_move", "VGC 2026+ (New Moves)")
+    (r"new_move", "VGC Format J+ (New Moves)")
 ]
 ```
 
@@ -133,11 +131,11 @@ detection_patterns = [
 ```python
 # In vgc_format_utils.py
 def generate_future_proof_prompt(base_prompt, format_key, custom_format_name=None):
-    if format_key == "vgc2026":
+    if format_key == "vgc_j":
         return base_prompt + """
-        **VGC 2026 ANALYSIS:**
+        **VGC Format J ANALYSIS:**
         - Focus on new mechanics and strategies
-        - Consider meta evolution from 2024-2025
+        - Consider meta evolution from Formats A-I
         - Analyze team adaptability to new rules
         """
 ```

@@ -15,68 +15,68 @@ VGC_FORMATS = {
         "restricted_pokemon": "Auto-detected",
         "status": "auto"
     },
-    "vgc2025": {
-        "name": "VGC 2025 - Regulation I",
-        "description": "Pokemon Scarlet and Violet - Latest competitive format with Tera Types",
+    "vgc_a": {
+        "name": "VGC Format A",
+        "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
         "mechanics": "Tera Types, Scarlet/Violet mechanics",
         "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "active"
     },
-    "vgc2024": {
-        "name": "VGC 2024 - Regulation H",
-        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+    "vgc_b": {
+        "name": "VGC Format B",
+        "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
         "mechanics": "Tera Types, Scarlet/Violet mechanics",
         "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
     },
-    "vgc2023": {
-        "name": "VGC 2023 - Regulation G",
-        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+    "vgc_c": {
+        "name": "VGC Format C",
+        "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
         "mechanics": "Tera Types, Scarlet/Violet mechanics",
         "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
     },
-    "vgc2022": {
-        "name": "VGC 2022 - Regulation F",
-        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+    "vgc_d": {
+        "name": "VGC Format D",
+        "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
         "mechanics": "Tera Types, Scarlet/Violet mechanics",
         "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
     },
-    "vgc2021": {
-        "name": "VGC 2021 - Regulation E",
-        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+    "vgc_e": {
+        "name": "VGC Format E",
+        "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
         "mechanics": "Tera Types, Scarlet/Violet mechanics",
         "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
     },
-    "vgc2020": {
-        "name": "VGC 2020 - Regulation D",
-        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+    "vgc_f": {
+        "name": "VGC Format F",
+        "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
         "mechanics": "Tera Types, Scarlet/Violet mechanics",
         "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
     },
-    "vgc2019": {
-        "name": "VGC 2019 - Regulation C",
-        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+    "vgc_g": {
+        "name": "VGC Format G",
+        "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
         "mechanics": "Tera Types, Scarlet/Violet mechanics",
         "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
     },
-    "vgc2018": {
-        "name": "VGC 2018 - Regulation B",
-        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+    "vgc_h": {
+        "name": "VGC Format H",
+        "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
         "mechanics": "Tera Types, Scarlet/Violet mechanics",
         "restricted_pokemon": "Pokemon available in Scarlet/Violet",
         "status": "historical"
     },
-    "vgc2017": {
-        "name": "VGC 2017 - Regulation A",
-        "description": "Pokemon Scarlet and Violet - Previous competitive format with Tera Types",
+    "vgc_i": {
+        "name": "VGC Format I",
+        "description": "Pokemon Scarlet and Violet - Latest competitive format with Tera Types",
         "mechanics": "Tera Types, Scarlet/Violet mechanics",
         "restricted_pokemon": "Pokemon available in Scarlet/Violet",
-        "status": "historical"
+        "status": "active"
     },
     "custom": {
         "name": "Custom Format",
@@ -110,7 +110,7 @@ def get_format_info(format_key: str) -> Dict:
             "regulation": "Auto"
         }
     
-    return VGC_FORMATS.get(format_key, VGC_FORMATS["vgc2024"])
+    return VGC_FORMATS.get(format_key, VGC_FORMATS["vgc_b"])
 
 def generate_format_specific_prompt(base_prompt: str, format_key: str, custom_format_name: str = None) -> str:
     """Generate a format-specific prompt based on the selected VGC format"""
@@ -127,11 +127,11 @@ def generate_format_specific_prompt(base_prompt: str, format_key: str, custom_fo
 - **FORMAT-SPECIFIC ANALYSIS**: Provide detailed analysis for the detected format
 
 **FORMAT DETECTION EXAMPLES:**
-- If you see Tera types mentioned → VGC 2023-2024
-- If you see Dynamax mentioned → VGC 2019-2022  
-- If you see restricted legendaries → Check specific years
-- If you see modern Pokemon (Gen 9) → VGC 2023-2024
-- If you see older Pokemon only → VGC 2019-2022
+- If you see Tera types mentioned → VGC Formats A-I (Tera Types - Scarlet/Violet Era)
+- If you see Dynamax mentioned → VGC Formats A-I (Dynamax Era)
+- If you see restricted legendaries → VGC Formats A-I (Restricted Pokemon Era)
+- If you see modern Pokemon (Gen 9) → VGC Formats A-I (Scarlet/Violet Era)
+- If you see older Pokemon only → VGC Formats A-I (Legacy Era)
 """
         return enhanced_prompt
     
@@ -169,39 +169,39 @@ def detect_format_from_team(team_data: List[Dict], summary_text: str) -> str:
     
     # Enhanced detection patterns
     detection_patterns = [
-            # Tera Types (VGC 2017-2025+ - Regulations A-I, all Scarlet/Violet)
-            (r"tera\s*type", "VGC 2017-2025+ (Tera Types - Regulations A-I, Scarlet/Violet Era)"),
-            (r"tera\s*blast", "VGC 2017-2025+ (Tera Types - Regulations A-I, Scarlet/Violet Era)"),
-            (r"tera\s*form", "VGC 2017-2025+ (Tera Types - Regulations A-I, Scarlet/Violet Era)"),
+            # Tera Types (VGC Formats A-I - Scarlet/Violet Era)
+            (r"tera\s*type", "VGC Formats A-I (Tera Types - Scarlet/Violet Era)"),
+            (r"tera\s*blast", "VGC Formats A-I (Tera Types - Scarlet/Violet Era)"),
+            (r"tera\s*form", "VGC Formats A-I (Tera Types - Scarlet/Violet Era)"),
             
             # Specific Pokemon indicators (all from Scarlet/Violet era)
-            (r"miraidon", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"koraidon", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"iron\s*[a-z]+", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"roaring\s*moon", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"flutter\s*mane", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"chien-pao", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"chi-yu", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"calyrex", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"zacian", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"zamazenta", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"eternatus", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"miraidon", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"koraidon", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"iron\s*[a-z]+", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"roaring\s*moon", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"flutter\s*mane", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"chien-pao", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"chi-yu", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"calyrex", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"zacian", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"zamazenta", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"eternatus", "VGC Formats A-I (Scarlet/Violet Era)"),
             
             # Move availability indicators (all from Scarlet/Violet era)
-            (r"population\s*bomb", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"bitter\s*blade", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"torch\s*song", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"aqua\s*step", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"wave\s*crash", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"glaive\s*rush", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"order\s*up", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"spicy\s*extract", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"triple\s*arrows", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"ceaseless\s*edge", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"bleakwind\s*storm", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"wildbolt\s*storm", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"sandsear\s*storm", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
-            (r"springtide\s*storm", "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"),
+            (r"population\s*bomb", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"bitter\s*blade", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"torch\s*song", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"aqua\s*step", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"wave\s*crash", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"glaive\s*rush", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"order\s*up", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"spicy\s*extract", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"triple\s*arrows", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"ceaseless\s*edge", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"bleakwind\s*storm", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"wildbolt\s*storm", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"sandsear\s*storm", "VGC Formats A-I (Scarlet/Violet Era)"),
+            (r"springtide\s*storm", "VGC Formats A-I (Scarlet/Violet Era)"),
         ]
     
     # Check for pattern matches
@@ -214,20 +214,20 @@ def detect_format_from_team(team_data: List[Dict], summary_text: str) -> str:
     
     team_text = " ".join([str(pokemon) for pokemon in team_data]).lower()
     
-    # All Pokemon are from Scarlet/Violet era (Regulations A-I)
+    # All Pokemon are from Scarlet/Violet era (Formats A-I)
     if any(pokemon in team_text for pokemon in scarlet_violet_pokemon):
-        return "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"
+        return "VGC Formats A-I (Scarlet/Violet Era)"
     
     # Check for specific mechanics in team data
     for pokemon in team_data:
         pokemon_str = str(pokemon).lower()
         
-        # Check for Tera types in Pokemon data (all Regulations A-I)
+        # Check for Tera types in Pokemon data (all Formats A-I)
         if "tera" in pokemon_str:
-            return "VGC 2017-2025+ (Tera Types - Regulations A-I, Scarlet/Violet Era)"
+            return "VGC Formats A-I (Tera Types - Scarlet/Violet Era)"
     
     # Default - all formats are Scarlet/Violet era with Tera mechanics
-    return "VGC 2017-2025+ (Scarlet/Violet Era - Regulations A-I)"
+    return "VGC Formats A-I (Scarlet/Violet Era)"
 
 def get_format_analysis_prompt(format_key: str, custom_format_name: str = None) -> str:
     """Get a prompt specifically for analyzing teams in a given format"""
@@ -284,10 +284,10 @@ def validate_format_compatibility(team_data: List[Dict], format_key: str) -> Tup
     
     # Check for format-specific mechanics
     if "Tera Types" in format_info.get('mechanics', []):
-        # VGC 2023-2024 should have Tera types
+        # VGC Formats A-I should have Tera types
         pass
     elif "Dynamax" in format_info.get('mechanics', []):
-        # VGC 2019-2022 should not have Tera types
+        # VGC Formats A-I should not have Tera types
         pass
     
     return len(issues) == 0, issues
@@ -388,11 +388,11 @@ def generate_future_proof_prompt(base_prompt: str, format_key: str, custom_forma
 - **META POSITIONING**: Consider how the team fits in the current meta for that format
 
         **FORMAT DETECTION EXAMPLES:**
-        - If you see Tera types mentioned → VGC 2017-2025+ (Regulations A-I, all Scarlet/Violet)
-        - If you see Scarlet/Violet Pokemon → VGC 2017-2025+ (Regulations A-I, all Scarlet/Violet)
-        - If you see Miraidon/Koraidon → VGC 2017-2025+ (Regulations A-I, all Scarlet/Violet)
-        - If you see Iron Pokemon → VGC 2017-2025+ (Regulations A-I, all Scarlet/Violet)
-        - If you see Paradox Pokemon → VGC 2017-2025+ (Regulations A-I, all Scarlet/Violet)
+        - If you see Tera types mentioned → VGC Formats A-I (Scarlet/Violet Era)
+- If you see Scarlet/Violet Pokemon → VGC Formats A-I (Scarlet/Violet Era)
+- If you see Miraidon/Koraidon → VGC Formats A-I (Scarlet/Violet Era)
+- If you see Iron Pokemon → VGC Formats A-I (Scarlet/Violet Era)
+- If you see Paradox Pokemon → VGC Formats A-I (Scarlet/Violet Era)
         - If you see restricted legendaries → Check specific regulations within A-I
         - All formats A-I are Scarlet/Violet era with Tera mechanics
 

@@ -1,0 +1,79 @@
+{
+  "auto": {
+    "name": "Auto-Detect Format",
+    "description": "AI automatically detects the VGC format based on team composition and article content",
+    "mechanics": "Auto-detected",
+    "restricted_pokemon": "Auto-detected",
+    "status": "auto"
+  },
+  "vgc_a": {
+    "name": "VGC Format A",
+    "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
+    "mechanics": "Tera Types, Scarlet/Violet mechanics",
+    "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+    "status": "active"
+  },
+  "vgc_b": {
+    "name": "VGC Format B",
+    "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
+    "mechanics": "Tera Types, Scarlet/Violet mechanics",
+    "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+    "status": "historical"
+  },
+  "vgc_c": {
+    "name": "VGC Format C",
+    "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
+    "mechanics": "Tera Types, Scarlet/Violet mechanics",
+    "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+    "status": "historical"
+  },
+  "vgc_d": {
+    "name": "VGC Format D",
+    "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
+    "mechanics": "Tera Types, Scarlet/Violet mechanics",
+    "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+    "status": "historical"
+  },
+  "vgc_e": {
+    "name": "VGC Format E",
+    "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
+    "mechanics": "Tera Types, Scarlet/Violet mechanics",
+    "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+    "status": "historical"
+  },
+  "vgc_f": {
+    "name": "VGC Format F",
+    "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
+    "mechanics": "Tera Types, Scarlet/Violet mechanics",
+    "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+    "status": "historical"
+  },
+  "vgc_g": {
+    "name": "VGC Format G",
+    "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
+    "mechanics": "Tera Types, Scarlet/Violet mechanics",
+    "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+    "status": "historical"
+  },
+  "vgc_h": {
+    "name": "VGC Format H",
+    "description": "Pokemon Scarlet and Violet - Competitive format with Tera Types",
+    "mechanics": "Tera Types, Scarlet/Violet mechanics",
+    "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+    "status": "historical"
+  },
+  "vgc_i": {
+    "name": "VGC Format I",
+    "description": "Pokemon Scarlet and Violet - Latest competitive format with Tera Types",
+    "mechanics": "Tera Types, Scarlet/Violet mechanics",
+    "restricted_pokemon": "Pokemon available in Scarlet/Violet",
+    "status": "active"
+  },
+  "custom": {
+    "name": "Custom Format",
+    "description": "User-defined VGC format with custom rules",
+    "mechanics": "Custom",
+    "restricted_pokemon": "Custom",
+    "status": "custom"
+  }
+}
