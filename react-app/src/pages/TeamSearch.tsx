@@ -302,15 +302,47 @@ const TeamSearch: React.FC<TeamSearchProps> = () => {
                           </div>
                         )}
 
-                        {/* EV Explanation Section */}
+                        {/* EV Explanation Section - Enhanced for better detail display */}
                         {pokemon.evExplanation && pokemon.evExplanation !== 'Not specified' && (
                           <div>
                             <h6 className="text-sm font-bold text-gray-900 dark:text-white mb-2 flex items-center">
-                              🧠 Strategy & EV Explanation
+                              📈 EV Strategy & Explanation
                             </h6>
                             <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-3">
                               <div className="text-blue-900 dark:text-blue-100 font-medium text-xs leading-relaxed">
-                                {pokemon.evExplanation.substring(0, 200)}...
+                                {pokemon.evExplanation.split('\n\n').map((paragraph, idx) => {
+                                  const trimmed = paragraph.trim();
+                                  if (trimmed && trimmed.length > 10) {
+                                    // Check for key benchmark information
+                                    const isBenchmark = /survive|survival|benchmark|outspeed|damage|ohko|2hko/i.test(trimmed);
+                                    // Check for strategic reasoning
+                                    const isStrategic = /strategy|reasoning|consider|decide|choose|because|reason/i.test(trimmed);
+                                    
+                                    if (isBenchmark) {
+                                      return (
+                                        <div key={idx} className="mb-2 p-2 bg-amber-50 dark:bg-amber-900/20 border-l-2 border-amber-400 dark:border-amber-500 rounded-r text-xs">
+                                          <span className="font-semibold text-amber-800 dark:text-amber-200">🎯 </span>
+                                          {trimmed}
+                                        </div>
+                                      );
+                                    } else if (isStrategic) {
+                                      return (
+                                        <div key={idx} className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-400 dark:border-blue-500 rounded-r text-xs">
+                                          <span className="font-semibold text-blue-800 dark:text-blue-200">🧠 </span>
+                                          {trimmed}
+                                        </div>
+                                      );
+                                    } else {
+                                      return (
+                                        <div key={idx} className="mb-1 flex items-start text-xs">
+                                          <span className="text-blue-600 dark:text-blue-300 mr-1 mt-0.5">•</span>
+                                          <span>{trimmed}</span>
+                                        </div>
+                                      );
+                                    }
+                                  }
+                                  return null;
+                                })}
                               </div>
                             </div>
                           </div>

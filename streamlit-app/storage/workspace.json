@@ -395,6 +395,84 @@
       "url": "https://liberty-note.com/2025/07/31/teru-fes-viera-1st/",
       "title": "Teru Fes x Viera Cup Winner",
       "summary_id": "2e18488ca9c6"
+    },
+    {
+      "timestamp": "2025-08-13T19:09:22.250500",
+      "url": "https://liberty-note.com/2024/12/05/sv-double-s24-19th/",
+      "title": "S24 Double Final 19th Place",
+      "summary_id": "85b6d329f721"
+    },
+    {
+      "timestamp": "2025-08-13T19:09:24.398674",
+      "url": "https://liberty-note.com/2024/12/05/sv-double-s24-19th/",
+      "title": "S24 Double Final 19th Place",
+      "summary_id": "85b6d329f721"
+    },
+    {
+      "timestamp": "2025-08-13T19:11:46.643810",
+      "url": "https://liberty-note.com/2024/12/05/sv-double-s24-19th/",
+      "title": "S24 Double Final 19th Place",
+      "summary_id": "85b6d329f721"
+    },
+    {
+      "timestamp": "2025-08-13T19:12:10.987952",
+      "url": "https://liberty-note.com/2024/12/05/sv-double-s24-19th/",
+      "title": "S24 Double Final 19th Place",
+      "summary_id": "85b6d329f721"
+    },
+    {
+      "timestamp": "2025-08-13T19:12:27.894405",
+      "url": "https://liberty-note.com/2024/12/05/sv-double-s24-19th/",
+      "title": "S24 Double Final 19th Place",
+      "summary_id": "85b6d329f721"
+    },
+    {
+      "timestamp": "2025-08-13T19:16:14.394386",
+      "url": "https://liberty-note.com/2024/12/05/sv-double-s24-19th/",
+      "title": "S24 Double Final 19th Place",
+      "summary_id": "85b6d329f721"
+    },
+    {
+      "timestamp": "2025-08-13T19:16:18.873264",
+      "url": "https://liberty-note.com/2024/12/05/sv-double-s24-19th/",
+      "title": "S24 Double Final 19th Place",
+      "summary_id": "85b6d329f721"
+    },
+    {
+      "timestamp": "2025-08-13T19:16:20.759061",
+      "url": "https://liberty-note.com/2024/12/05/sv-double-s24-19th/",
+      "title": "S24 Double Final 19th Place",
+      "summary_id": "85b6d329f721"
+    },
+    {
+      "timestamp": "2025-08-13T19:16:42.451565",
+      "url": "https://note.com/bright_ixora372/n/nd5515195c993",
+      "title": "ポケモンSV ダブルバトルS30　反省会｜海抜",
+      "summary_id": "bc6344baba27"
+    },
+    {
+      "timestamp": "2025-08-13T19:16:45.357181",
+      "url": "https://note.com/bright_ixora372/n/nd5515195c993",
+      "title": "ポケモンSV ダブルバトルS30　反省会｜海抜",
+      "summary_id": "bc6344baba27"
+    },
+    {
+      "timestamp": "2025-08-13T19:19:24.310096",
+      "url": "https://note.com/bright_ixora372/n/nd5515195c993",
+      "title": "ポケモンSV ダブルバトルS30　反省会｜海抜",
+      "summary_id": "bc6344baba27"
+    },
+    {
+      "timestamp": "2025-08-13T19:19:43.285441",
+      "url": "https://note.com/bright_ixora372/n/nd5515195c993",
+      "title": "ポケモンSV ダブルバトルS30　反省会｜海抜",
+      "summary_id": "bc6344baba27"
+    },
+    {
+      "timestamp": "2025-08-13T19:19:59.004995",
+      "url": "https://liberty-note.com/2024/12/05/sv-double-s24-19th/",
+      "title": "S24 Double Final 19th Place",
+      "summary_id": "b0bb099547ba"
     }
   ],
   "downloads": [
@@ -811,6 +889,60 @@
       ],
       "view_count": 27,
       "last_viewed": "2025-08-13T19:08:05.292848",
+      "collections": [],
+      "tags": [],
+      "tournament": ""
+    },
+    "85b6d329f721": {
+      "summary_id": "85b6d329f721",
+      "url": "https://liberty-note.com/2024/12/05/sv-double-s24-19th/",
+      "title": "S24 Double Final 19th Place",
+      "team_names": [
+        "Frosmoth",
+        "Volcarona",
+        "Alolan Ninetales",
+        "Garchomp",
+        "Incineroar",
+        "Rillaboom"
+      ],
+      "view_count": 8,
+      "last_viewed": "2025-08-13T19:16:20.774772",
+      "collections": [],
+      "tags": [],
+      "tournament": ""
+    },
+    "bc6344baba27": {
+      "summary_id": "bc6344baba27",
+      "url": "https://note.com/bright_ixora372/n/nd5515195c993",
+      "title": "ポケモンSV ダブルバトルS30　反省会｜海抜",
+      "team_names": [
+        "Calyrex Ice Rider",
+        "Kyogre",
+        "Urshifu Rapid Strike",
+        "Rillaboom",
+        "Amoonguss",
+        "Iron Jugulis"
+      ],
+      "view_count": 4,
+      "last_viewed": "2025-08-13T19:19:43.295194",
+      "collections": [],
+      "tags": [],
+      "tournament": ""
+    },
+    "b0bb099547ba": {
+      "summary_id": "b0bb099547ba",
+      "url": "https://liberty-note.com/2024/12/05/sv-double-s24-19th/",
+      "title": "S24 Double Final 19th Place",
+      "team_names": [
+        "Frosmoth",
+        "Volcarona",
+        "Alolan Ninetales",
+        "Garchomp",
+        "Incineroar",
+        "Rillaboom"
+      ],
+      "view_count": 1,
+      "last_viewed": "2025-08-13T19:19:59.014516",
       "collections": [],
       "tags": [],
       "tournament": ""

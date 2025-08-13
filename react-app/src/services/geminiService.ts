@@ -1007,12 +1007,16 @@ class GeminiService {
       
       const evs = this.parseEVSpread(evSpread);
       
-      // Extract EV Explanation
+      // Extract EV Explanation - Enhanced to capture comprehensive explanations
       const evExplanationPatterns = [
-        /ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)/i,
-        /ev reasoning[:\s]+([^:\n]+(?:\n[^:\n]+)*)/i,
-        /- ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)/i,
-        /• ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)/i
+        /ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)/i,
+        /ev reasoning[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)/i,
+        /- ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)/i,
+        /• ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)/i,
+        /ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\nPokémon|$)/i,
+        /ev reasoning[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\nPokémon|$)/i,
+        /説明[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)/i,
+        /努力値説明[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)/i
       ];
       let evExplanation = 'Not specified';
       for (const pattern of evExplanationPatterns) {

@@ -322,7 +322,7 @@ def display_pokemon_card_with_summary(pokemon, index):
             
             st.markdown("</div></div>", unsafe_allow_html=True)
         
-        # EV Explanation Section
+        # EV Explanation Section - Enhanced for better detail display
         if pokemon.get('ev_explanation'):
             st.markdown("""
             <div style="
@@ -331,30 +331,77 @@ def display_pokemon_card_with_summary(pokemon, index):
                 padding: 24px;
             ">
                 <h3 style="color: #1e293b; font-size: 1.3rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center;">
-                    📈 EV Explanation
+                    📈 EV Strategy & Explanation
                 </h3>
                 <div style="
                     background: white;
                     border: 1px solid #e2e8f0;
                     border-radius: 8px;
-                    padding: 16px;
+                    padding: 20px;
                     color: #475569;
-                    line-height: 1.6;
+                    line-height: 1.7;
+                    font-size: 0.95rem;
                 ">
             """, unsafe_allow_html=True)
             
             ev_explanation = pokemon.get('ev_explanation', '')
             if ev_explanation:
                 def polish(text: str) -> str:
-                    # Clean up the text
+                    # Clean up the text and preserve formatting
                     text = text.replace('\\n', '\n').replace('\\t', '\t')
-                    text = re.sub(r'\s+', ' ', text)
+                    # Preserve line breaks for better readability
+                    text = re.sub(r'\n\s*\n', '\n\n', text)
+                    text = re.sub(r' +', ' ', text)
                     return text.strip()
                 
                 cleaned_explanation = polish(str(ev_explanation))
-                st.markdown(cleaned_explanation)
+                
+                # Split into paragraphs for better display
+                paragraphs = cleaned_explanation.split('\n\n')
+                
+                for i, paragraph in enumerate(paragraphs):
+                    if paragraph.strip():
+                        # Highlight key information with better formatting
+                        if any(keyword in paragraph.lower() for keyword in ['survive', 'survival', 'benchmark', 'outspeed', 'damage', 'ohko', '2hko']):
+                            st.markdown(f"""
+                            <div style="
+                                background: #fef3c7;
+                                border-left: 4px solid #f59e0b;
+                                padding: 12px 16px;
+                                margin: 8px 0;
+                                border-radius: 4px;
+                            ">
+                                <strong>🎯 Key Benchmark:</strong> {paragraph.strip()}
+                            </div>
+                            """, unsafe_allow_html=True)
+                        elif any(keyword in paragraph.lower() for keyword in ['strategy', 'reasoning', 'consider', 'decide', 'choose']):
+                            st.markdown(f"""
+                            <div style="
+                                background: #dbeafe;
+                                border-left: 4px solid #3b82f6;
+                                padding: 12px 16px;
+                                margin: 8px 0;
+                                border-radius: 4px;
+                            ">
+                                <strong>🧠 Strategic Reasoning:</strong> {paragraph.strip()}
+                            </div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            st.markdown(paragraph.strip())
             else:
-                st.markdown("No EV explanation available.")
+                st.markdown("""
+                <div style="
+                    background: #fef2f2;
+                    border: 1px solid #fecaca;
+                    border-radius: 6px;
+                    padding: 16px;
+                    text-align: center;
+                    color: #dc2626;
+                ">
+                    <strong>⚠️ No EV explanation available</strong><br>
+                    <small>EV explanation should contain detailed reasoning for the EV spread choices</small>
+                </div>
+                """, unsafe_allow_html=True)
             
             st.markdown("</div></div>", unsafe_allow_html=True)
         

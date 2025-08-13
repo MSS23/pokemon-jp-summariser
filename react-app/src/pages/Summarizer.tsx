@@ -788,23 +788,54 @@ const Summarizer = () => {
                                 </div>
                               )}
 
-                              {/* EV Explanation Section */}
+                              {/* EV Explanation Section - Enhanced for better detail display */}
                               {pokemon.evExplanation && pokemon.evExplanation !== 'Not specified' && (
                                 <div>
                                   <h6 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-                                    🧠 Strategy & EV Explanation
+                                    📈 EV Strategy & Explanation
                                   </h6>
                                   <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-5">
-                                    <div className="text-blue-900 dark:text-blue-100 font-medium leading-relaxed whitespace-pre-line">
-                                      {pokemon.evExplanation.split('.').map((sentence, idx) => {
-                                        const trimmed = sentence.trim();
-                                        if (trimmed && trimmed.length > 20) {
-                                          return (
-                                            <div key={idx} className="mb-3 flex items-start">
-                                              <span className="text-blue-600 dark:text-blue-300 mr-2 mt-1">•</span>
-                                              <span>{trimmed}{!trimmed.endsWith('.') ? '.' : ''}</span>
-                                            </div>
-                                          );
+                                    <div className="text-blue-900 dark:text-blue-100 font-medium leading-relaxed">
+                                      {pokemon.evExplanation.split('\n\n').map((paragraph, idx) => {
+                                        const trimmed = paragraph.trim();
+                                        if (trimmed && trimmed.length > 10) {
+                                          // Check for key benchmark information
+                                          const isBenchmark = /survive|survival|benchmark|outspeed|damage|ohko|2hko/i.test(trimmed);
+                                          // Check for strategic reasoning
+                                          const isStrategic = /strategy|reasoning|consider|decide|choose|because|reason/i.test(trimmed);
+                                          
+                                          if (isBenchmark) {
+                                            return (
+                                              <div key={idx} className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 dark:border-amber-500 rounded-r-lg">
+                                                <div className="flex items-start">
+                                                  <span className="text-amber-600 dark:text-amber-400 mr-2 mt-1 text-lg">🎯</span>
+                                                  <div>
+                                                    <span className="font-semibold text-amber-800 dark:text-amber-200">Key Benchmark:</span>
+                                                    <span className="ml-2">{trimmed}</span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            );
+                                          } else if (isStrategic) {
+                                            return (
+                                              <div key={idx} className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 rounded-r-lg">
+                                                <div className="flex items-start">
+                                                  <span className="text-blue-600 dark:text-blue-400 mr-2 mt-1 text-lg">🧠</span>
+                                                  <div>
+                                                    <span className="font-semibold text-blue-800 dark:text-blue-200">Strategic Reasoning:</span>
+                                                    <span className="ml-2">{trimmed}</span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            );
+                                          } else {
+                                            return (
+                                              <div key={idx} className="mb-3 flex items-start">
+                                                <span className="text-blue-600 dark:text-blue-300 mr-2 mt-1">•</span>
+                                                <span>{trimmed}</span>
+                                              </div>
+                                            );
+                                          }
                                         }
                                         return null;
                                       })}

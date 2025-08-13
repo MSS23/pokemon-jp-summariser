@@ -2197,12 +2197,16 @@ def parse_summary(summary, images_data=None, url: str | None = None):
                     pokemon_data['evs'] = evs
                     break
         
-            # Extract EV Explanation
+            # Extract EV Explanation - Enhanced to capture comprehensive explanations
             ev_explanation_patterns = [
-                r'ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)',
-                r'ev reasoning[:\s]+([^:\n]+(?:\n[^:\n]+)*)',
-                r'- ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)',
-                r'• ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*)'
+                r'ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)',
+                r'ev reasoning[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)',
+                r'- ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)',
+                r'• ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)',
+                r'ev explanation[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\nPokémon|$)',
+                r'ev reasoning[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\nPokémon|$)',
+                r'説明[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)',
+                r'努力値説明[:\s]+([^:\n]+(?:\n[^:\n]+)*?)(?=\n\n|\n[A-Z][a-z]+:|$)'
             ]
             for pattern in ev_explanation_patterns:
                 match = re.search(pattern, section_lower)
