@@ -324,28 +324,19 @@ def display_pokemon_card_with_summary(pokemon, index):
         
         # EV Explanation Section - Enhanced for better detail display
         if pokemon.get('ev_explanation'):
-            st.markdown("""
-            <div style="
-                background: #f0f9ff;
-                border-top: 1px solid #e2e8f0;
-                padding: 24px;
-            ">
-                <h3 style="color: #1e293b; font-size: 1.3rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center;">
-                    📈 EV Strategy & Explanation
-                </h3>
-                <div style="
-                    background: white;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 8px;
-                    padding: 20px;
-                    color: #475569;
-                    line-height: 1.7;
-                    font-size: 0.95rem;
-                ">
-            """, unsafe_allow_html=True)
-            
             ev_explanation = pokemon.get('ev_explanation', '')
-            if ev_explanation:
+            if ev_explanation and ev_explanation.strip():
+                st.markdown("""
+                <div style="
+                    background: #f0f9ff;
+                    border-top: 1px solid #e2e8f0;
+                    padding: 24px;
+                ">
+                    <h3 style="color: #1e293b; font-size: 1.3rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center;">
+                        📈 EV Strategy & Explanation
+                    </h3>
+                """, unsafe_allow_html=True)
+                
                 def polish(text: str) -> str:
                     # Clean up the text and preserve formatting
                     text = text.replace('\\n', '\n').replace('\\t', '\t')
@@ -388,22 +379,8 @@ def display_pokemon_card_with_summary(pokemon, index):
                             """, unsafe_allow_html=True)
                         else:
                             st.markdown(paragraph.strip())
-            else:
-                st.markdown("""
-                <div style="
-                    background: #fef2f2;
-                    border: 1px solid #fecaca;
-                    border-radius: 6px;
-                    padding: 16px;
-                    text-align: center;
-                    color: #dc2626;
-                ">
-                    <strong>⚠️ No EV explanation available</strong><br>
-                    <small>EV explanation should contain detailed reasoning for the EV spread choices</small>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            st.markdown("</div></div>", unsafe_allow_html=True)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
         
         # Enhanced Feedback & Corrections Section
         if CORRECTIONS_AVAILABLE:
@@ -583,6 +560,20 @@ def display_pokemon_card_with_summary(pokemon, index):
             
             st.markdown("</div></div>", unsafe_allow_html=True)
         
+        # EV Explanation Section
+        ev_explanation = pokemon.get('ev_explanation')
+        if ev_explanation:
+            st.markdown(f"""
+            <div style="padding: 0 24px 24px 24px;">
+                <div style="background: #f0f9ff; border-top: 1px solid #e2e8f0; padding: 24px; border-radius: 12px;">
+                    <h3 style="color: #1e293b; font-size: 1.3rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center;">📈 EV Strategy & Explanation</h3>
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; color: #475569; line-height: 1.7; font-size: 0.95rem;">
+                        <p style="margin: 0;">{ev_explanation}</p>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
         # Close the main container
         st.markdown("</div>", unsafe_allow_html=True)
 

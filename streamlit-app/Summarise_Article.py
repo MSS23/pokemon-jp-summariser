@@ -78,6 +78,12 @@ st.set_page_config(
 # Custom CSS for modern, professional styling
 st.markdown("""
 <style>
+    body {
+        background-color: #f0f2f6;
+    }
+    .main-container {
+        padding: 0 1rem; /* Remove padding for full-width hero */
+    }
     :root {
         --primary: #1f77b4;
         --secondary: #ff7f0e;
@@ -96,130 +102,55 @@ st.markdown("""
         background: linear-gradient(135deg, #0f2a4a 0%, #1a3a6a 100%);
         color: white !important;
         padding: 4rem 2rem;
-        border-radius: 24px;
         text-align: center;
-        margin: 0 auto 3rem auto;
-        max-width: 1200px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin: 0 -2rem 3rem -2rem; /* Extend to full width */
     }
 
     .hero-title {
-        font-size: 4rem;
+        font-size: 3rem;
         font-weight: 900;
-        margin: 0 0 2rem 0;
+        margin: 0 0 1rem 0;
         color: white !important;
         line-height: 1.1;
-        text-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
-        letter-spacing: -1px;
-        padding: 0 1rem;
-        text-align: center;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
 
     .hero-subtitle {
-        font-size: 1.6rem;
-        margin: 0 auto 4rem auto;
-        max-width: 800px;
-        line-height: 1.6;
-        font-weight: 500;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-        color: white !important;
-    }
-
-    .feature-badges {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 1.5rem;
+        font-size: 1.25rem;
         margin: 0 auto;
-        max-width: 1000px;
-        padding: 0 1rem;
+        max-width: 600px;
+        line-height: 1.6;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.8) !important;
     }
 
-    .feature-badge {
-        background: rgba(255, 255, 255, 0.25);
-        color: white !important;
-        padding: 1rem 1.8rem;
-        border-radius: 32px;
-        font-size: 1.1rem;
-        font-weight: 700;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.8rem;
-        backdrop-filter: blur(8px);
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.2);
-        min-width: 160px;
-        justify-content: center;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    }
-
-    .feature-badge:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.3);
-        background: rgba(255, 255, 255, 0.35);
-    }
-
-    .modern-card {
+    .input-card {
         background: white;
         border-radius: 16px;
-        padding: 32px;
-        margin: 24px 0;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        margin: -8rem auto 2rem auto; /* Overlap with hero */
+        max-width: 700px;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
         border: 1px solid var(--border);
+        position: relative;
+        z-index: 10;
     }
-
-    .status-success {
-        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-        color: #155724;
-        padding: 16px;
-        border-radius: 12px;
-        border: 1px solid #c3e6cb;
-        margin: 16px 0;
-    }
-
-    .status-error {
-        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-        color: #721c24;
-        padding: 16px;
-        border-radius: 12px;
-        border: 1px solid #f5c6cb;
-        margin: 16px 0;
-    }
-
-    .status-info {
-        background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-        color: #0c5460;
-        padding: 16px;
-        border-radius: 12px;
-        border: 1px solid #bee5eb;
-        margin: 16px 0;
-    }
-
+    
     .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1f77b4 0%, #1d4ed8 100%);
         color: white;
         border: none;
-        padding: 12px 24px;
+        padding: 14px 24px;
         border-radius: 12px;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 1rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        min-width: 120px;
+        box-shadow: 0 4px 12px rgba(31, 119, 180, 0.3);
+        transition: all 0.3s ease;
     }
 
     .stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.2);
-    }
-
-    .stButton > button:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 16px rgba(31, 119, 180, 0.3);
     }
 
     .stTextInput > div > div > input {
@@ -239,153 +170,20 @@ st.markdown("""
         outline: none;
     }
 
-    .results-section {
-        margin: 0 auto 48px auto;
-        max-width: 1100px;
-        padding: 0 16px;
-    }
-
-    .pokemon-card {
-        background: white;
-        border-radius: 16px;
-        padding: 24px;
-        margin: 16px 0;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--border);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .pokemon-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.15);
-    }
-
-    .pokemon-header {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white;
-        padding: 20px 24px;
-        border-radius: 12px;
-        margin: -24px -24px 24px -24px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-
-    .pokemon-name {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin: 0;
-    }
-
-    .pokemon-index {
-        background: rgba(255, 255, 255, 0.2);
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
-    .ev-section {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 12px;
-        margin: 16px 0;
-        border: 1px solid #e9ecef;
-    }
-
-    .ev-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 12px;
-        margin-top: 12px;
-    }
-
-    .ev-item {
-        background: white;
-        padding: 12px;
-        border-radius: 8px;
-        text-align: center;
-        border: 1px solid #dee2e6;
-    }
-
-    .ev-value {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: var(--primary);
-        margin-bottom: 4px;
-    }
-
-    .ev-label {
-        font-size: 0.8rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-    }
-
-    .moves-section {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 12px;
-        margin: 16px 0;
-        border: 1px solid #e9ecef;
-    }
-
-    .move-item {
-        background: white;
-        padding: 12px 16px;
-        border-radius: 8px;
-        margin: 8px 0;
-        border: 1px solid #dee2e6;
-        font-weight: 500;
-    }
-
-    .ability-item {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 12px 16px;
-        border-radius: 8px;
-        margin: 8px 0;
-        font-weight: 600;
-    }
-
-    .item-section {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
-        padding: 16px;
-        border-radius: 12px;
-        margin: 16px 0;
-        text-align: center;
-        font-weight: 600;
-    }
-
-    .tera-section {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
-        padding: 16px;
-        border-radius: 12px;
-        margin: 16px 0;
-        text-align: center;
-        font-weight: 600;
-    }
-    mark.term {
-        background: #fde68a;
-        color: #1f2937;
-        padding: 0 2px;
-        border-radius: 2px;
-    }
-
     /* Mobile tweaks */
     @media (max-width: 640px) {
         .hero-title { font-size: 2.2rem; }
         .hero-subtitle { font-size: 1rem; }
-        .feature-badge { padding: 0.6rem 1rem; font-size: 0.95rem; }
-        .modern-card { padding: 20px; }
-        /* Share bar mobile optimization */
-        #share-bar { 
-            flex-wrap: wrap; 
-            gap: 4px !important;
+        .main-container {
+            padding: 0;
         }
-        #share-bar button { 
+        .hero-section {
+            margin: 0 0 2rem 0;
+            border-radius: 0;
+        }
+        .input-card {
+            margin: -4rem auto 2rem auto;
+            border-radius: 16px;
             width: calc(50% - 2px); 
             margin-bottom: 6px; 
             font-size: 0.75rem !important;
@@ -572,36 +370,6 @@ except json.JSONDecodeError:
 # Check Gemini availability
 gemini_available = GEMINI_AVAILABLE and check_gemini_availability() if GEMINI_AVAILABLE else False
 
-def display_hero_section():
-    st.markdown("""
-    <div class="hero-section">
-        <h1 class="hero-title">⚡ Pokemon VGC Team Analyzer</h1>
-        <p class="hero-subtitle">
-            Transform Japanese Pokemon VGC articles into detailed English team analysis with AI-powered insights
-        </p>
-        <div class="feature-badges">
-            <div class="feature-badge">
-                <span style="font-size: 1.3rem; margin-right: 8px;">🎯</span>
-                <span style="font-weight: 700; font-size: 1.1rem;">Team Analysis</span>
-            </div>
-            <div class="feature-badge">
-                <span style="font-size: 1.3rem; margin-right: 8px;">🤖</span>
-                <span style="font-weight: 700; font-size: 1.1rem;">AI Powered</span>
-            </div>
-            <div class="feature-badge">
-                <span style="font-size: 1.3rem; margin-right: 8px;">📊</span>
-                <span style="font-weight: 700; font-size: 1.1rem;">EV Spreads</span>
-            </div>
-            <div class="feature-badge">
-                <span style="font-size: 1.3rem; margin-right: 8px;">🌐</span>
-                <span style="font-weight: 700; font-size: 1.1rem;">Japanese Translation</span>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    show_accessibility_controls()
-    render_dynamic_accessibility_css()
-
 def display_url_input(cache):
     st.markdown("""
     <div class="modern-card">
@@ -661,7 +429,7 @@ def display_url_input(cache):
         
         if selected_format == "auto":
             st.markdown(f"""
-            <div style="background: {status_info['color']}20; border: 2px solid {status_info['color']}; border-radius: 8px; padding: 16px; margin-top: 20px;">
+            <div style="background: {status_info['color']}20; border: 2px solid {status_info['color']}; border-radius: 12px; padding: 16px; margin-top: 20px;">
                 <div style="font-size: 0.9rem; color: {status_info['color']}; margin-bottom: 8px;">
                     <strong>{status_info['icon']} {status_info['status_text']}</strong>
                 </div>
@@ -672,7 +440,7 @@ def display_url_input(cache):
             """, unsafe_allow_html=True)
         elif selected_format == "custom" and st.session_state.get("custom_format_name"):
             st.markdown(f"""
-            <div style="background: {status_info['color']}20; border: 2px solid {status_info['color']}; border-radius: 8px; padding: 16px; margin-top: 20px;">
+            <div style="background: {status_info['color']}20; border: 2px solid {status_info['color']}; border-radius: 12px; padding: 16px; margin-top: 20px;">
                 <div style="font-size: 0.9rem; color: {status_info['color']}; margin-bottom: 8px;">
                     <strong>{status_info['icon']} {status_info['status_text']}</strong>
                 </div>
@@ -685,7 +453,7 @@ def display_url_input(cache):
             format_info = get_format_info(selected_format)
             
             st.markdown(f"""
-            <div style="background: {status_info['color']}20; border: 2px solid {status_info['color']}; border-radius: 8px; padding: 16px; margin-top: 20px;">
+            <div style="background: {status_info['color']}20; border: 2px solid {status_info['color']}; border-radius: 12px; padding: 16px; margin-top: 20px;">
                 <div style="font-size: 0.9rem; color: {status_info['color']}; margin-bottom: 8px;">
                     <strong>{status_info['icon']} {status_info['status_text']}</strong>
                 </div>
@@ -749,7 +517,7 @@ def display_url_input(cache):
 
     return url, valid_url, analyze_button
 
-def display_results(summary, url):
+def display_results(summary, parsed_data, url):
     parsed_data = parse_summary(summary, url=url)
     # Store parsed_data in session state for feedback system
     st.session_state["parsed_data"] = parsed_data
@@ -771,7 +539,7 @@ def display_results(summary, url):
     st.markdown("""
     <div class="results-section" style="margin: 0 auto 48px auto; max-width: 1100px; padding: 0 16px;">
         <div style="background: linear-gradient(135deg, #1a365d 0%, #2a4365 100%); border-radius: 16px; padding: 32px; margin: 0 auto; text-align: center; position: relative; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1); border: 1px solid rgba(255, 255, 255, 0.1);">
-            <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255, 255, 255, 0.05); border-radius: 50%;"></div>
+            <div style="position: absolute; top: -20px; right: -20px; width: 120px; height: 120px; background: rgba(255, 255, 255, 0.08); border-radius: 50%;"></div>
             <div style="position: relative; z-index: 1;">
                 <div style="background: rgba(255, 255, 255, 0.2); width: 64px; height: 64px; border-radius: 18px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px; backdrop-filter: blur(8px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="font-size: 2rem;">🎯</span></div>
                 <h1 style="margin: 0 0 16px 0; color: #ffffff; font-size: 2.5rem; font-weight: 900; letter-spacing: -0.5px; line-height: 1.2; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);">Team Analysis Results</h1>
@@ -780,25 +548,26 @@ def display_results(summary, url):
         </div>
     </div>
     """, unsafe_allow_html=True)
-    # Persistent navigation control (persists across reruns such as downloads)
+    # Modern tab-style navigation
     nav_options = ["Team Summary", "Pokémon Details", "Article Summary", "Side-by-Side"]
     if "active_view" not in st.session_state:
         st.session_state["active_view"] = "Team Summary"
-    view = st.radio(
-        "View",
-        nav_options,
-        horizontal=True,
-        index=nav_options.index(st.session_state.get("active_view", "Team Summary")),
-        key="active_view",
-    )
 
-    if view == "Team Summary":
+    cols = st.columns(len(nav_options))
+    for i, option in enumerate(nav_options):
+        with cols[i]:
+            if st.button(option, key=f"nav_{option}", use_container_width=True):
+                st.session_state["active_view"] = option
+
+    # Display the active view
+    active_view = st.session_state["active_view"]
+    if active_view == "Team Summary":
         display_team_summary(parsed_data, summary)
-    elif view == "Pokémon Details":
-        display_pokemon_details(parsed_data)
-    elif view == "Article Summary":
+    elif active_view == "Pokémon Details":
+        display_pokemon_details(parsed_data, summary, cache)
+    elif active_view == "Article Summary":
         display_article_summary(parsed_data, summary, url)
-    elif view == "Side-by-Side":
+    elif active_view == "Side-by-Side":
         display_side_by_side_translation(parsed_data, summary, url)
 
 
@@ -822,9 +591,7 @@ def show_corrections_summary(parsed_data):
         
         st.markdown("""
         <div style="margin: 24px 0;">
-            <h3 style="color: #1e293b; font-size: 1.4rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center;">
-                🔧 Corrections Made
-            </h3>
+            <h3 style="color: #1e293b; font-size: 1.4rem; font-weight: 700; margin-bottom: 16px;">🔧 Corrections Made</h3>
         </div>
         """, unsafe_allow_html=True)
         
@@ -1003,81 +770,46 @@ def display_team_summary(parsed_data, summary=None):
 
     if resolved_title:
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1e4b8c 0%, #1a3a6a 100%); color: white; padding: 36px 32px; max-width: 1000px; margin: 0 auto 32px auto; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); color: white; padding: 36px 32px; max-width: 1000px; margin: 0 auto 32px auto; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1); border: 1px solid rgba(255, 255, 255, 0.1);">
             <div style="position: absolute; top: -20px; right: -20px; width: 120px; height: 120px; background: rgba(255, 255, 255, 0.08); border-radius: 50%;"></div>
-            <h2 style="margin: 0 0 8px 0; font-size: 2rem; font-weight: 700; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);">📰 {resolved_title}</h2>
-            <p style="margin: 0; font-size: 1.1rem; opacity: 0.9; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);">Analyzed with Google Gemini AI</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Display VGC Format Information
-        vgc_format = st.session_state.get("vgc_format", "auto")
-        custom_format_name = st.session_state.get("custom_format_name", "")
-        
-        if vgc_format == "auto":
-            # Try to extract detected format from the summary
-            detected_format = extract_detected_vgc_format(parsed_data, summary)
-            if detected_format:
-                format_display = detected_format
-                format_icon = "🎯"
-                format_color = "#0ea5e9"
-                # Add a success indicator for auto-detection
-                format_details = "<br><span style='font-size: 0.9rem; color: #059669; font-weight: 600;'>✓ Format Successfully Detected from Team Analysis</span>"
-            else:
-                format_display = "Auto-detection in progress..."
-                format_icon = "🤖"
-                format_color = "#6b7280"
-                format_details = "<br><span style='font-size: 0.9rem; color: #6b7280; font-style: italic;'>Analyzing team composition and mechanics...</span>"
-        elif vgc_format == "custom" and custom_format_name:
-            format_display = custom_format_name
-            format_icon = "⚙️"
-            format_color = "#f59e0b"
-            format_details = "<br><span style='font-size: 0.9rem; color: #d97706; font-style: italic;'>Custom format specified by user</span>"
-        else:
-            format_info = get_format_info(vgc_format)
-            format_display = format_info["name"]
-            format_icon = "🏆"
-            format_color = "#10b981"
-            format_details = "<br><span style='font-size: 0.9rem; color: #059669; font-style: italic;'>Manually selected format</span>"
-        
-
-        
-        # Add a success banner for successful auto-detection
-        success_banner = ""
-        if vgc_format == "auto" and detected_format:
-            success_banner = f"""
-            <div style="background: linear-gradient(135deg, #10b98120 0%, #05966910 100%); border: 1px solid #10b981; border-radius: 8px; padding: 12px; margin: 0 auto 16px auto; max-width: 1000px; text-align: center;">
-                <span style="color: #059669; font-weight: 600; font-size: 0.9rem;">🎯 VGC Format Successfully Identified!</span>
-            </div>
-            """
-        
-        st.markdown(f"""
-        {success_banner}
-        <div style="background: linear-gradient(135deg, {format_color}20 0%, {format_color}10 100%); border: 2px solid {format_color}; border-radius: 12px; padding: 20px; max-width: 1000px; margin: 0 auto 24px auto; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px;">
-                <span style="font-size: 1.5rem;">{format_icon}</span>
-                <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: {format_color};">VGC Format Analysis</h3>
-            </div>
-            <p style="margin: 0; font-size: 1.1rem; color: #374151; font-weight: 500;">{format_display}</p>
-            {format_details}
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Team archetype meta tagging removed per request
-
-    if parsed_data.get('conclusion'):
-        st.markdown(f"""
-        <div style="margin: 0 auto 32px auto; max-width: 1100px; padding: 0 16px;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 32px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;">
-                <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255, 255, 255, 0.1); border-radius: 50%;"></div>
-                <h3 style="margin: 0 0 16px 0; font-size: 1.5rem; font-weight: 700; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);">🎯 Team Strategy Summary</h3>
-                <p style="margin: 0; font-size: 1.1rem; line-height: 1.6; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);">{parsed_data['conclusion']}</p>
+            <div style="position: relative; z-index: 1;">
+                <div style="background: rgba(255, 255, 255, 0.2); width: 64px; height: 64px; border-radius: 18px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px; backdrop-filter: blur(8px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="font-size: 2rem;">🎯</span></div>
+                <h1 style="margin: 0 0 16px 0; color: #ffffff; font-size: 2.5rem; font-weight: 900; letter-spacing: -0.5px; line-height: 1.2; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);">Team Analysis Results</h1>
+                <p style="color: #ffffff; font-size: 1.15rem; margin: 0 auto; max-width: 700px; line-height: 1.6; font-weight: 500; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);">Detailed breakdown of the Pokémon team composition, battle strategies, and recommended movesets</p>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
+    # Modern tab-style navigation
+    nav_options = ["Team Summary", "Pokémon Details", "Article Summary", "Side-by-Side"]
+    if "active_view" not in st.session_state:
+        st.session_state["active_view"] = "Team Summary"
+
+    cols = st.columns(len(nav_options))
+    for i, option in enumerate(nav_options):
+        with cols[i]:
+            if st.button(option, key=f"nav_{option}", use_container_width=True):
+                st.session_state["active_view"] = option
+
+    # Display the active view
+    active_view = st.session_state["active_view"]
+    if active_view == "Team Summary":
+        display_team_summary(parsed_data, summary)
+    elif active_view == "Pokémon Details":
+        display_pokemon_details(parsed_data, summary, cache)
+    elif active_view == "Article Summary":
+        display_article_summary(parsed_data, summary, url)
+    elif active_view == "Side-by-Side":
+        display_side_by_side_translation(parsed_data, summary, url)
 
 
-
+    
+    # Show file size information
+    st.markdown("""
+    <div style="margin-top: 16px; text-align: center; color: #6b7280; font-size: 0.85rem;">
+        💡 <strong>Tip:</strong> JSON and CSV are best for data analysis, Excel for detailed spreadsheets, and PDF for sharing reports
+    </div>
+    """, unsafe_allow_html=True)
 
 def display_pokemon_details(parsed_data):
     if parsed_data.get('pokemon'):
@@ -1100,9 +832,67 @@ def display_pokemon_details(parsed_data):
                     display_pokemon_card_with_summary(pokemon_list[i + 1], i + 2)
                 else:
                     st.markdown("<div style='visibility: hidden; height: 1px;'></div>", unsafe_allow_html=True)
-            
-            st.markdown("<div style='margin: 32px 0;'></div>", unsafe_allow_html=True)
 
+def build_ev_block_html(evs: dict | None, ev_text: str | None = None, ev_explanation: str | None = None) -> str:
+    # Stat order and colors
+    stat_order = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
+    stat_colors = {
+        "HP": ("#ef4444", "#dc2626"), "Atk": ("#f97316", "#ea580c"), "Def": ("#eab308", "#ca8a04"),
+        "SpA": ("#8b5cf6", "#7c3aed"), "SpD": ("#3b82f6", "#2563eb"), "Spe": ("#ec4899", "#db2777")
+    }
+    
+    ev_spread_html = ''
+    if evs:
+        bars_html = ""
+        # Ensure evs is a dictionary
+        evs_dict = evs if isinstance(evs, dict) else {}
+        for stat in stat_order:
+            value = evs_dict.get(stat, 0)
+            try:
+                value = int(value)
+            except (ValueError, TypeError):
+                value = 0
+            
+            percentage = (value / 252) * 100 if value > 0 else 0
+            color_start, color_end = stat_colors.get(stat, ("#6b7280", "#4b5563"))
+
+            bars_html += f'''
+            <div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); 
+                        border: 1px solid #e2e8f0; 
+                        border-radius: 8px; 
+                        padding: 8px 12px; 
+                        margin-bottom: 6px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-weight: 600; color: #374151; font-size: 0.8rem;">{stat}</span>
+                    <span style="font-weight: 700; color: {color_start}; font-size: 0.85rem;">{value}</span>
+                </div>
+                <div style="width: 100%; height: 8px; background: #f1f5f9; border-radius: 8px; overflow: hidden;">
+                    <div style="height: 100%; background: linear-gradient(90deg, {color_start} 0%, {color_end} 100%); width: {percentage}%; border-radius: 6px;"></div>
+                </div>
+            </div>
+            '''
+        ev_spread_html = bars_html
+
+    elif ev_text:
+        # We still escape this since it's user-provided text, not pre-formatted HTML
+        ev_spread_html = f"<p style='margin: 0 0 16px 0; font-family: monospace; background: #f8fafc; padding: 12px; border-radius: 8px;'>{html_escape(ev_text)}</p>"
+
+    explanation_html = ''
+    if ev_explanation:
+        # We also escape the explanation for security
+        explanation_html = f"<p style='margin-top: 12px; font-style: italic; color: #4b5563; font-size: 0.85rem;'>{html_escape(ev_explanation)}</p>"
+
+    if not ev_spread_html and not explanation_html:
+        return ""
+
+    # The main container is now a raw string that includes the unescaped HTML
+    return f'''
+    <div style="background: #f0f9ff; border: 1px solid #e0f2fe; border-radius: 12px; padding: 16px; margin-top: 16px;">
+        <h5 style="font-weight: 700; color: #0c4a6e; margin: 0 0 12px 0; font-size: 0.95rem;">EV Strategy</h5>
+        {ev_spread_html}
+        {explanation_html}
+    </div>
+    '''
 
 def display_article_summary(parsed_data, summary, url):
     st.markdown("""
@@ -1126,7 +916,7 @@ def display_article_summary(parsed_data, summary, url):
             article_block_title = built
 
     st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(30, 64, 175, 0.3);">
+    <div style="background: linear-gradient(135deg, #1e4b8c 0%, #1a3a6a 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(30, 64, 175, 0.3);">
         <h3 style="margin: 0 0 8px 0; font-size: 1.5rem; font-weight: 700;">📰 {article_block_title or 'Pokemon VGC Team Analysis'}</h3>
         <p style="margin: 0; opacity: 0.9; font-size: 0.9rem;">Source: {url}</p>
     </div>
@@ -1232,157 +1022,28 @@ def display_article_summary(parsed_data, summary, url):
             <h3 style="color: var(--text-primary); font-size: 1.3rem; font-weight: 700; margin-bottom: 16px;">⚡ Team Composition</h3>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Helper to render EV section with enhanced visualization and readability
-        def build_ev_block_html(evs: dict | None, ev_text: str | None = None, ev_explanation: str | None = None) -> str:
-            if evs:
-                hp = evs.get('hp', 0)
-                atk = evs.get('attack', 0)
-                deff = evs.get('defense', 0)
-                spa = evs.get('sp_attack', 0)
-                spd = evs.get('sp_defense', 0)
-                spe = evs.get('speed', 0)
-                
-                # Create enhanced visual EV bars with better styling
-                ev_stats = [
-                    ('HP', hp, '#ef4444', '#dc2626'),
-                    ('Atk', atk, '#f97316', '#ea580c'),
-                    ('Def', deff, '#eab308', '#ca8a04'),
-                    ('SpA', spa, '#22c55e', '#16a34a'),
-                    ('SpD', spd, '#06b6d4', '#0891b2'),
-                    ('Spe', spe, '#8b5cf6', '#7c3aed')
-                ]
-                
-                bars_html = ''
-                for label, value, color, dark_color in ev_stats:
-                    percentage = (value / 252) * 100 if value > 0 else 0
+
+        team = parsed_data.get('pokemon', [])
+        if team:
+            team_cols = st.columns(3)
+            for i, pokemon in enumerate(team):
+                col_idx = i % 3
+                with team_cols[col_idx]:
+                    pokemon_evs = pokemon.get('evs')
+                    pokemon_ev_spread = pokemon.get('ev_spread')
+                    pokemon_ev_explanation = pokemon.get('ev_explanation')
+                    ev_spread_html = build_ev_block_html(pokemon_evs, pokemon_ev_spread, pokemon_ev_explanation)
                     
-                    # Enhanced bar styling with better contrast and readability
-                    bar_div = f'''
-                    <div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); 
-                                border: 2px solid #e2e8f0; 
-                                border-radius: 8px; 
-                                padding: 12px 16px; 
-                                margin-bottom: 8px; 
-                                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="font-weight: 800; color: #1e293b; font-size: 0.9rem; letter-spacing: 0.025em; text-transform: uppercase;">{label}</span>
-                            <span style="font-weight: 900; color: #0f172a; font-size: 1rem; background: {color}20; padding: 4px 8px; border-radius: 6px; border: 1px solid {color}40;">{value}</span>
-                        </div>
-                        <div style="width: 100%; height: 12px; background: #f1f5f9; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; position: relative;">
-                            <div style="height: 100%; background: linear-gradient(90deg, {color} 0%, {dark_color} 100%); width: {percentage}%; border-radius: 6px; transition: width 0.3s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);"></div>
-                            {f'<div style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; font-weight: 700; color: #64748b; text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);">{percentage:.0f}%</div>' if percentage > 0 else ''}
-                        </div>
-                    </div>'''
-                    bars_html += bar_div
-                
-                # Add EV explanation if available
-                explanation_html = ''
-                if ev_explanation:
-                    explanation_html = f'''
-                    <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
-                                border: 2px solid #0ea5e9; 
-                                border-radius: 8px; 
-                                padding: 12px 16px; 
-                                margin-top: 12px;">
-                        <div style="font-weight: 700; color: #0369a1; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center;">
-                            <span style="margin-right: 6px;">💡</span> EV Strategy
-                        </div>
-                        <div style="font-size: 0.85rem; color: #0c4a6e; line-height: 1.5; font-style: italic;">
-                            {ev_explanation}
-                        </div>
-                    </div>'''
-                
-                result = f'''
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
-                    <div style="font-size: 1rem; color: #1e293b; margin-bottom: 16px; font-weight: 800; display: flex; align-items: center;">
-                        <span style="margin-right: 8px; font-size: 1.2rem;">📊</span> EV Investment Spread
+                    # Simplified card display
+                    st.markdown(f"""
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; height: 100%;">
+                        <h4 style="font-weight: 700; color: #1e293b; margin-bottom: 12px;">{pokemon.get('name', 'Unknown')}</h4>
+                        <p style="font-size: 0.9rem; color: #4b5563;"><strong>Item:</strong> {pokemon.get('item', 'N/A')}</p>
+                        <p style="font-size: 0.9rem; color: #4b5563;"><strong>Ability:</strong> {pokemon.get('ability', 'N/A')}</p>
+                        <p style="font-size: 0.9rem; color: #4b5563;"><strong>Tera:</strong> {pokemon.get('tera_type', 'N/A')}</p>
+                        {ev_spread_html}
                     </div>
-                    {bars_html}
-                    {explanation_html}
-                </div>'''
-    
-                return result
-            elif ev_text:
-                result = f'''
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
-                    <div style="font-size: 1rem; color: #1e293b; margin-bottom: 16px; font-weight: 800; display: flex; align-items: center;">
-                        <span style="margin-right: 8px; font-size: 1.2rem;">📊</span> EV Investment Spread
-                    </div>
-                    <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); 
-                                border: 2px solid #e2e8f0; 
-                                border-radius: 8px; 
-                                padding: 12px 16px; 
-                                font-size: 0.9rem; 
-                                color: #475569; 
-                                line-height: 1.5; 
-                                font-weight: 500;">
-                        {ev_text}
-                    </div>
-                </div>'''
-
-                return result
-
-            return ''
-
-        # Display team members in a grid
-        team_cols = st.columns(3)
-        for i, pokemon in enumerate(parsed_data['pokemon']):
-            col_idx = i % 3
-            with team_cols[col_idx]:
-                # Prepare EV spread display
-                pokemon_evs = pokemon.get('evs')
-                pokemon_ev_spread = pokemon.get('ev_spread')
-                pokemon_ev_explanation = pokemon.get('ev_explanation')
-                
-                # Debug: Print what we're getting
-        
-                
-                ev_spread_html = build_ev_block_html(pokemon_evs, pokemon_ev_spread, pokemon_ev_explanation)
-                
-                # Build the complete HTML for the Pokemon card with enhanced styling
-                pokemon_card_html = f"""
-                <div style="background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%); 
-                            border: 2px solid #e2e8f0; 
-                            border-radius: 12px; 
-                            padding: 20px; 
-                            margin-bottom: 20px; 
-                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
-                            transition: all 0.2s ease;">
-                    <div style="display: flex; align-items: center; margin-bottom: 16px;">
-                        <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); 
-                                    color: white; 
-                                    border-radius: 50%; 
-                                    width: 28px; 
-                                    height: 28px; 
-                                    display: flex; 
-                                    align-items: center; 
-                                    justify-content: center; 
-                                    font-weight: 800; 
-                                    font-size: 0.9rem; 
-                                    margin-right: 12px; 
-                                    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">{i+1}</div>
-                        <h4 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #1e293b; letter-spacing: 0.025em;">{pokemon.get('name', 'Unknown')}</h4>
-                    </div>
-                    <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); 
-                                border: 1px solid #e2e8f0; 
-                                border-radius: 8px; 
-                                padding: 16px; 
-                                margin-bottom: 16px;">
-                        <div style="font-size: 0.95rem; color: #475569; line-height: 1.6;">
-                            <div style="margin-bottom: 8px;"><span style="font-weight: 700; color: #1e293b;">🎯 Ability:</span> <span style="font-weight: 500;">{pokemon.get('ability', 'Not specified')}</span></div>
-                            <div style="margin-bottom: 8px;"><span style="font-weight: 700; color: #1e293b;">🛡️ Item:</span> <span style="font-weight: 500;">{pokemon.get('item', 'Not specified')}</span></div>
-                            <div><span style="font-weight: 700; color: #1e293b;">✨ Tera:</span> <span style="font-weight: 500;">{pokemon.get('tera_type', 'Not specified')}</span></div>
-                        </div>
-                    </div>
-                    {ev_spread_html}
-                </div>
-                """
-                
-                # Debug: Print the final HTML
-        
-                
-                st.markdown(pokemon_card_html, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
 
     # Extract and display strengths and weaknesses
     strengths, weaknesses = extract_strengths_weaknesses(summary)
@@ -1710,6 +1371,53 @@ def highlight_text_html(text: str, terms: list) -> str:
     # Convert newlines to <br>
     return safe.replace("\n", "<br>")
 
+def build_structured_summary_html(parsed_data: dict) -> str:
+    # Helper to safely escape HTML content
+    def h(text):
+        return html.escape(str(text)) if text is not None else ''
+
+    # Title and VGC format
+    title = h(parsed_data.get('title', ''))
+    vgc_format = h(parsed_data.get('vgc_format', ''))
+    html_content = f"""
+    <div style="padding: 8px; font-family: sans-serif; color: var(--text-color);">
+        <p style="font-size: 0.9rem; color: #64748b; margin:0;"><strong>VGC FORMAT:</strong> {vgc_format}</p>
+        <h4 style="font-size: 1.2rem; font-weight: 700; margin-top: 4px;">{title}</h4>
+        <div style="border-bottom: 1px solid var(--border-color); margin: 12px 0;"></div>
+    """
+
+    # Pokémon details
+    pokemon_list = parsed_data.get('pokemon', [])
+    for i, p in enumerate(pokemon_list):
+        moves = p.get('moves', [])
+        moves_html = "".join([f"<li style='margin-bottom: 4px;'>{h(move)}</li>" for move in moves if move])
+        
+        html_content += f"""
+        <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+            <h5 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">
+                Pokémon {i+1}: {h(p.get('name', ''))}
+            </h5>
+            <ul style="list-style: none; padding-left: 0; font-size: 0.9rem; color: #4b5563;">
+                <li style="margin-bottom: 4px;"><strong>Ability:</strong> {h(p.get('ability', 'N/A'))}</li>
+                <li style="margin-bottom: 4px;"><strong>Item:</strong> {h(p.get('item', 'N/A'))}</li>
+                <li style="margin-bottom: 4px;"><strong>Tera Type:</strong> {h(p.get('tera_type', 'N/A'))}</li>
+                <li style="margin-bottom: 4px;"><strong>Nature:</strong> {h(p.get('nature', 'N/A'))}</li>
+            </ul>
+            <div style="margin-top: 10px;">
+                <h6 style="font-weight: 600; margin-bottom: 6px;">Moves:</h6>
+                <ul style="list-style-type: disc; padding-left: 20px; font-size: 0.9rem;">{moves_html}</ul>
+            </div>
+            <div style="margin-top: 10px;">
+                <h6 style="font-weight: 600; margin-bottom: 6px;">EV Spread:</h6>
+                <p style="font-family: monospace; background: var(--secondary-bg); padding: 8px; border-radius: 6px; font-size: 0.85rem;">{h(p.get('ev_spread', 'N/A'))}</p>
+                <p style="font-style: italic; font-size: 0.85rem; color: #64748b; margin-top: 6px;">{h(p.get('ev_explanation', ''))}</p>
+            </div>
+        </div>
+        """
+
+    html_content += "</div>"
+    return html_content
+
 def display_side_by_side_translation(parsed_data: dict, english_summary: str, url: str):
     st.markdown("""
     <style>
@@ -1781,7 +1489,8 @@ def display_side_by_side_translation(parsed_data: dict, english_summary: str, ur
         st.markdown(f"<div class='side-by-side-panel'>{left_html}</div>", unsafe_allow_html=True)
     with right:
         st.markdown("<div style='font-weight:700; color:var(--text-color, #334155); margin-bottom:8px;'>🇬🇧 English (AI Summary)</div>", unsafe_allow_html=True)
-        right_html = highlight_text_html(english_summary or "", terms)
+        structured_summary_html = build_structured_summary_html(parsed_data)
+        right_html = highlight_text_html(structured_summary_html, terms)
         st.markdown(f"<div class='side-by-side-panel'>{right_html}</div>", unsafe_allow_html=True)
 
     # Word mapping helper: select an English term and show likely Japanese variants
@@ -1843,7 +1552,7 @@ Ability: {pokemon.get('ability', 'Not specified')}
 Held Item: {pokemon.get('item', 'Not specified')}
 Tera Type: {pokemon.get('tera_type', 'Not specified')}
 Nature: {pokemon.get('nature', 'Not specified')}
-Moves: {' / '.join(pokemon.get('moves', [])) if pokemon.get('moves') else 'Not specified'}
+Moves: {' / '.join(pokemon.get('moves', []) or []) if pokemon.get('moves') else 'Not specified'}
 EV Spread: {pokemon.get('evs', {}).get('hp', 0)} {pokemon.get('evs', {}).get('attack', 0)} {pokemon.get('evs', {}).get('defense', 0)} {pokemon.get('evs', {}).get('sp_attack', 0)} {pokemon.get('evs', {}).get('sp_defense', 0)} {pokemon.get('evs', {}).get('speed', 0)} (HP/Atk/Def/SpA/SpD/Spe)
 EV Explanation: {pokemon.get('ev_explanation', 'Not specified')}
 
@@ -2016,6 +1725,7 @@ def parse_summary(summary, images_data=None, url: str | None = None):
                 match = re.search(pattern, section_lower)
                 if match:
                     ability_text = match.group(1).strip()
+
                     # Clean up common ability names and remove extra text
                     ability_text = re.sub(r'\s*-\s*(?:held item|item|nature|tera|moves|ev spread|ev explanation).*', '', ability_text)
                     pokemon_data['ability'] = strip_html_tags(ability_text.title())
@@ -2420,166 +2130,128 @@ def detect_pokemon_roles(pokemon: dict, full_summary: str) -> list:
     order = ['Speed Control','Support','Physical Sweeper','Special Sweeper','Tank / Utility']
     return [r for r in order if r in roles]
 
-def run_analysis(url, cache):
-    st.session_state["summarising"] = True
-    
-    st.markdown("""
-    <div class="modern-card">
-        <h3 style="margin: 0 0 16px 0; color: var(--text-primary); font-size: 1.3rem; font-weight: 600;">
-            🔄 Processing Article
-        </h3>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Use error recovery system if available
-    if ERROR_RECOVERY_AVAILABLE:
-        progress_bar, status_text, error_container = create_progress_with_error_handling()
-    else:
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        error_container = st.container()
-    
-    try:
-        def perform_analysis():
-            """Inner function to perform the actual analysis with retry capability"""
-            try:
-                if url in cache:
-                    status_text.text("📋 Loading from cache...")
-                    progress_bar.progress(100)
-                    summary = cache[url]["summary"]
-                    pokemon_names = cache[url]["pokemon"]
-                    st.markdown("""
-                    <div class="status-success">
-                        <strong>✅ Loaded from Cache</strong><br>
-                        Instant results from previously analyzed article
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    status_text.text("🌐 Fetching article content...")
-                    progress_bar.progress(25)
-                    time.sleep(0.5)
-                    
-                    status_text.text("🤖 Analyzing with Google Gemini AI...")
-                    progress_bar.progress(50)
-                    time.sleep(0.5)
-                    
-                    # Use retry decorator if available
-                    if ERROR_RECOVERY_AVAILABLE:
-                        summary = retry_api_call(llm_summary_gemini)(
-                            url, 
-                            st.session_state.get("vgc_format", "auto"),
-                            st.session_state.get("custom_format_name", None)
-                        )
-                    else:
-                        summary = llm_summary_gemini(
-                            url, 
-                            st.session_state.get("vgc_format", "auto"),
-                            st.session_state.get("custom_format_name", None)
-                        )
-                    
-                    if not isinstance(summary, str):
-                        summary = str(summary)
-                    
-                    # Strip HTML tags from the LLM response
-                    summary = strip_html_tags(summary)
+def run_analysis(url, vgc_format):
+    """Run new analysis and update session state."""
+    summary, parsed_data = analyse_article(url, vgc_format)
+    if summary and parsed_data:
+        st.session_state['summary'] = summary
+        st.session_state['parsed_data'] = parsed_data
+        st.session_state['url_to_analyse'] = url
+        st.session_state['analysis_triggered'] = False # Reset trigger
+        st.rerun()
 
-                    if not summary or summary.strip() == "":
-                        st.markdown("""
-                        <div class="status-error">
-                            <strong>❌ Analysis Failed</strong><br>
-                            Generated summary is empty. Please check the URL and try again.
-                        </div>
-                        """, unsafe_allow_html=True)
-                        progress_bar.empty()
-                        status_text.empty()
-                        st.session_state["summarising"] = False
-                        st.stop()
+def analyse_article(url, vgc_format):
+    if not url:
+        st.warning("Please enter a URL.")
+        return None, None
 
-                    status_text.text("📊 Extracting Pokemon data...")
-                    progress_bar.progress(75)
-                    time.sleep(0.5)
-                    
-                    pokemon_names = extract_pokemon_names(summary)
+    cache = load_cache()
+    if url in cache:
+        st.toast("Previously cached summary used.")
+        cached_entry = cache[url]
+        # Ensure parsed_data exists from cache
+        if "parsed_data" not in cached_entry:
+            cached_entry["parsed_data"] = parse_summary(cached_entry["summary"])
+        return cached_entry.get("summary"), cached_entry.get("parsed_data")
 
-                    status_text.text("💾 Saving to cache...")
-                    progress_bar.progress(90)
-                    time.sleep(0.5)
+    with st.spinner("Fetching and analyzing article..."):
+        try:
+            # This function should call the LLM and then parse the summary
+            summary_text, _ = get_gemini_summary(url, vgc_format)
+            
+            if not summary_text or summary_text.strip() == "":
+                st.error("Analysis failed: Generated summary is empty.")
+                return None, None
 
-                    cache[url] = {
-                        "summary": summary,
-                        "pokemon": pokemon_names
-                    }
+            # Parse the summary to get structured data
+            parsed_data = parse_summary(summary_text, url=url)
 
-                    with open(CACHE_PATH, "w") as f:
-                        json.dump(cache, f)
+            # Cache both the raw summary and the parsed data
+            cache[url] = {
+                "summary": summary_text,
+                "parsed_data": parsed_data,
+                "timestamp": datetime.now().isoformat()
+            }
+            save_cache(cache)
+            st.success("Analysis complete!")
+            return summary_text, parsed_data
 
-                    progress_bar.progress(100)
-                    status_text.text("✅ Analysis Complete!")
-                    time.sleep(0.5)
-                    
-                    progress_bar.empty()
-                    status_text.empty()
-                    st.markdown("""
-                    <div class="status-success">
-                        <strong>🎉 Analysis Complete!</strong><br>
-                        Powered by Google Gemini AI
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                st.session_state["current_summary"] = summary
-                st.session_state["current_url"] = url
-                
-                progress_bar.empty()
-                status_text.empty()
-                
-                display_results(summary, url)
-                
-            except Exception as e:
-                if ERROR_RECOVERY_AVAILABLE:
-                    error_info = handle_api_error(e, "Article Analysis")
-                    with error_container:
-                        display_error_with_recovery(error_info, perform_analysis)
-                else:
-                    st.markdown(f"""
-                    <div class="status-error">
-                        <strong>❌ Analysis Error</strong><br>
-                        {str(e)}
-                    </div>
-                    """, unsafe_allow_html=True)
-        
-        # Start the analysis
-        perform_analysis()
-        
-    finally:
-        progress_bar.empty()
-        status_text.empty()
-        st.session_state["summarising"] = False
+        except Exception as e:
+            st.error(f"An error occurred during analysis: {e}")
+            st.exception(e)
+            return None, None
 
 
 
 # Main application
 def main():
-    display_hero_section()
+    try:
+        st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
-    if not gemini_available:
+        # Redesigned Hero Section
         st.markdown("""
-        <div class="status-error">
-            <strong>❌ Gemini API Not Available</strong><br>
-            Please check your API key configuration in <code>.streamlit/secrets.toml</code>
+        <div class="hero-section">
+            <h1 class="hero-title">Pokémon VGC Team Analyzer</h1>
+            <p class="hero-subtitle">Transform Japanese Pokémon VGC articles into detailed English team analysis with AI-powered insights.</p>
         </div>
         """, unsafe_allow_html=True)
-        st.stop()
 
-    url, valid_url, analyze_button = display_url_input(cache)
+        # Consolidated Input Card
+        with st.container():
+            st.markdown('<div class="input-card">', unsafe_allow_html=True)
 
-    if analyze_button and valid_url:
-        run_analysis(url, cache)
-    else:
-        # Persist previously analyzed results across reruns (e.g., after downloads)
-        prev_summary = st.session_state.get("current_summary")
-        prev_url = st.session_state.get("current_url")
-        if prev_summary:
-            display_results(prev_summary, prev_url)
+            if not GEMINI_AVAILABLE:
+                st.markdown("""
+                <div class="status-error">
+                    <strong>❌ Gemini API Not Available</strong><br>
+                    Please check your API key configuration in <code>.streamlit/secrets.toml</code>
+                </div>
+                """, unsafe_allow_html=True)
+                st.stop()
+
+            url = st.text_input(
+                "Enter the URL of the VGC team report article",
+                placeholder="e.g., https://victoryroadvgc.com/2023-worlds-teams/",
+                key="url_input",
+                label_visibility="collapsed"
+            )
+
+            cols = st.columns([3, 1])
+            with cols[0]:
+                available_formats = get_available_formats()
+                selected_format = st.selectbox(
+                    "VGC Format",
+                    options=["Auto-detect"] + available_formats,
+                    index=0,
+                    help="Selecting a format can improve accuracy if auto-detection fails.",
+                    label_visibility="collapsed"
+                )
+            
+            with cols[1]:
+                analyze_button = st.button("Analyze Article", use_container_width=True)
+
+            if analyze_button:
+                if url:
+                    st.session_state['analysis_triggered'] = True
+                    st.session_state['url_to_analyse'] = url
+                    st.session_state['selected_format'] = selected_format
+                else:
+                    st.warning("Please enter a URL to analyse.")
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # Analysis and Results Display Logic (remains the same)
+        if st.session_state.get('analysis_triggered', False):
+            url_to_analyse = st.session_state.get('url_to_analyse', '')
+            format_to_analyse = st.session_state.get('selected_format', 'Auto-detect')
+            if url_to_analyse:
+                run_analysis(url_to_analyse, format_to_analyse)
+
+        if 'summary' in st.session_state and 'parsed_data' in st.session_state:
+            display_results(st.session_state['summary'], st.session_state['parsed_data'], st.session_state.get('url_to_analyse', ''))
+
+    finally:
+        st.markdown('</div>', unsafe_allow_html=True) # Close main-container
 
 if __name__ == "__main__":
     main() 
