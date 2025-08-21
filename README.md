@@ -1,76 +1,147 @@
-# Pokemon Translation Web App
+# Pokemon VGC Article Analyzer 🎮⚔️
 
-A modern web application for translating and analyzing Japanese Pokemon VGC articles using AI. Built with React and Streamlit.
+A powerful Streamlit application for analyzing Japanese Pokemon VGC (Video Game Championships) articles with AI-powered translation, team showcase, and export functionality.
 
-## 🚀 Quick Start
+## Features ✨
 
-### React App (Frontend)
+- 🔍 **Japanese Article Analysis**: Scrape and analyze VGC articles from URLs or text input
+- 🤖 **AI-Powered Translation**: Google Gemini AI provides accurate translations with VGC terminology
+- 🌟 **Beautiful Team Showcase**: Pokemon sprites, detailed stats, and professional layouts
+- 📊 **EV Strategy Analysis**: Comprehensive explanations of EV spreads and strategic decisions
+- 📥 **Export Functionality**: Download translations (.txt) and pokepaste files
+- 📱 **Responsive Design**: Works seamlessly on desktop and mobile
+
+## Quick Start 🚀
+
+### 1. Installation
+
 ```bash
-cd react-app
-npm install
-npm run dev
-```
-Visit: http://localhost:5173
-
-### Streamlit App (Alternative Interface)
-```bash
-cd streamlit-app
+# Install dependencies
 pip install -r requirements.txt
-streamlit run Summarise_Article.py
-```
-Visit: http://localhost:8501
-
-## 📁 Project Structure
-
-```
-Pokemon Translation Web App/
-├── react-app/          # React frontend with Gemini integration
-├── streamlit-app/      # Streamlit alternative interface
-├── shared/            # Shared utilities and constants
-└── scripts/           # Utility scripts
 ```
 
-## 🎯 Features
+### 2. Configuration
 
-- **Japanese to English Translation**: Powered by Google Gemini AI
-- **Pokemon Team Analysis**: Extract and analyze team compositions
-- **Modern UI**: Clean, responsive React interface
-- **Alternative Interface**: Streamlit app for different use cases
-- **Real-time Processing**: Fast translation and analysis
+Set your Google Gemini API key in `.streamlit/secrets.toml`:
 
-## 🔧 Setup
-
-### Prerequisites
-- Node.js 18+ (for React app)
-- Python 3.8+ (for Streamlit app)
-- Google Gemini API key
-
-### Environment Variables
-Create `.env` file in `react-app/`:
-```env
-VITE_GOOGLE_API_KEY=your_google_api_key_here
+```toml
+google_api_key = "your_api_key_here"
 ```
 
-## 🎨 Technologies Used
+### 3. Run the Application
 
-- **Frontend**: React, TypeScript, Tailwind CSS
-- **AI**: Google Gemini 2.0 Flash
-- **Alternative**: Streamlit
-- **Styling**: Tailwind CSS, Framer Motion
+```bash
+streamlit run app.py
+```
 
-## 📝 Usage
+The application will open in your browser at `http://localhost:8501`
 
-1. **Start the React app**: `npm run dev` in `react-app/`
-2. **Enter a Japanese Pokemon VGC article URL**
-3. **Get instant translation and team analysis**
+## How to Use 📖
 
-## 🤝 Contributing
+### Analyzing an Article
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+1. **Enter URL**: Paste a Japanese VGC article URL in the sidebar
+2. **Or Paste Text**: Manually paste article content in the text area
+3. **Click Analyze**: Hit the "🔍 Analyze Article" button
+4. **View Results**: See the translated content and team showcase
 
-## 📄 License
+### Understanding the Results
 
-This project is licensed under the MIT License.
+- **Article Summary**: Main points and strategy overview
+- **Team Analysis**: Strengths, weaknesses, and meta relevance
+- **Pokemon Showcase**: Individual cards with sprites, stats, and moves
+- **EV Explanations**: Detailed reasoning for stat investments
+
+### Exporting Data
+
+- **📄 Translation**: Download complete article translation as .txt file
+- **🎮 Pokepaste**: Export team in standard pokepaste format for easy importing
+
+## Features in Detail 🔧
+
+### AI-Powered Analysis
+- Uses Google Gemini 2.0 Flash with specialized VGC prompts
+- Accurate translation of Pokemon names, moves, and abilities
+- EV spread validation and explanation
+- Team composition and meta analysis
+
+### Pokemon Showcase
+- Automatic sprite fetching from PokeAPI
+- Hover effects and professional styling
+- Detailed move sets and item information
+- Expandable EV strategy explanations
+
+### Export Capabilities
+- **Translation Files**: Complete article translations with formatting
+- **Pokepaste Format**: Standard format compatible with Pokemon Showdown and other tools
+
+## Supported Content 📚
+
+- Japanese VGC tournament reports
+- Team building articles and guides
+- Pokemon competitive analysis posts
+- Strategy discussions and meta reports
+
+## Technical Details ⚙️
+
+### Dependencies
+- Streamlit 1.28+
+- Google Generative AI 0.3+
+- Requests, BeautifulSoup4, PIL
+- PokeAPI integration for sprites
+
+### Architecture
+- Single-file application for simplicity
+- Modular function design
+- Error handling and fallbacks
+- Responsive CSS styling
+
+## Troubleshooting 🔧
+
+### Common Issues
+
+**API Key Problems**
+- Ensure your Google API key is correctly set in `.streamlit/secrets.toml`
+- Verify Gemini API access and quota limits
+
+**Pokemon Sprites Not Loading**
+- Check internet connection to PokeAPI
+- Application provides fallbacks for missing sprites
+
+**Article Scraping Issues**
+- Some sites may block automated requests
+- Try the manual text input option instead
+
+### Getting Help
+
+If you encounter issues:
+1. Check the console for error messages
+2. Verify all dependencies are installed
+3. Ensure your API key has proper permissions
+
+## Example Workflow 💡
+
+1. **Find a Japanese VGC article** from sites like Pokestats, notes, or tournament reports
+2. **Copy the URL** and paste it into the application sidebar
+3. **Click "Analyze Article"** and wait for processing (typically 10-30 seconds)
+4. **Review the results**: translated content, team breakdown, and EV explanations
+5. **Download files**: save translation and pokepaste for future reference
+6. **Share or study**: use the exported data for team building or research
+
+## Contributing 🤝
+
+This is a single-file application designed for simplicity and ease of use. Contributions and improvements are welcome!
+
+### Areas for Enhancement
+- Additional language support
+- More export formats
+- Enhanced UI components
+- Integration with other Pokemon databases
+
+## License 📄
+
+This project is for educational and research purposes. Pokemon is a trademark of Nintendo/Game Freak/Creatures Inc.
+
+---
+
+Enjoy analyzing VGC teams! 🎉
