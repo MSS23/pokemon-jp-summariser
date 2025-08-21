@@ -15,4 +15,4 @@ secondaryBackgroundColor = "#ffffff"
 textColor = "#000000"
 
 [client]
-showErrorDetails = false
+showErrorDetails = true

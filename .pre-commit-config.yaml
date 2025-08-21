@@ -1,0 +1,120 @@
+repos:
+  # Python code quality
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: check-docstring-first
+
+  # Python formatting with black
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+        language_version: python3
+        files: ^(streamlit-app|shared)/.*\.py$
+
+  # Python import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        files: ^(streamlit-app|shared)/.*\.py$
+        args: ["--profile", "black", "--multi-line", "3"]
+
+  # Python linting with flake8
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
+    hooks:
+      - id: flake8
+        files: ^(streamlit-app|shared)/.*\.py$
+        args: [
+          "--max-line-length=88",
+          "--extend-ignore=E203,W503,F401",
+          "--exclude=__pycache__,*.pyc,.env"
+        ]
+
+  # Python security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        files: ^(streamlit-app|shared)/.*\.py$
+        args: ["-r", "--skip", "B101,B601"]
+
+  # TypeScript/JavaScript linting
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.44.0
+    hooks:
+      - id: eslint
+        files: ^react-app/.*\.(ts|tsx|js|jsx)$
+        additional_dependencies:
+          - '@typescript-eslint/eslint-plugin@6.14.0'
+          - '@typescript-eslint/parser@6.14.0'
+          - 'eslint-plugin-react-hooks@4.6.0'
+          - 'eslint-plugin-react-refresh@0.4.5'
+
+  # Prettier for TypeScript/JavaScript formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.0
+    hooks:
+      - id: prettier
+        files: ^react-app/.*\.(ts|tsx|js|jsx|json|css|md)$
+        additional_dependencies:
+          - 'prettier@3.1.1'
+          - 'prettier-plugin-tailwindcss@0.5.9'
+
+  # Security scanning for secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: |
+          (?x)^(
+            .*\.lock$|
+            .*package-lock\.json$|
+            .*\.secrets\.baseline$|
+            .*\.example$
+          )$
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.35.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix']
+        exclude: |
+          (?x)^(
+            node_modules/.*|
+            \.git/.*
+          )$
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.32.0
+    hooks:
+      - id: yamllint
+        args: ['-d', 'relaxed']
+
+# Configuration
+default_language_version:
+  python: python3
+  node: 20.10.0
+
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

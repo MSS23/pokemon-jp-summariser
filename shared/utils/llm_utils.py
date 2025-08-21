@@ -102,7 +102,7 @@ def parse_gemini_response(text: str) -> Dict[str, Any]:
                 },
                 "bst": 600,
                 "remainingEvs": 508,
-                "strategy": ev_explanation_match.group(1).strip() if ev_explanation_match else "Not specified"
+                "strategy": ""  # Will be set after validation
             }
 
             # Parse EV spread if available
@@ -121,6 +121,13 @@ def parse_gemini_response(text: str) -> Dict[str, Any]:
                                 team["stats"]["defense"]["evs"] + team["stats"]["spAtk"]["evs"] + 
                                 team["stats"]["spDef"]["evs"] + team["stats"]["speed"]["evs"])
                     team["remainingEvs"] = 508 - total_evs
+
+            # Validate and set EV explanation with fallback
+            raw_explanation = ev_explanation_match.group(1).strip() if ev_explanation_match else "Not specified"
+            if validate_ev_explanation(raw_explanation):
+                team["strategy"] = raw_explanation
+            else:
+                team["strategy"] = get_fallback_ev_explanation()
 
             teams.append(team)
 
@@ -165,6 +172,84 @@ def validate_ev_spread(ev_values: List[int]) -> bool:
         return False
     
     return True
+
+def validate_ev_explanation(explanation: str) -> bool:
+    """
+    Validate if EV explanation contains meaningful insights
+    
+    Args:
+        explanation (str): EV explanation text
+    
+    Returns:
+        bool: True if explanation contains meaningful insights
+    """
+    if not explanation or explanation.strip() in ["Not specified", "Not specified in the article", ""]:
+        return False
+    
+    # Check for meaningful indicators
+    meaningful_indicators = [
+        # Specific percentages and survival rates
+        r'\d+(?:\.\d+)?%',  # Matches percentages like "93.6%" or "87%"
+        # Speed benchmarks and numerical targets
+        r'(?:outspeeds?|faster than|slower than|reaches?|survives?)\s+\w+',
+        # Damage calculations
+        r'(?:OHKO|2HKO|KO|damage|survives?)\s+\w+',
+        # Specific stat numbers
+        r'\b(?:1\d\d|2\d\d)\s+(?:speed|attack|defense|hp)\b',
+        # EV reasoning keywords
+        r'(?:bulk|offensive|defensive|speed control|priority|benchmark)',
+        # Team synergy indicators
+        r'(?:supports?|enables?|synergy|team|meta)',
+        # Item interactions
+        r'(?:with\s+\w+\s+(?:band|vest|sash|berry))',
+        # Nature considerations
+        r'(?:modest|timid|adamant|jolly|bold|impish)\s+nature',
+    ]
+    
+    explanation_lower = explanation.lower()
+    
+    # Count meaningful indicators found
+    meaningful_count = sum(1 for pattern in meaningful_indicators 
+                         if re.search(pattern, explanation_lower, re.IGNORECASE))
+    
+    # Check for generic/useless phrases that indicate poor explanation
+    generic_phrases = [
+        "standard spread",
+        "common distribution",
+        "typical setup",
+        "balanced stats",
+        "general purpose",
+        "default configuration",
+        "basic allocation",
+        "no specific reason",
+        "arbitrary distribution"
+    ]
+    
+    has_generic = any(phrase in explanation_lower for phrase in generic_phrases)
+    
+    # Consider meaningful if:
+    # - Has at least 2 meaningful indicators AND no generic phrases, OR
+    # - Has at least 3 meaningful indicators (even with some generic phrases), OR
+    # - Explanation is reasonably long (>100 chars) with at least 1 meaningful indicator
+    if (meaningful_count >= 2 and not has_generic) or \
+       (meaningful_count >= 3) or \
+       (len(explanation) > 100 and meaningful_count >= 1):
+        return True
+    
+    return False
+
+def get_fallback_ev_explanation() -> str:
+    """
+    Get fallback message for when meaningful EV insights cannot be generated
+    
+    Returns:
+        str: Fallback explanation message
+    """
+    return ("I am unable to generate a meaningful insight about this Pokémon's EV spread "
+            "based on the available information. The article may not contain sufficient "
+            "detail about the strategic reasoning behind the EV distribution, or the "
+            "explanation may require more context about specific matchups and calculations "
+            "that aren't clearly provided in the source material.")
 
 def clean_article_text(text: str) -> str:
     """

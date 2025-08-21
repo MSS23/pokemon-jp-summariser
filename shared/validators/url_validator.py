@@ -17,7 +17,43 @@ SUPPORTED_DOMAINS = [
     "pokemondb.net",
     "pokemoncentral.it",
     "pokemon.com.br",
-    "pokemon.co.kr"
+    "pokemon.co.kr",
+    "hatenablog.jp",
+    "hatenablog.com",
+    "liberty-note.com",
+    "yunu.hatenablog.jp",
+    "pokemonshowdown.com",
+    "victory-road.com",
+    "trainer-hill.com"
+]
+
+# Blocked domains for security
+BLOCKED_DOMAINS = [
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "10.0.0.0/8",
+    "172.16.0.0/12", 
+    "192.168.0.0/16",
+    "169.254.0.0/16",
+    "::1",
+    "file://",
+    "ftp://",
+    "data:"
+]
+
+# Suspicious patterns to detect
+SUSPICIOUS_PATTERNS = [
+    r'javascript:',
+    r'data:',
+    r'vbscript:',
+    r'file:',
+    r'ftp:',
+    r'blob:',
+    r'<script',
+    r'onclick',
+    r'onload',
+    r'onerror'
 ]
 
 # URL patterns for different article types
@@ -30,6 +66,57 @@ URL_PATTERNS = {
     "smogon.com": r"https?://www\.smogon\.com/.*",
     "pokemondb.net": r"https?://pokemondb\.net/.*"
 }
+
+def has_suspicious_patterns(url: str) -> bool:
+    """
+    Check if URL contains suspicious patterns that could indicate an attack.
+    
+    Args:
+        url (str): URL to check
+        
+    Returns:
+        bool: True if suspicious patterns found
+    """
+    if not url:
+        return False
+    
+    url_lower = url.lower()
+    return any(re.search(pattern, url_lower, re.IGNORECASE) for pattern in SUSPICIOUS_PATTERNS)
+
+def is_blocked_domain(url: str) -> bool:
+    """
+    Check if URL points to a blocked domain.
+    
+    Args:
+        url (str): URL to check
+        
+    Returns:
+        bool: True if domain is blocked
+    """
+    if not url:
+        return True
+    
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        
+        if not hostname:
+            return True
+        
+        hostname = hostname.lower()
+        
+        # Check against blocked list
+        for blocked in BLOCKED_DOMAINS:
+            if blocked in hostname:
+                return True
+        
+        # Check for IP addresses (basic check)
+        if re.match(r'^\d+\.\d+\.\d+\.\d+$', hostname):
+            return True  # Block direct IP access for security
+        
+        return False
+    except Exception:
+        return True
 
 def is_valid_url(url: str) -> bool:
     """
@@ -47,8 +134,16 @@ def is_valid_url(url: str) -> bool:
     # Remove whitespace
     url = url.strip()
     
+    # Check for suspicious patterns
+    if has_suspicious_patterns(url):
+        return False
+    
     # Check if URL starts with http or https
     if not url.startswith(('http://', 'https://')):
+        return False
+    
+    # Check for blocked domains
+    if is_blocked_domain(url):
         return False
     
     try:

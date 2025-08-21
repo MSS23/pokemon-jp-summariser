@@ -5,13 +5,18 @@ Shows helpful tips and guidance for first-time users
 
 import streamlit as st
 
+
 def show_onboarding_guide():
     """
     Display an onboarding guide for new users
     """
     if st.session_state.get("show_onboarding", True):
-        with st.expander("🚀 **New User Guide** - Click to learn how to use this app!", expanded=False):
-            st.markdown("""
+        with st.expander(
+            "🚀 **New User Guide** - Click to learn how to use this app!",
+            expanded=False,
+        ):
+            st.markdown(
+                """
             ### Welcome to Pokémon VGC Summariser! 🎉
             
             This app helps you translate and analyze Japanese Pokémon VGC articles using Google Gemini AI.
@@ -50,47 +55,58 @@ def show_onboarding_guide():
             ---
             
             **Ready to start?** Paste a Japanese Pokémon article URL above! 🎮
-            """)
-            
+            """
+            )
+
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
-                if st.button("✅ Got it! Don't show this again", use_container_width=True):
+                if st.button(
+                    "✅ Got it! Don't show this again", use_container_width=True
+                ):
                     st.session_state["show_onboarding"] = False
                     st.rerun()
+
 
 def show_quick_tips():
     """
     Show quick tips in a sidebar or info box
     """
-    st.info("""
+    st.info(
+        """
     💡 **Quick Tips:**
     - Press `Ctrl+Enter` to summarize
     - Use `Ctrl+K` to focus URL input
     - Check cache stats above for insights
     - Visit Search page to find specific Pokémon
-    """)
+    """
+    )
+
 
 def show_feature_highlight(feature_name: str, description: str, icon: str = "✨"):
     """
     Highlight a new or important feature
-    
+
     Args:
         feature_name (str): Name of the feature
         description (str): Description of the feature
         icon (str): Icon to display
     """
-    st.success(f"""
+    st.success(
+        f"""
     {icon} **New Feature: {feature_name}**
     
     {description}
-    """)
+    """
+    )
+
 
 def show_keyboard_shortcuts():
     """
     Display available keyboard shortcuts
     """
     with st.expander("⌨️ Keyboard Shortcuts", expanded=False):
-        st.markdown("""
+        st.markdown(
+            """
         | Shortcut | Action |
         |----------|--------|
         | `Ctrl + Enter` | Start summarization |
@@ -98,14 +114,17 @@ def show_keyboard_shortcuts():
         | `Escape` | Clear current input |
         | `Tab` | Navigate between elements |
         | `Space` | Activate buttons |
-        """)
+        """
+        )
+
 
 def show_supported_sources():
     """
     Display information about supported article sources
     """
     with st.expander("📚 Supported Article Sources", expanded=False):
-        st.markdown("""
+        st.markdown(
+            """
         ### ✅ **Supported Sources:**
         - Japanese Pokémon blogs and websites
         - VGC team reports and analyses
@@ -124,4 +143,5 @@ def show_supported_sources():
         - Image-heavy pages without text
         - Login-required content
         - Non-Pokémon related articles
-        """)
+        """
+        )

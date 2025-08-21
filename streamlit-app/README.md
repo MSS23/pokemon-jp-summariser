@@ -41,6 +41,8 @@ streamlit-app/
 
 ## 🔧 Setup
 
+**📖 [Complete Setup Guide](SETUP.md) - Start here for detailed instructions!**
+
 ### Prerequisites
 - Python 3.8+
 - Google Gemini API key (optional - can use Ollama for local processing)
@@ -51,10 +53,32 @@ pip install -r requirements.txt
 ```
 
 ### Configuration
-Create `.streamlit/secrets.toml`:
+
+#### Google Gemini API Key Setup
+
+1. **Get your API key:**
+   - Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - Sign in with your Google account
+   - Click "Create API Key" to generate a new key
+   - Copy the generated key (it should start with "AI" and be about 39 characters long)
+
+2. **Configure the app:**
+   - Edit `.streamlit/secrets.toml`
+   - Replace `"your_gemini_api_key_here"` with your actual API key
+   - Save the file
+
+**Example `secrets.toml`:**
 ```toml
-google_api_key = "your_gemini_api_key_here"
+google_api_key = "AIzaSyC..."  # Your actual API key here
 ```
+
+**Important:** Never commit your actual API key to version control. The `secrets.toml` file is already in `.gitignore`.
+
+#### Alternative: Use Ollama (Local Processing)
+
+If you don't want to use Google Gemini, you can use Ollama for local AI processing:
+- Install Ollama from [ollama.ai](https://ollama.ai)
+- The app will automatically detect and use Ollama if Gemini is not available
 
 ## 🎯 Features
 

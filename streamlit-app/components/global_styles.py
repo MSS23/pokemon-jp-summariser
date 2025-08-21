@@ -1,8 +1,10 @@
 import streamlit as st
 
+
 def inject_global_styles():
     """Inject professional, modern CSS styles for the entire application"""
-    st.markdown("""
+    st.markdown(
+        """
     <style>
     /* === MINIMAL DESIGN SYSTEM (ACCESSIBLE) === */
     :root {
@@ -325,4 +327,6 @@ def inject_global_styles():
         });
     });
     </script>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
