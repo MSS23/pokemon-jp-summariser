@@ -13,7 +13,10 @@
       "Bash(pip install black flake8 mypy)",
       "Bash(black:*)",
       "Bash(C:/Python313/python.exe -m black:*)",
-      "Bash(C:/Python313/python.exe -m flake8:*)"
+      "Bash(C:/Python313/python.exe -m flake8:*)",
+      "Bash(timeout:*)",
+      "Bash(pip install:*)",
+      "WebFetch(domain:note.com)"
     ],
     "defaultMode": "acceptEdits"
   }
