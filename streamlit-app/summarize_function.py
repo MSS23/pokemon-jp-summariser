@@ -1,7 +1,10 @@
+import json
 import os
 import sys
-import json
-from typing import Dict, Any
+from typing import Any, Dict
+
+from utils.logger import get_api_logger
+
 
 def summarize_article(url: str) -> Dict[str, Any]:
     """
@@ -11,10 +14,10 @@ def summarize_article(url: str) -> Dict[str, Any]:
     try:
         # Import the Gemini summary function
         from gemini_summary import llm_summary_gemini
-        
+
         # Call the Gemini summary function
         result = llm_summary_gemini(url)
-        
+
         # Process and return the result in the expected format
         return {
             "title": result.get("title", "Translated Article"),
@@ -23,17 +26,19 @@ def summarize_article(url: str) -> Dict[str, Any]:
             "original_text": result.get("original_text", ""),
             "translated_text": result.get("translated_text", ""),
             "confidence": result.get("confidence", 95),
-            "processing_time": result.get("processing_time", 0)
+            "processing_time": result.get("processing_time", 0),
         }
-        
+
     except Exception as e:
-        print(f"Error in summarize_article: {str(e)}")
+        logger = get_api_logger()
+        logger.error(f"Error in summarize_article: {str(e)}")
         return {
             "error": str(e),
             "title": "Error",
             "summary": f"An error occurred while processing the article: {str(e)}",
-            "teams": []
+            "teams": [],
         }
+
 
 # For testing
 if __name__ == "__main__":

@@ -1,7 +1,6 @@
 # This file now contains only the prompt template and restricted Pokémon list
 # All LLM functionality has been moved to separate modules:
 # - gemini_summary.py: Google Gemini integration
-# - ollama_summary.py: Ollama local integration
 # - shared_utils.py: Common utilities
 
 prompt_template = """
@@ -88,13 +87,22 @@ You must output in this EXACT format:
 **CONCLUSION:**
 [Team summary and strategy]
 
+**TEAM STRENGTHS:**
+[List the specific team strengths mentioned by the author. Use this exact format:]
+- [Strength 1 mentioned by author]
+- [Strength 2 mentioned by author]
+- [Strength 3 mentioned by author]
+
+**TEAM WEAKNESSES:**
+[List the specific team weaknesses mentioned by the author. Use this exact format:]
+- [Weakness 1 mentioned by author]
+- [Weakness 2 mentioned by author]
+- [Weakness 3 mentioned by author]
+
 **FINAL ARTICLE SUMMARY:**
 [Provide a comprehensive summary of the entire article including:
 - Overall team strategy and concept
 - Key Pokemon roles and synergies
-- **TEAM STRENGTHS**: Extract and list specific strengths mentioned by the author
-- **TEAM WEAKNESSES**: Extract and list specific weaknesses mentioned by the author
-- **AUTHOR'S ASSESSMENT**: Only include strengths/weaknesses that the author explicitly mentioned
 - Meta positioning and tournament viability
 - Any unique strategies or innovations mentioned
 - Author's recommendations and insights
@@ -104,9 +112,14 @@ You must output in this EXACT format:
 - EV spread reasoning and benchmarks
 - Item and ability choices explanation
 - Move selection rationale
-- Team building process and changes made
+- Team building process and changes made]
 
-**IMPORTANT**: For strengths and weaknesses, ONLY include what the author specifically stated in the article. Do not add your own analysis or speculation.]
+**CRITICAL REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:**
+- ALWAYS include the "TEAM STRENGTHS:" and "TEAM WEAKNESSES:" sections even if the author doesn't explicitly mention them
+- If the author doesn't mention specific strengths or weaknesses, analyze the team composition and provide 2-3 strengths and 2-3 weaknesses based on the Pokemon, items, and moves shown
+- Use bullet points with dashes (-) for each strength and weakness
+- Keep each point concise but specific (1-2 sentences maximum)
+- Focus on competitive aspects like type coverage, speed control, defensive synergy, etc.
 
 **IMPORTANT RULES:**
 1. **ACCURATE POKEMON IDENTIFICATION**: Look carefully at the image and identify Pokémon correctly
@@ -316,7 +329,7 @@ Pecharunt
 """
 
 
-# Note: fetch_article_text_and_images and wrap_prompt_and_image_urls functions 
+# Note: fetch_article_text_and_images and wrap_prompt_and_image_urls functions
 # have been moved to shared_utils.py and gemini_summary.py respectively
 
 
@@ -328,7 +341,94 @@ def llm_summary(url):
     """
     try:
         from .gemini_summary import llm_summary_gemini
+
         return llm_summary_gemini(url)
     except ImportError:
-        raise Exception("Gemini module not available. Please use llm_summary_gemini() or llm_summary_ollama() directly.")
+        raise Exception(
+            "Gemini module not available. Please use llm_summary_gemini() directly."
+        )
 
+
+def fallback_basic_parsing(article_text: str) -> str:
+    """
+    Basic fallback parsing when AI API is not available or quota exceeded
+    Extracts Pokemon names and basic information using regex patterns
+
+    Args:
+        article_text: Raw article text to parse
+
+    Returns:
+        str: Basic parsed summary with Pokemon information
+    """
+    import re
+
+    # Basic Pokemon name patterns (Japanese and English)
+    pokemon_patterns = [
+        r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)",  # English names like "Charizard"
+        r"([ァ-ヶー]+)",  # Japanese katakana
+        r"([一-龯]+)",  # Japanese kanji
+    ]
+
+    # Find potential Pokemon names
+    pokemon_names = set()
+    for pattern in pokemon_patterns:
+        matches = re.findall(pattern, article_text)
+        for match in matches:
+            # Filter out common non-Pokemon words
+            if len(match) > 2 and match not in [
+                "The",
+                "And",
+                "For",
+                "With",
+                "From",
+                "This",
+                "That",
+            ]:
+                pokemon_names.add(match)
+
+    # Look for common Pokemon-related patterns
+    ev_pattern = r"(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)"
+    ev_matches = re.findall(ev_pattern, article_text)
+
+    # Look for move patterns
+    move_pattern = r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)"
+    move_matches = re.findall(move_pattern, article_text)
+
+    # Create basic summary
+    summary_parts = [
+        "**BASIC PARSING RESULTS (AI API Unavailable)**",
+        "",
+        "**Pokemon Detected:**",
+    ]
+
+    if pokemon_names:
+        for i, name in enumerate(list(pokemon_names)[:10], 1):  # Limit to 10
+            summary_parts.append(f"{i}. {name}")
+    else:
+        summary_parts.append("No Pokemon names detected")
+
+    summary_parts.extend(
+        [
+            "",
+            "**EV Spreads Found:**",
+        ]
+    )
+
+    if ev_matches:
+        for i, evs in enumerate(ev_matches[:6], 1):  # Limit to 6
+            summary_parts.append(f"Pokemon {i}: {' '.join(evs)}")
+    else:
+        summary_parts.append("No EV spreads detected")
+
+    summary_parts.extend(
+        [
+            "",
+            "**Note:** This is a basic analysis without AI translation.",
+            "For full analysis, please wait for your limit to reset or upgrade your plan.",
+            "",
+            "**Original Text Preview:**",
+            article_text[:500] + "..." if len(article_text) > 500 else article_text,
+        ]
+    )
+
+    return "\n".join(summary_parts)

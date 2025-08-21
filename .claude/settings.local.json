@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(python:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(pip show:*)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(streamlit run:*)",
+      "Bash(git rm:*)",
+      "Bash(pip install black flake8 mypy)",
+      "Bash(black:*)",
+      "Bash(C:/Python313/python.exe -m black:*)",
+      "Bash(C:/Python313/python.exe -m flake8:*)"
+    ],
+    "defaultMode": "acceptEdits"
+  }
+}
