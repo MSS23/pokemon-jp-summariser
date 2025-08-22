@@ -1268,7 +1268,11 @@ def get_pokemon_sprite_url(pokemon_name: str) -> str:
             "roaring-moon": "roaring-moon",
             "iron-valiant": "iron-valiant",
             "walking-wake": "walking-wake",
+            "raging-bolt": "raging-bolt",
+            "gouging-fire": "gouging-fire",
             "iron-leaves": "iron-leaves",
+            "iron-boulder": "iron-boulder",
+            "iron-crown": "iron-crown",
             
             # Legendary Pokemon
             "koraidon": "koraidon",
@@ -1738,15 +1742,40 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 - いかりのまえば → "Super Fang"
 - ねこだまし → "Fake Out"
 
-**PARADOX POKEMON IDENTIFICATION (Critical Distinctions):**
-- Iron Crown (テツノカンムリ): Steel/Psychic, learns Psychic/Electric moves
-- Iron Jugulis (テツノツツミ): Dark/Flying, learns Dark/Flying moves  
-- Iron Bundle (テツノツツミ): Ice/Water, learns Ice/Water moves
-- Iron Valiant (テツノブジン): Fairy/Fighting, learns Fighting/Psychic moves
-- Iron Hands (テツノカイナ): Fighting/Electric, learns Fighting/Electric moves
-- Iron Moth (テツノドクガ): Fire/Poison, learns Fire/Poison moves
-- Iron Thorns (テツノイワ): Rock/Electric, learns Rock/Electric moves
-- Iron Treads (テツノワダチ): Ground/Steel, learns Ground/Steel moves
+**ANCIENT PARADOX POKEMON IDENTIFICATION (CRITICAL - DLC Forms):**
+- タケルライコ/Raging Bolt: Electric/Dragon, Protosynthesis ability, based on Raikou
+- ウネルミナモ/Walking Wake: Water/Dragon, Protosynthesis ability, based on Suicune  
+- グエンストーン/Gouging Fire: Fire/Fighting, Protosynthesis ability, based on Entei
+- アラブルタケ/Great Tusk: Ground/Fighting, Protosynthesis ability, based on Donphan
+- トドロクツキ/Roaring Moon: Dragon/Dark, Protosynthesis ability, based on Salamence
+- ハバタクカミ/Flutter Mane: Ghost/Fairy, Protosynthesis ability, based on Misdreavus
+- ウルガモス/Slither Wing: Bug/Fighting, Protosynthesis ability, based on Volcarona
+- スナノケガワ/Sandy Shocks: Electric/Ground, Protosynthesis ability, based on Magneton
+- アラマロス/Brute Bonnet: Grass/Dark, Protosynthesis ability, based on Amoonguss
+- サケブシッポ/Scream Tail: Fairy/Psychic, Protosynthesis ability, based on Jigglypuff
+
+**FUTURE PARADOX POKEMON IDENTIFICATION (Iron Series):**
+- テツノカンムリ/Iron Crown: Steel/Psychic, Quark Drive ability, based on Cobalion
+- テツノイワオ/Iron Boulder: Rock/Psychic, Quark Drive ability, based on Terrakion  
+- テツノリーフ/Iron Leaves: Grass/Psychic, Quark Drive ability, based on Virizion
+- テツノツツミ/Iron Bundle: Ice/Water, Quark Drive ability, based on Delibird
+- テツノブジン/Iron Valiant: Fairy/Fighting, Quark Drive ability, based on Gardevoir/Gallade
+- テツノカイナ/Iron Hands: Fighting/Electric, Quark Drive ability, based on Hariyama
+- テツノドクガ/Iron Moth: Fire/Poison, Quark Drive ability, based on Volcarona
+- テツノイワ/Iron Thorns: Rock/Electric, Quark Drive ability, based on Tyranitar
+- テツノワダチ/Iron Treads: Ground/Steel, Quark Drive ability, based on Donphan
+- テツノコウベ/Iron Jugulis: Dark/Flying, Quark Drive ability, based on Hydreigon
+
+**CRITICAL WARNING - DLC PARADOX POKEMON CONFUSION:**
+⚠️ NEVER confuse these similar Pokemon:
+- タケルライコ = "Raging Bolt" (Electric/Dragon) ≠ ウネルミナモ "Walking Wake" (Water/Dragon)
+- Both are Ancient forms but different types and based on different legendary beasts
+- Raging Bolt has Electric moves (10まんボルト/Thunderbolt, じんらい/Thunder)
+- Walking Wake has Water moves (ハイドロポンプ/Hydro Pump, しおまき/Flip Turn)
+
+**ABILITY TRANSLATIONS (Critical for Paradox Pokemon):**
+- こだいかっせい/古代活性 → "Protosynthesis" (Ancient Paradox ability)
+- クォークチャージ → "Quark Drive" (Future Paradox ability)
 
 **OTHER COMMON MISTRANSLATIONS:**
 - Use official English spellings: "Calyrex-Shadow", "Zamazenta", "Urshifu", "Regieleki"
