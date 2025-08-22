@@ -17,8 +17,6 @@ from io import BytesIO
 from PIL import Image
 import hashlib
 from datetime import datetime, timedelta
-import cv2
-import numpy as np
 try:
     from langchain_community.document_loaders import WebBaseLoader
     from langchain.text_splitter import RecursiveCharacterTextSplitter
