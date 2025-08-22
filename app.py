@@ -1732,12 +1732,25 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 - ウーラオス/Wo Chien → "Wo-Chien" (Dark/Grass, Tablets of Ruin ability)
 
 **CRITICAL MOVE NAME TRANSLATIONS:**
+**Electric-Type Move Translations (Critical for VGC):**
+- 10まんボルト → "Thunderbolt" (standard 90 BP Electric move)
+- じんらい → "Thunderclap" (Raging Bolt signature +1 priority move)
+- かみなり → "Thunder" (120 BP, 70% accuracy Electric move)
+- でんじは → "Thunder Wave" (status move, causes paralysis)
+- ボルトチェンジ → "Volt Switch" (switching Electric move)
+- ワイルドボルト → "Wild Charge" (physical Electric recoil move)
+
+**Defensive Move Translations:**
+- ニードルガード → "Spiky Shield" (Grass protect that damages contact)
+- キングシールド → "King's Shield" (Steel protect that lowers Attack)
+- まもる → "Protect" (standard protection move)
+- みきり → "Detect" (Fighting-type protect equivalent)
+
+**Common Move Translations:**
 - バークアウト/Bark Out → "Snarl" (NOT Bark Out)
 - いばる → "Swagger"  
 - あまえる → "Baby-Doll Eyes"
-- でんじは → "Thunder Wave"
 - みがわり → "Substitute"
-- まもる → "Protect"
 - このゆびとまれ → "Follow Me"
 - いかりのまえば → "Super Fang"
 - ねこだまし → "Fake Out"
@@ -1770,7 +1783,7 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 ⚠️ NEVER confuse these similar Pokemon:
 - タケルライコ = "Raging Bolt" (Electric/Dragon) ≠ ウネルミナモ "Walking Wake" (Water/Dragon)
 - Both are Ancient forms but different types and based on different legendary beasts
-- Raging Bolt has Electric moves (10まんボルト/Thunderbolt, じんらい/Thunder)
+- Raging Bolt has Electric moves (10まんボルト/Thunderbolt, じんらい/Thunderclap)
 - Walking Wake has Water moves (ハイドロポンプ/Hydro Pump, しおまき/Flip Turn)
 
 **ABILITY TRANSLATIONS (Critical for Paradox Pokemon):**
