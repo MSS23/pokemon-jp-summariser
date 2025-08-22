@@ -26,6 +26,17 @@ try:
 except ImportError:
     LANGCHAIN_AVAILABLE = False
 
+# Import new modules
+try:
+    from database.models import init_database, get_session
+    from database.crud import TeamCRUD, BookmarkCRUD, SpeedTierCRUD, DamageCalculationCRUD
+    from calculations.damage_calc import DamageCalculator, PokemonStats, Move, DamageModifiers
+    from calculations.speed_tiers import SpeedTierAnalyzer, SpeedTierEntry
+    DATABASE_AVAILABLE = True
+except ImportError as e:
+    st.error(f"Database modules not available: {e}")
+    DATABASE_AVAILABLE = False
+
 # Item Translation Database
 ITEM_TRANSLATIONS = {
     # English to Japanese
@@ -1352,7 +1363,7 @@ def format_moves_html(moves: List[str]) -> str:
 
 
 def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, Any]]:
-    """Extract images from webpage that might contain VGC data"""
+    """Extract images from webpage that might contain VGC data with note.com optimization"""
     images = []
     try:
         headers = {
@@ -1365,8 +1376,12 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
 
         # Find all images
         img_tags = soup.find_all("img")
+        
+        # Prioritize note.com team card images
+        note_com_images = []
+        other_images = []
 
-        for img_tag in img_tags[:max_images]:
+        for img_tag in img_tags[:max_images * 2]:  # Check more images initially
             try:
                 img_src = img_tag.get("src")
                 if not img_src:
@@ -1374,20 +1389,50 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
 
                 # Convert relative URLs to absolute
                 img_url = urljoin(url, img_src)
+                
+                # Priority scoring for note.com team images
+                is_note_com_asset = "assets.st-note.com" in img_url
+                is_likely_team_card = False
+                
+                # Check for team card indicators in URL or context
+                team_indicators = ['team', 'pokemon', 'vgc', 'party', 'DvCIsNZXzyA2irhdlucjKOGR']
+                url_lower = img_url.lower()
+                alt_text = img_tag.get("alt", "").lower()
+                title_text = img_tag.get("title", "").lower()
+                
+                for indicator in team_indicators:
+                    if indicator.lower() in url_lower or indicator in alt_text or indicator in title_text:
+                        is_likely_team_card = True
+                        break
 
-                # Skip very small images (likely icons/decorations)
+                # Skip very small images but be more lenient for note.com assets
                 width = img_tag.get("width")
                 height = img_tag.get("height")
+                skip_small = False
+                
                 if width and height:
                     try:
-                        if int(width) < 100 or int(height) < 100:
-                            continue
+                        w, h = int(width), int(height)
+                        # For note.com assets, be more permissive
+                        if is_note_com_asset:
+                            if w < 300 or h < 200:  # More lenient for note.com
+                                skip_small = True
+                        else:
+                            if w < 100 or h < 100:
+                                skip_small = True
                     except:
                         pass
+
+                if skip_small:
+                    continue
 
                 # Download and process image
                 img_response = requests.get(img_url, headers=headers, timeout=15)
                 if img_response.status_code == 200:
+                    # Skip if too small in bytes (likely not a team card)
+                    if len(img_response.content) < 5000:  # Less than 5KB
+                        continue
+                        
                     # Convert to base64 for Gemini Vision
                     img_data = base64.b64encode(img_response.content).decode("utf-8")
 
@@ -1400,22 +1445,31 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
                         img_format = "unknown"
                         img_size = (0, 0)
 
-                    images.append(
-                        {
-                            "url": img_url,
-                            "data": img_data,
-                            "format": img_format,
-                            "size": img_size,
-                            "alt_text": img_tag.get("alt", ""),
-                            "title": img_tag.get("title", ""),
-                            "content_type": img_response.headers.get(
-                                "content-type", ""
-                            ),
-                        }
-                    )
+                    image_info = {
+                        "url": img_url,
+                        "data": img_data,
+                        "format": img_format,
+                        "size": img_size,
+                        "alt_text": img_tag.get("alt", ""),
+                        "title": img_tag.get("title", ""),
+                        "content_type": img_response.headers.get("content-type", ""),
+                        "is_note_com_asset": is_note_com_asset,
+                        "is_likely_team_card": is_likely_team_card,
+                        "file_size": len(img_response.content)
+                    }
+
+                    # Prioritize note.com assets and likely team cards
+                    if is_note_com_asset or is_likely_team_card:
+                        note_com_images.append(image_info)
+                    else:
+                        other_images.append(image_info)
 
             except Exception as e:
                 continue
+
+        # Combine with priority: note.com assets first, then others
+        priority_images = note_com_images + other_images
+        images = priority_images[:max_images]
 
     except Exception as e:
         st.warning(f"Could not extract images: {str(e)}")
@@ -1424,41 +1478,52 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
 
 
 def is_potentially_vgc_image(image_info: Dict[str, Any]) -> bool:
-    """Determine if an image might contain VGC-relevant data"""
+    """Determine if an image might contain VGC-relevant data with note.com optimization"""
+    # Priority 1: note.com assets are highly likely to be team cards
+    if image_info.get("is_note_com_asset", False):
+        # For note.com, any reasonably sized image is likely relevant
+        width, height = image_info.get("size", (0, 0))
+        file_size = image_info.get("file_size", 0)
+        if width > 300 and height > 200 and file_size > 10000:  # 10KB+
+            return True
+    
+    # Priority 2: Already flagged as likely team card
+    if image_info.get("is_likely_team_card", False):
+        return True
+    
     # Check alt text and title for VGC keywords
     text_content = (
         image_info.get("alt_text", "") + " " + image_info.get("title", "")
     ).lower()
 
     vgc_keywords = [
-        "pokemon",
-        "team",
-        "ev",
-        "iv",
-        "stats",
-        "battle",
-        "vgc",
-        "ポケモン",
-        "チーム",
-        "努力値",
-        "個体値",
-        "バトル",
-        "doubles",
-        "tournament",
-        "ranking",
+        "pokemon", "team", "ev", "iv", "stats", "battle", "vgc", "party", "roster",
+        "ポケモン", "チーム", "努力値", "個体値", "バトル", "パーティ",
+        "構築", "育成論", "配分", "調整", "doubles", "tournament", "ranking"
     ]
 
     for keyword in vgc_keywords:
         if keyword in text_content:
             return True
 
-    # Check image size (VGC images are often screenshots)
+    # Check image size - team cards tend to be larger and more rectangular
     width, height = image_info.get("size", (0, 0))
-    if width > 400 and height > 300:  # Reasonable screenshot size
+    file_size = image_info.get("file_size", 0)
+    
+    # Team summary cards tend to be:
+    # - Wider than 600px and taller than 400px for full team displays
+    # - Or smaller but still substantial (400x300+) for compact layouts
+    if (width > 600 and height > 400) or (width > 400 and height > 300 and file_size > 20000):
         return True
 
-    # Check file format
-    if image_info.get("format") in ["PNG", "JPEG", "JPG"]:
+    # Check URL for VGC/Pokemon indicators
+    url = image_info.get("url", "").lower()
+    for keyword in vgc_keywords:
+        if keyword in url:
+            return True
+
+    # Check file format - prefer PNG/JPEG for detailed team cards
+    if image_info.get("format") in ["PNG", "JPEG", "JPG"] and file_size > 15000:
         return True
 
     return False
@@ -1941,86 +2006,86 @@ class GeminiVGCAnalyzer:
                 }
 
                 vision_prompt = """
-                CRITICAL: Analyze this Pokemon VGC team image with EXTREME DETAIL. This is likely a note.com format with specific layout:
+                CRITICAL MISSION: Analyze this Pokemon VGC team image for COMPLETE EV spread extraction. This is likely a note.com team card format.
 
-                **LAYOUT PARSING ORDER (TOP TO BOTTOM):**
-                1. Pokemon Name/Sprite
-                2. Typing (DO NOT count as move)
-                3. Ability (DO NOT count as move) 
-                4. EXACTLY 4 MOVES (below ability)
-                5. Held Item (beside/near Pokemon sprite)
+                **PRIMARY OBJECTIVE: EV SPREAD DETECTION**
+                SCAN METHODICALLY for numerical EV patterns in these formats:
+                - Standard: "252/0/4/252/0/0" or "252-0-4-252-0-0" (HP/Atk/Def/SpA/SpD/Spe)
+                - Japanese: "H252 A0 B4 C252 D0 S0" or "ＨＰ252 こうげき0 ぼうぎょ4..."
+                - Grid layout: Numbers in rows/columns next to stat abbreviations
+                - Individual entries: "HP: 252", "Attack: 0", "Defense: 4"...
+                - Compact: "252HP/4Def/252SpA" or "H252/B4/C252"
+                - Note.com style: May use Japanese stat names with numbers
 
-                **ITEM DETECTION - HELD ITEMS:**
-                Look for items beside Pokemon sprites or in item slots:
-                - Mystic Water, Leftovers, Focus Sash (specifically mentioned examples)
-                - Life Orb, Choice Band/Specs/Scarf, Assault Vest, Rocky Helmet
-                - Sitrus Berry, Lum Berry, Safety Goggles, Booster Energy, Clear Amulet
-                - Covert Cloak, Mental Herb, Wide Lens, Mirror Herb, Expert Belt
-                
-                **ITEM TRANSLATIONS (Japanese ↔ English):**
-                - しんぴのしずく = Mystic Water
-                - たべのこし = Leftovers  
-                - きあいのタスキ = Focus Sash
-                - いのちのたま = Life Orb
-                - こだわりハチマキ = Choice Band
-                - こだわりメガネ = Choice Specs
-                - こだわりスカーフ = Choice Scarf
-                - とつげきチョッキ = Assault Vest
-                - オボンのみ = Sitrus Berry
-                - ラムのみ = Lum Berry
+                **EV VALIDATION RULES:**
+                - Total EVs must be ≤508 (if >508, these are likely actual stats, not EVs)
+                - Valid individual values: 0, 4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 92, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 188, 196, 204, 212, 220, 228, 236, 244, 252
+                - Common patterns: 252/252/4, 252/0/0/252/4/0, 252/0/4/0/0/252
+
+                **JAPANESE STAT TRANSLATIONS:**
+                - ＨＰ/HP/H = HP
+                - こうげき/攻撃/A = Attack  
+                - ぼうぎょ/防御/B = Defense
+                - とくこう/特攻/C = Special Attack
+                - とくぼう/特防/D = Special Defense
+                - すばやさ/素早/S = Speed
+
+                **TEAM LAYOUT PARSING (Note.com Format):**
+                1. Pokemon Name/Sprite (top of each card)
+                2. Pokemon Types (colored type indicators)
+                3. Ability (below name, before moves)
+                4. Held Item (icon/text near sprite)
+                5. Nature (stat arrows: ↑=boost, ↓=reduction)
+                6. MOVES (exactly 4, listed vertically)
+                7. **EV SPREAD** (most critical - look for number patterns)
+                8. Tera Type (if shown)
+
+                **EV EXTRACTION PRIORITY AREAS:**
+                1. Dedicated EV section/table within each Pokemon card
+                2. Numbers next to stat abbreviations (H/A/B/C/D/S)
+                3. Small text below Pokemon data
+                4. Side panels or secondary info areas
+                5. Overlaid text on Pokemon cards
+                6. Separate EV summary section
 
                 **NATURE DETECTION - STAT ARROW ANALYSIS:**
-                Look for colored arrows next to stat abbreviations (H/A/B/C/D/S):
-                - BLUE arrows (↓) = stat DECREASE (-10%)
-                - RED arrows (↑) = stat INCREASE (+10%)
-                - Example: "A" with blue arrow + "S" with red arrow = Timid nature (-Attack, +Speed)
-                
-                **NATURE MAPPING:**
-                - Blue A + Red S = Timid (-Atk, +Spe)
-                - Blue S + Red A = Adamant (-SpA, +Atk)  
-                - Blue A + Red D = Careful (-Atk, +SpD)
-                - Blue S + Red C = Modest (-Atk, +SpA)
-                - Blue C + Red A = Jolly (-SpA, +Spe)
-                - Blue D + Red A = Brave (-Spe, +Atk)
+                Look for colored arrows next to stat abbreviations:
+                - RED/Pink arrows (↑) = stat INCREASE (+10%)
+                - BLUE/Navy arrows (↓) = stat DECREASE (-10%)
+                - Example: Blue "A" + Red "S" = Timid nature (-Attack, +Speed)
 
-                **TERA TYPE DETECTION:**
-                - Look for Tera type indicators beside Pokemon
-                - Specific examples: Water for Kyogre, Dragon for Calyrex, Fire for Rillaboom
-                - Color coding: Blue=Water, Red=Fire, Green=Grass, Purple=Dragon, Yellow=Electric
+                **ITEM TRANSLATIONS (Japanese ↔ English):**
+                - しんぴのしずく = Mystic Water, たべのこし = Leftovers
+                - きあいのタスキ = Focus Sash, いのちのたま = Life Orb
+                - こだわりハチマキ = Choice Band, こだわりメガネ = Choice Specs
+                - こだわりスカーフ = Choice Scarf, とつげきチョッキ = Assault Vest
+                - オボンのみ = Sitrus Berry, ラムのみ = Lum Berry
 
-                **MOVE PARSING VALIDATION (CRITICAL):**
-                - MANDATORY: Each Pokemon MUST have EXACTLY 4 moves
-                - DO NOT include typing as a move (e.g., "Water/Flying" is typing, not a move)
-                - DO NOT include ability as a move (e.g., "Drizzle" is ability, not a move)
-                - Moves are typically listed after ability in vertical order
-                - If fewer than 4 moves visible, note as "INCOMPLETE - only X moves detected"
-                - If more than 4 items listed, carefully distinguish moves from other elements
-                - VALIDATION REQUIRED: Count moves multiple times to ensure accuracy
+                **OUTPUT FORMAT (PRIORITY: EV SPREADS):**
+                For each Pokemon, provide:
+                ```
+                POKEMON_1: [Name] | EV_SPREAD: [HP/Atk/Def/SpA/SpD/Spe] | ABILITY: [Ability] | ITEM: [Item] | NATURE: [Nature] | TERA: [Type] | MOVES: [Move1, Move2, Move3, Move4]
+                POKEMON_2: [Name] | EV_SPREAD: [HP/Atk/Def/SpA/SpD/Spe] | ABILITY: [Ability] | ITEM: [Item] | NATURE: [Nature] | TERA: [Type] | MOVES: [Move1, Move2, Move3, Move4]
+                [Continue for all Pokemon...]
+                ```
 
-                **POKEMON IDENTIFICATION & MOVE COMPATIBILITY:**
-                - Visual sprite recognition priority
-                - Iron Crown vs Iron Jugulis: Crown=Psychic/Steel, Jugulis=Dark/Flying  
-                - Move translation: "Bark Out" = "Snarl"
-                - Validate move compatibility with Pokemon types/abilities
+                **CRITICAL SUCCESS CRITERIA:**
+                - MUST extract EV spreads for ALL visible Pokemon
+                - If EVs are partially visible, provide what you can see (e.g., "252/?/4/?/?/252")
+                - If no EVs visible for a Pokemon, state "EV_SPREAD: Not visible in image"
+                - Validate EV totals ≤508 and report any anomalies
+                - Prioritize EV data extraction over all other information
 
-                **CRITICAL PARSING RULES:**
-                1. EXACTLY 4 moves per Pokemon
-                2. Separate typing from moves
-                3. Separate ability from moves
-                4. Identify held items clearly
-                5. Use visual hierarchy for parsing order
+                **SCAN METHODOLOGY:**
+                1. First pass: Identify all Pokemon in the image
+                2. Second pass: Focus EXCLUSIVELY on finding numerical EV patterns
+                3. Third pass: Extract other Pokemon data (moves, items, abilities)
+                4. Final validation: Confirm EV totals and format consistency
 
-                Provide response in this EXACT format:
-                
-                POKEMON_1: [Name] | TYPING: [Type1/Type2] | ABILITY: [Ability] | ITEM: [Held Item] | NATURE: [Nature] | TERA: [Tera Type] | MOVES: [Move1, Move2, Move3, Move4] | ARROWS: [positions] 
-                POKEMON_2: [Name] | TYPING: [Type1/Type2] | ABILITY: [Ability] | ITEM: [Held Item] | NATURE: [Nature] | TERA: [Tera Type] | MOVES: [Move1, Move2, Move3, Move4] | ARROWS: [positions]
-                POKEMON_3: [Name] | TYPING: [Type1/Type2] | ABILITY: [Ability] | ITEM: [Held Item] | NATURE: [Nature] | TERA: [Tera Type] | MOVES: [Move1, Move2, Move3, Move4] | ARROWS: [positions]
-                POKEMON_4: [Name] | TYPING: [Type1/Type2] | ABILITY: [Ability] | ITEM: [Held Item] | NATURE: [Nature] | TERA: [Tera Type] | MOVES: [Move1, Move2, Move3, Move4] | ARROWS: [positions]
-                POKEMON_5: [Name] | TYPING: [Type1/Type2] | ABILITY: [Ability] | ITEM: [Held Item] | NATURE: [Nature] | TERA: [Tera Type] | MOVES: [Move1, Move2, Move3, Move4] | ARROWS: [positions]
-                POKEMON_6: [Name] | TYPING: [Type1/Type2] | ABILITY: [Ability] | ITEM: [Held Item] | NATURE: [Nature] | TERA: [Tera Type] | MOVES: [Move1, Move2, Move3, Move4] | ARROWS: [positions]
-                
-                MOVE_COUNT_VALIDATION: [CRITICAL - Confirm exactly 4 moves per Pokemon: Pokemon1=4, Pokemon2=4, Pokemon3=4, Pokemon4=4, Pokemon5=4, Pokemon6=4]
-                MOVE_COMPLETENESS: [Report any Pokemon with incomplete movesets and what was missing]
+                **EV EXTRACTION VALIDATION:**
+                EV_TOTALS: [Report total EVs for each Pokemon to verify ≤508]
+                EV_COMPLETENESS: [Report which Pokemon have complete/incomplete EV data]
+                EV_CONFIDENCE: [Rate confidence in EV extraction: High/Medium/Low for each Pokemon]
                 PARSING_ERRORS: [Any issues with typing/ability confused as moves]
                 EV_SPREAD_DATA: [All visible EV spreads, stat numbers, or effort value indicators]
                 STAT_CALCULATIONS: [Any visible stat numbers that could indicate EV investments]
@@ -2043,6 +2108,45 @@ class GeminiVGCAnalyzer:
 
         return "\n".join(image_analysis_results)
 
+    def extract_ev_spreads_from_image_analysis(self, image_analysis: str) -> Dict[str, str]:
+        """Extract EV spreads from image analysis results"""
+        ev_data = {}
+        
+        # Look for EV_SPREAD patterns in the image analysis
+        import re
+        
+        # Pattern 1: POKEMON_X: Name | EV_SPREAD: HP/Atk/Def/SpA/SpD/Spe
+        pattern1 = r'POKEMON_\d+:\s*([^|]+)\s*\|\s*EV_SPREAD:\s*([^|]+)'
+        matches1 = re.findall(pattern1, image_analysis, re.IGNORECASE)
+        
+        for pokemon_name, ev_spread in matches1:
+            pokemon_name = pokemon_name.strip()
+            ev_spread = ev_spread.strip()
+            if ev_spread and ev_spread != "Not visible in image":
+                ev_data[pokemon_name] = ev_spread
+        
+        # Pattern 2: Look for direct EV spread mentions
+        pattern2 = r'([A-Za-z\s-]+).*?EV.*?(\d+[/\-]\d+[/\-]\d+[/\-]\d+[/\-]\d+[/\-]\d+)'
+        matches2 = re.findall(pattern2, image_analysis, re.IGNORECASE)
+        
+        for pokemon_name, ev_spread in matches2:
+            pokemon_name = pokemon_name.strip()
+            if pokemon_name and ev_spread:
+                ev_data[pokemon_name] = ev_spread.replace('-', '/')
+        
+        # Pattern 3: Japanese format H252 A0 B4 etc.
+        pattern3 = r'([A-Za-z\s-]+).*?H(\d+)\s*A(\d+)\s*B(\d+)\s*C(\d+)\s*D(\d+)\s*S(\d+)'
+        matches3 = re.findall(pattern3, image_analysis, re.IGNORECASE)
+        
+        for match in matches3:
+            pokemon_name = match[0].strip()
+            ev_values = match[1:7]
+            ev_spread = '/'.join(ev_values)
+            if pokemon_name and ev_spread:
+                ev_data[pokemon_name] = ev_spread
+        
+        return ev_data
+
     def analyze_article(
         self,
         content: str,
@@ -2064,11 +2168,16 @@ class GeminiVGCAnalyzer:
 
         # Analyze images if provided
         image_analysis = ""
+        image_ev_data = {}
         if images and len(images) > 0:
             st.info(f"🖼️ Found {len(images)} potentially relevant images, analyzing...")
             image_analysis = self.analyze_images(images)
             if image_analysis:
                 st.success(f"✅ Image analysis complete - extracted additional data!")
+                # Extract EV spreads from image analysis
+                image_ev_data = self.extract_ev_spreads_from_image_analysis(image_analysis)
+                if image_ev_data:
+                    st.success(f"🎯 Found EV spreads in images for {len(image_ev_data)} Pokemon!")
 
         # Combine text and image analysis
         combined_content = content
@@ -2381,6 +2490,30 @@ Respond only with the JSON, no additional text.
                 response_text = response_text.strip()
 
                 result = json.loads(response_text)
+
+                # Integrate image-extracted EV data with the analysis result
+                if image_ev_data and result.get("pokemon_team"):
+                    st.info("🔄 Integrating EV data from images...")
+                    
+                    for pokemon in result["pokemon_team"]:
+                        pokemon_name = pokemon.get("name", "")
+                        
+                        # Try to find matching EV data from images
+                        for img_pokemon_name, img_ev_spread in image_ev_data.items():
+                            # Match by exact name or partial match
+                            if (pokemon_name.lower() in img_pokemon_name.lower() or 
+                                img_pokemon_name.lower() in pokemon_name.lower()):
+                                
+                                # Validate EV format
+                                try:
+                                    ev_values = [int(x.strip()) for x in img_ev_spread.split('/')]
+                                    if len(ev_values) == 6 and sum(ev_values) <= 508:
+                                        pokemon["ev_spread"] = img_ev_spread
+                                        pokemon["ev_source"] = "image_extracted"
+                                        st.success(f"✅ Updated {pokemon_name} with image EV data: {img_ev_spread}")
+                                        break
+                                except:
+                                    continue
 
                 # Save to cache for future use
                 save_to_cache(content, result, url)
@@ -3182,6 +3315,600 @@ def render_previous_articles_page():
             st.divider()
 
 
+def render_team_database_page():
+    """Render the team database page"""
+    st.markdown(
+        '<div class="team-header"><h1>🏆 Team Database</h1><p>Browse and manage saved VGC teams</p></div>',
+        unsafe_allow_html=True,
+    )
+    
+    if not DATABASE_AVAILABLE:
+        st.error("Database functionality is not available. Please install required dependencies.")
+        return
+    
+    # Initialize database
+    try:
+        init_database()
+    except Exception as e:
+        st.error(f"Failed to initialize database: {e}")
+        return
+    
+    # Search and filter controls
+    col1, col2, col3 = st.columns([3, 2, 1])
+    
+    with col1:
+        search_query = st.text_input(
+            "🔍 Search teams",
+            placeholder="Search by team name, Pokemon, or regulation...",
+        )
+    
+    with col2:
+        regulation_filter = st.selectbox(
+            "🏅 Regulation", ["All", "A", "B", "C", "D", "E"]
+        )
+    
+    with col3:
+        if st.button("📊 Database Stats"):
+            try:
+                stats = TeamCRUD.get_team_statistics()
+                st.metric("Total Teams", stats['total_teams'])
+                st.metric("Total Pokemon", stats['total_pokemon'])
+                
+                if stats['popular_pokemon']:
+                    st.write("**Most Popular Pokemon:**")
+                    for pokemon, count in list(stats['popular_pokemon'].items())[:5]:
+                        st.write(f"• {pokemon}: {count} teams")
+            except Exception as e:
+                st.error(f"Failed to load stats: {e}")
+    
+    # Get teams from database
+    try:
+        if search_query or regulation_filter != "All":
+            teams = TeamCRUD.search_teams(
+                query=search_query,
+                regulation=regulation_filter if regulation_filter != "All" else "",
+                limit=50
+            )
+        else:
+            teams = TeamCRUD.get_all_teams(limit=50)
+        
+        st.markdown(f"## 📖 Teams ({len(teams)} found)")
+        
+        if not teams:
+            st.info("No teams found. Teams will appear here after you analyze articles.")
+            
+            # Add button to save current analysis if available
+            if "analysis_result" in st.session_state and st.session_state["analysis_result"]:
+                st.markdown("### Save Current Analysis")
+                if st.button("💾 Save Current Team to Database"):
+                    try:
+                        saved_team = TeamCRUD.create_team_from_analysis(
+                            st.session_state["analysis_result"]
+                        )
+                        st.success(f"Team '{saved_team.name}' saved to database!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed to save team: {e}")
+            return
+        
+        # Display teams
+        for team in teams:
+            with st.container():
+                st.markdown(
+                    f"""
+                <div class="summary-container" style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <h3 style="color: #1e293b; margin: 0; flex: 1;">{team.name}</h3>
+                        <div style="color: #64748b; font-size: 14px; margin-left: 16px;">
+                            {team.regulation if team.regulation else 'No Regulation'} | {team.created_at.strftime('%Y-%m-%d')}
+                        </div>
+                    </div>
+                    <div class="summary-content" style="margin-bottom: 16px;">
+                        {team.strategy_summary[:200] if team.strategy_summary else 'No strategy summary'}{"..." if team.strategy_summary and len(team.strategy_summary) > 200 else ""}
+                    </div>
+                </div>
+                """,
+                    unsafe_allow_html=True,
+                )
+                
+                # Show Pokemon team
+                if team.pokemon:
+                    cols = st.columns(min(len(team.pokemon), 6))
+                    for j, pokemon in enumerate(team.pokemon[:6]):
+                        if j < len(cols):
+                            with cols[j]:
+                                sprite_url = get_pokemon_sprite_url(pokemon.name)
+                                try:
+                                    st.image(sprite_url, width=60, caption=pokemon.name)
+                                except:
+                                    st.markdown(f"**{pokemon.name}**")
+                
+                # Action buttons
+                col1, col2, col3 = st.columns([2, 2, 1])
+                with col1:
+                    if st.button(f"📊 View Details", key=f"view_team_{team.id}"):
+                        st.session_state[f"show_team_details_{team.id}"] = not st.session_state.get(f"show_team_details_{team.id}", False)
+                        st.rerun()
+                
+                with col2:
+                    if st.button(f"📋 Compare", key=f"compare_team_{team.id}"):
+                        if "comparison_teams" not in st.session_state:
+                            st.session_state["comparison_teams"] = []
+                        if team.id not in st.session_state["comparison_teams"]:
+                            st.session_state["comparison_teams"].append(team.id)
+                            st.success(f"Added {team.name} to comparison!")
+                        else:
+                            st.info("Team already in comparison list")
+                
+                with col3:
+                    if st.button("🗑️", key=f"delete_team_{team.id}", help="Delete team"):
+                        if TeamCRUD.delete_team(team.id):
+                            st.success("Team deleted!")
+                            st.rerun()
+                        else:
+                            st.error("Failed to delete team")
+                
+                # Show details if expanded
+                if st.session_state.get(f"show_team_details_{team.id}", False):
+                    st.markdown("### Team Details")
+                    for pokemon in team.pokemon:
+                        with st.expander(f"{pokemon.name} - {pokemon.role if pokemon.role else 'No role specified'}"):
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.write(f"**Ability:** {pokemon.ability if pokemon.ability else 'Not specified'}")
+                                st.write(f"**Item:** {pokemon.held_item if pokemon.held_item else 'Not specified'}")
+                                st.write(f"**Nature:** {pokemon.nature if pokemon.nature else 'Not specified'}")
+                                st.write(f"**Tera Type:** {pokemon.tera_type if pokemon.tera_type else 'Not specified'}")
+                            with col2:
+                                ev_spread = f"{pokemon.hp_ev}/{pokemon.atk_ev}/{pokemon.def_ev}/{pokemon.spa_ev}/{pokemon.spd_ev}/{pokemon.spe_ev}"
+                                st.write(f"**EV Spread:** {ev_spread}")
+                                if pokemon.moves:
+                                    st.write(f"**Moves:** {', '.join(pokemon.moves)}")
+                                if pokemon.ev_explanation:
+                                    st.write(f"**EV Explanation:** {pokemon.ev_explanation}")
+                
+                st.divider()
+                
+    except Exception as e:
+        st.error(f"Failed to load teams: {e}")
+
+
+def render_team_comparison_page():
+    """Render the team comparison page"""
+    st.markdown(
+        '<div class="team-header"><h1>⚔️ Team Comparison</h1><p>Compare teams side-by-side</p></div>',
+        unsafe_allow_html=True,
+    )
+    
+    if not DATABASE_AVAILABLE:
+        st.error("Database functionality is not available. Please install required dependencies.")
+        return
+    
+    # Get comparison teams from session state
+    comparison_teams = st.session_state.get("comparison_teams", [])
+    
+    if len(comparison_teams) < 2:
+        st.info("Add teams to comparison from the Team Database page to start comparing.")
+        
+        # Show available teams for quick selection
+        try:
+            teams = TeamCRUD.get_all_teams(limit=20)
+            if teams:
+                st.markdown("### Quick Team Selection")
+                cols = st.columns(2)
+                for i, team in enumerate(teams[:10]):
+                    with cols[i % 2]:
+                        if st.button(f"Add {team.name}", key=f"quick_add_{team.id}"):
+                            if "comparison_teams" not in st.session_state:
+                                st.session_state["comparison_teams"] = []
+                            if team.id not in st.session_state["comparison_teams"]:
+                                st.session_state["comparison_teams"].append(team.id)
+                                st.success(f"Added {team.name} to comparison!")
+                                st.rerun()
+        except Exception as e:
+            st.error(f"Failed to load teams: {e}")
+        return
+    
+    # Load team details
+    teams_data = []
+    for team_id in comparison_teams:
+        try:
+            team = TeamCRUD.get_team_by_id(team_id)
+            if team:
+                teams_data.append(team)
+        except Exception as e:
+            st.error(f"Failed to load team {team_id}: {e}")
+    
+    if not teams_data:
+        st.error("Failed to load comparison teams")
+        return
+    
+    # Comparison controls
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown(f"**Comparing {len(teams_data)} teams**")
+    with col2:
+        if st.button("🗑️ Clear Comparison"):
+            st.session_state["comparison_teams"] = []
+            st.rerun()
+    
+    # Side-by-side comparison
+    cols = st.columns(len(teams_data))
+    
+    for i, team in enumerate(teams_data):
+        with cols[i]:
+            st.markdown(f"### {team.name}")
+            st.markdown(f"**Regulation:** {team.regulation if team.regulation else 'None'}")
+            st.markdown(f"**Archetype:** {team.archetype if team.archetype else 'Not specified'}")
+            
+            # Team overview
+            if team.strategy_summary:
+                with st.expander("Strategy Summary"):
+                    st.write(team.strategy_summary)
+            
+            # Pokemon list
+            st.markdown("**Team Members:**")
+            for pokemon in team.pokemon:
+                with st.expander(f"{pokemon.name}"):
+                    st.write(f"Role: {pokemon.role if pokemon.role else 'Not specified'}")
+                    st.write(f"Ability: {pokemon.ability if pokemon.ability else 'Not specified'}")
+                    st.write(f"Item: {pokemon.held_item if pokemon.held_item else 'Not specified'}")
+                    ev_spread = f"{pokemon.hp_ev}/{pokemon.atk_ev}/{pokemon.def_ev}/{pokemon.spa_ev}/{pokemon.spd_ev}/{pokemon.spe_ev}"
+                    st.write(f"EVs: {ev_spread}")
+                    if pokemon.moves:
+                        st.write(f"Moves: {', '.join(pokemon.moves)}")
+            
+            # Remove from comparison
+            if st.button(f"Remove {team.name}", key=f"remove_{team.id}"):
+                st.session_state["comparison_teams"].remove(team.id)
+                st.rerun()
+    
+    # Analysis section
+    st.markdown("## 📊 Comparison Analysis")
+    
+    # Type coverage analysis
+    st.markdown("### Type Coverage")
+    type_coverage = {}
+    for team in teams_data:
+        team_types = set()
+        for pokemon in team.pokemon:
+            # This would need Pokemon type data - simplified for now
+            team_types.add(pokemon.name)  # Placeholder
+        type_coverage[team.name] = len(team_types)
+    
+    # Speed tier analysis
+    if len(teams_data) >= 2:
+        st.markdown("### Speed Comparison")
+        try:
+            for team in teams_data:
+                team_speeds = []
+                for pokemon in team.pokemon:
+                    # Calculate speed stat (simplified)
+                    if pokemon.spe_ev is not None:
+                        base_speed = SpeedTierAnalyzer.VGC_POKEMON_BASE_SPEEDS.get(pokemon.name, 80)
+                        nature_mod = 1.1 if pokemon.nature and 'speed' in pokemon.nature.lower() else 1.0
+                        speed_stat = SpeedTierAnalyzer.calculate_speed_stat(
+                            base_speed, ev=pokemon.spe_ev, nature_modifier=nature_mod
+                        )
+                        team_speeds.append((pokemon.name, speed_stat))
+                
+                if team_speeds:
+                    analysis = SpeedTierAnalyzer.generate_team_speed_analysis(team_speeds)
+                    st.write(f"**{team.name}** - Average Speed Coverage: {analysis['average_outspeed']}%")
+                    
+        except Exception as e:
+            st.error(f"Speed analysis failed: {e}")
+
+
+def render_damage_calculator_page():
+    """Render the damage calculator page"""
+    st.markdown(
+        '<div class="team-header"><h1>🧮 Damage Calculator</h1><p>Calculate damage for VGC scenarios</p></div>',
+        unsafe_allow_html=True,
+    )
+    
+    if not DATABASE_AVAILABLE:
+        st.error("Database functionality is not available. Please install required dependencies.")
+        return
+    
+    # Calculator interface
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### Attacker")
+        attacker_name = st.selectbox(
+            "Pokemon",
+            list(DamageCalculator.COMMON_POKEMON_STATS.keys()),
+            key="attacker_pokemon"
+        )
+        
+        attacker_stats_dict = DamageCalculator.COMMON_POKEMON_STATS[attacker_name]
+        
+        # EV inputs
+        st.markdown("**EV Spread:**")
+        att_col1, att_col2, att_col3 = st.columns(3)
+        with att_col1:
+            hp_ev = st.number_input("HP", 0, 252, 0, 4, key="att_hp_ev")
+            atk_ev = st.number_input("Atk", 0, 252, 252, 4, key="att_atk_ev")
+        with att_col2:
+            def_ev = st.number_input("Def", 0, 252, 0, 4, key="att_def_ev")
+            spa_ev = st.number_input("SpA", 0, 252, 0, 4, key="att_spa_ev")
+        with att_col3:
+            spd_ev = st.number_input("SpD", 0, 252, 0, 4, key="att_spd_ev")
+            spe_ev = st.number_input("Spe", 0, 252, 0, 4, key="att_spe_ev")
+        
+        # Calculate actual stats
+        nature_modifier = st.selectbox(
+            "Nature (Attack modifier)",
+            [("Positive (+10%)", 1.1), ("Neutral", 1.0), ("Negative (-10%)", 0.9)],
+            index=1,
+            key="att_nature"
+        )[1]
+        
+        attacker_stats = PokemonStats(
+            hp=DamageCalculator.calculate_stat(attacker_stats_dict['hp'], 31, hp_ev, 50),
+            attack=DamageCalculator.calculate_stat(attacker_stats_dict['attack'], 31, atk_ev, 50, nature_modifier),
+            defense=DamageCalculator.calculate_stat(attacker_stats_dict['defense'], 31, def_ev, 50),
+            sp_attack=DamageCalculator.calculate_stat(attacker_stats_dict['sp_attack'], 31, spa_ev, 50),
+            sp_defense=DamageCalculator.calculate_stat(attacker_stats_dict['sp_defense'], 31, spd_ev, 50),
+            speed=DamageCalculator.calculate_stat(attacker_stats_dict['speed'], 31, spe_ev, 50)
+        )
+        
+        # Move selection
+        move_name = st.selectbox(
+            "Move",
+            list(DamageCalculator.COMMON_MOVES.keys()),
+            key="move_select"
+        )
+        
+        move_data = DamageCalculator.COMMON_MOVES[move_name]
+        move = Move(
+            name=move_name,
+            power=move_data['power'],
+            type=move_data['type'],
+            category=move_data['category']
+        )
+    
+    with col2:
+        st.markdown("### Defender")
+        defender_name = st.selectbox(
+            "Pokemon",
+            list(DamageCalculator.COMMON_POKEMON_STATS.keys()),
+            key="defender_pokemon"
+        )
+        
+        defender_stats_dict = DamageCalculator.COMMON_POKEMON_STATS[defender_name]
+        
+        # EV inputs
+        st.markdown("**EV Spread:**")
+        def_col1, def_col2, def_col3 = st.columns(3)
+        with def_col1:
+            def_hp_ev = st.number_input("HP", 0, 252, 252, 4, key="def_hp_ev")
+            def_atk_ev = st.number_input("Atk", 0, 252, 0, 4, key="def_atk_ev")
+        with def_col2:
+            def_def_ev = st.number_input("Def", 0, 252, 252, 4, key="def_def_ev")
+            def_spa_ev = st.number_input("SpA", 0, 252, 0, 4, key="def_spa_ev")
+        with def_col3:
+            def_spd_ev = st.number_input("SpD", 0, 252, 0, 4, key="def_spd_ev")
+            def_spe_ev = st.number_input("Spe", 0, 252, 0, 4, key="def_spe_ev")
+        
+        def_nature_modifier = st.selectbox(
+            "Nature (Defense modifier)",
+            [("Positive (+10%)", 1.1), ("Neutral", 1.0), ("Negative (-10%)", 0.9)],
+            index=1,
+            key="def_nature"
+        )[1]
+        
+        defender_stats = PokemonStats(
+            hp=DamageCalculator.calculate_stat(defender_stats_dict['hp'], 31, def_hp_ev, 50),
+            attack=DamageCalculator.calculate_stat(defender_stats_dict['attack'], 31, def_atk_ev, 50),
+            defense=DamageCalculator.calculate_stat(defender_stats_dict['defense'], 31, def_def_ev, 50, def_nature_modifier if move.category == 'Physical' else 1.0),
+            sp_attack=DamageCalculator.calculate_stat(defender_stats_dict['sp_attack'], 31, def_spa_ev, 50),
+            sp_defense=DamageCalculator.calculate_stat(defender_stats_dict['sp_defense'], 31, def_spd_ev, 50, def_nature_modifier if move.category == 'Special' else 1.0),
+            speed=DamageCalculator.calculate_stat(defender_stats_dict['speed'], 31, def_spe_ev, 50)
+        )
+    
+    # Modifiers
+    st.markdown("### Battle Conditions")
+    mod_col1, mod_col2, mod_col3 = st.columns(3)
+    
+    with mod_col1:
+        crit = st.checkbox("Critical Hit")
+        burn = st.checkbox("Burn (Physical moves)")
+        screens = st.checkbox("Light Screen/Reflect")
+    
+    with mod_col2:
+        weather_mod = st.selectbox(
+            "Weather",
+            [("None", 1.0), ("Rain (Water +50%)", 1.5), ("Sun (Fire +50%)", 1.5), ("Sun (Water -50%)", 0.5)],
+            key="weather"
+        )[1]
+        
+        terrain_mod = st.selectbox(
+            "Terrain",
+            [("None", 1.0), ("Electric (+30%)", 1.3), ("Psychic (+30%)", 1.3), ("Grassy (+30%)", 1.3)],
+            key="terrain"
+        )[1]
+    
+    with mod_col3:
+        item_mod = st.selectbox(
+            "Attacker Item",
+            [("None", 1.0), ("Life Orb (+30%)", 1.3), ("Choice Band/Specs (+50%)", 1.5)],
+            key="item"
+        )[1]
+        
+        multi_target = st.checkbox("Multi-target (Doubles)")
+        friend_guard = st.checkbox("Friend Guard")
+    
+    # Calculate damage
+    modifiers = DamageModifiers(
+        weather=weather_mod,
+        terrain=terrain_mod,
+        item_attacker=item_mod,
+        crit=crit,
+        burn=burn,
+        screens=screens,
+        multi_target=multi_target,
+        friend_guard=friend_guard
+    )
+    
+    # Results
+    st.markdown("## 🎯 Damage Results")
+    
+    try:
+        # Simplified type lists for demo
+        attacker_types = ["Normal"]  # Would need Pokemon type data
+        defender_types = ["Normal"]  # Would need Pokemon type data
+        
+        min_dmg, max_dmg, ko_chance = DamageCalculator.calculate_damage_range(
+            attacker_stats, defender_stats, move, attacker_types, defender_types, modifiers
+        )
+        
+        min_pct = DamageCalculator.calculate_damage_percentage(min_dmg, defender_stats.hp)
+        max_pct = DamageCalculator.calculate_damage_percentage(max_dmg, defender_stats.hp)
+        
+        # Display results
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Damage Range", f"{min_dmg} - {max_dmg}")
+        
+        with col2:
+            st.metric("Percentage", f"{min_pct:.1f}% - {max_pct:.1f}%")
+        
+        with col3:
+            st.metric("KO Chance", f"{ko_chance * 100:.1f}%")
+        
+        # Detailed breakdown
+        with st.expander("Calculation Details"):
+            st.write(f"**Attacker:** {attacker_name}")
+            st.write(f"- {move.category} Attack Stat: {attacker_stats.attack if move.category == 'Physical' else attacker_stats.sp_attack}")
+            st.write(f"**Defender:** {defender_name}")
+            st.write(f"- HP: {defender_stats.hp}")
+            st.write(f"- {move.category} Defense Stat: {defender_stats.defense if move.category == 'Physical' else defender_stats.sp_defense}")
+            st.write(f"**Move:** {move.name} ({move.power} BP, {move.type} type)")
+            
+    except Exception as e:
+        st.error(f"Calculation failed: {e}")
+
+
+def render_speed_tiers_page():
+    """Render the speed tiers page"""
+    st.markdown(
+        '<div class="team-header"><h1>⚡ Speed Tier Analysis</h1><p>Analyze speed benchmarks and tier positioning</p></div>',
+        unsafe_allow_html=True,
+    )
+    
+    # Speed benchmark calculator
+    st.markdown("## 🎯 Speed Benchmark Analysis")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        target_speed = st.number_input(
+            "Target Speed Stat",
+            min_value=1,
+            max_value=300,
+            value=150,
+            help="Enter a speed stat to see what it outspeeds"
+        )
+    
+    with col2:
+        regulation = st.selectbox("Regulation", ["A", "B", "C", "D", "E"])
+    
+    if st.button("🔍 Analyze Speed Benchmark"):
+        try:
+            analysis = SpeedTierAnalyzer.analyze_speed_benchmark(target_speed, regulation)
+            
+            # Results
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("Speed Tier", analysis['speed_tier'])
+            
+            with col2:
+                st.metric("Position", analysis['tier_position'])
+            
+            with col3:
+                st.metric("Outspeed %", f"{analysis['outspeed_percentage']}%")
+            
+            # What it outspeeds
+            if analysis['outspeeds']:
+                st.markdown("### 🏃‍♂️ Outspeeds:")
+                for benchmark in analysis['outspeeds'][:10]:
+                    st.write(f"• {benchmark}")
+            
+            # Recommendations
+            if analysis['recommendations']:
+                st.markdown("### 💡 Recommendations:")
+                for rec in analysis['recommendations']:
+                    st.write(f"• {rec}")
+                    
+        except Exception as e:
+            st.error(f"Analysis failed: {e}")
+    
+    # Speed tier table
+    st.markdown("## 📊 Common Speed Benchmarks")
+    
+    # Show common benchmarks in a nice table
+    import pandas as pd
+    
+    benchmark_data = []
+    for name, speed in list(SpeedTierAnalyzer.COMMON_SPEED_BENCHMARKS.items())[:15]:
+        benchmark_data.append({
+            "Pokemon": name.replace(" Max", ""),
+            "Speed": speed,
+            "Tier": SpeedTierAnalyzer._analyze_tier_cutoffs(speed, regulation)['tier']
+        })
+    
+    df = pd.DataFrame(benchmark_data)
+    st.dataframe(df, use_container_width=True)
+    
+    # Pokemon speed calculator
+    st.markdown("## 🧮 Pokemon Speed Calculator")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        pokemon_name = st.selectbox(
+            "Pokemon",
+            list(SpeedTierAnalyzer.VGC_POKEMON_BASE_SPEEDS.keys()),
+            key="speed_calc_pokemon"
+        )
+        
+        base_speed = SpeedTierAnalyzer.VGC_POKEMON_BASE_SPEEDS[pokemon_name]
+        st.write(f"Base Speed: {base_speed}")
+    
+    with col2:
+        speed_evs = st.number_input("Speed EVs", 0, 252, 252, 4)
+        nature_mod = st.selectbox(
+            "Nature",
+            [("Positive (+10%)", 1.1), ("Neutral", 1.0), ("Negative (-10%)", 0.9)],
+            index=0
+        )[1]
+    
+    calculated_speed = SpeedTierAnalyzer.calculate_speed_stat(
+        base_speed, ev=speed_evs, nature_modifier=nature_mod
+    )
+    
+    st.metric("Calculated Speed", calculated_speed)
+    
+    # EV suggestions
+    if st.button("💡 Get Speed EV Suggestions"):
+        try:
+            suggestions = SpeedTierAnalyzer.suggest_speed_evs(pokemon_name, regulation=regulation)
+            
+            st.markdown("### 📋 EV Suggestions:")
+            for suggestion in suggestions['suggestions']:
+                with st.expander(f"{suggestion['description']} - {suggestion['resulting_speed']} Speed"):
+                    st.write(f"**EVs:** {suggestion['evs']}")
+                    st.write(f"**Nature:** {suggestion['nature']}")
+                    st.write(f"**Justification:** {suggestion['justification']}")
+                    
+        except Exception as e:
+            st.error(f"Failed to generate suggestions: {e}")
+
+
 def main():
     """Main application with navigation"""
     # Sidebar navigation
@@ -3217,6 +3944,54 @@ def main():
             st.session_state["current_page"] = "Previous Articles"
             st.rerun()
 
+        if st.button(
+            "🏆 Team Database",
+            use_container_width=True,
+            type=(
+                "primary"
+                if st.session_state["current_page"] == "Team Database"
+                else "secondary"
+            ),
+        ):
+            st.session_state["current_page"] = "Team Database"
+            st.rerun()
+
+        if st.button(
+            "⚔️ Team Comparison",
+            use_container_width=True,
+            type=(
+                "primary"
+                if st.session_state["current_page"] == "Team Comparison"
+                else "secondary"
+            ),
+        ):
+            st.session_state["current_page"] = "Team Comparison"
+            st.rerun()
+
+        if st.button(
+            "🧮 Damage Calculator",
+            use_container_width=True,
+            type=(
+                "primary"
+                if st.session_state["current_page"] == "Damage Calculator"
+                else "secondary"
+            ),
+        ):
+            st.session_state["current_page"] = "Damage Calculator"
+            st.rerun()
+
+        if st.button(
+            "⚡ Speed Tiers",
+            use_container_width=True,
+            type=(
+                "primary"
+                if st.session_state["current_page"] == "Speed Tiers"
+                else "secondary"
+            ),
+        ):
+            st.session_state["current_page"] = "Speed Tiers"
+            st.rerun()
+
         st.divider()
 
         # Cache stats
@@ -3238,6 +4013,14 @@ def main():
         render_new_analysis_page()
     elif st.session_state["current_page"] == "Previous Articles":
         render_previous_articles_page()
+    elif st.session_state["current_page"] == "Team Database":
+        render_team_database_page()
+    elif st.session_state["current_page"] == "Team Comparison":
+        render_team_comparison_page()
+    elif st.session_state["current_page"] == "Damage Calculator":
+        render_damage_calculator_page()
+    elif st.session_state["current_page"] == "Speed Tiers":
+        render_speed_tiers_page()
 
 
 if __name__ == "__main__":
