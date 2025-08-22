@@ -1909,6 +1909,31 @@ Respond only with the JSON, no additional text.
             st.error(f"Error during analysis: {str(e)}")
             return None
 
+def format_evs_for_pokepaste(ev_dict: Dict[str, int]) -> str:
+    """Format EV dictionary into standard pokepaste format"""
+    # Standard pokepaste stat order and abbreviations
+    stat_order = [
+        ('hp', 'HP'),
+        ('atk', 'Atk'), 
+        ('def', 'Def'),
+        ('spa', 'SpA'),
+        ('spd', 'SpD'),
+        ('spe', 'Spe')
+    ]
+    
+    # Collect non-zero EVs
+    ev_parts = []
+    for stat_key, stat_name in stat_order:
+        if ev_dict.get(stat_key, 0) > 0:
+            ev_parts.append(f"{ev_dict[stat_key]} {stat_name}")
+    
+    # Join with " / " separator as per pokepaste standard
+    if ev_parts:
+        return " / ".join(ev_parts)
+    else:
+        # Default spread if no EVs specified
+        return "252 HP / 252 SpA / 4 SpD"
+
 def create_pokepaste(pokemon_team: List[Dict[str, Any]], team_name: str = "VGC Team") -> str:
     """Generate clean pokepaste format for the team"""
     pokepaste_content = ""
@@ -1933,12 +1958,10 @@ def create_pokepaste(pokemon_team: List[Dict[str, Any]], team_name: str = "VGC T
         
         # EVs (format: HP / Atk / Def / SpA / SpD / Spe)
         if pokemon.get('ev_spread') and pokemon['ev_spread'] != "Not specified in article":
-            ev_spread = pokemon['ev_spread']
-            # Handle different EV formats
-            if '/' in ev_spread:
-                pokepaste_content += f"EVs: {ev_spread}\n"
-            else:
-                pokepaste_content += f"EVs: {ev_spread}\n"
+            # Parse the raw EV string and format it properly
+            ev_dict = parse_ev_spread(pokemon['ev_spread'])
+            formatted_evs = format_evs_for_pokepaste(ev_dict)
+            pokepaste_content += f"EVs: {formatted_evs}\n"
         
         # Nature
         if pokemon.get('nature') and pokemon['nature'] != "Not specified in article":
