@@ -1278,14 +1278,14 @@ def get_pokemon_sprite_url(pokemon_name: str) -> str:
             "koraidon": "koraidon",
             "miraidon": "miraidon",
             "ogerpon": "ogerpon",
-            "ogerpon-teal": "ogerpon-teal-mask",
-            "ogerpon-wellspring": "ogerpon-wellspring-mask", 
-            "ogerpon-hearthflame": "ogerpon-hearthflame-mask",
-            "ogerpon-cornerstone": "ogerpon-cornerstone-mask",
-            "ogerpon-teal-mask": "ogerpon-teal-mask",
-            "ogerpon-wellspring-mask": "ogerpon-wellspring-mask",
-            "ogerpon-hearthflame-mask": "ogerpon-hearthflame-mask", 
-            "ogerpon-cornerstone-mask": "ogerpon-cornerstone-mask",
+            "ogerpon-teal": "ogerpon-teal",
+            "ogerpon-wellspring": "ogerpon-wellspring", 
+            "ogerpon-hearthflame": "ogerpon-hearthflame",
+            "ogerpon-cornerstone": "ogerpon-cornerstone",
+            "ogerpon-teal-mask": "ogerpon-teal",
+            "ogerpon-wellspring-mask": "ogerpon-wellspring",
+            "ogerpon-hearthflame-mask": "ogerpon-hearthflame", 
+            "ogerpon-cornerstone-mask": "ogerpon-cornerstone",
             "fezandipiti": "fezandipiti",
             "munkidori": "munkidori",
             "okidogi": "okidogi",
@@ -1763,6 +1763,16 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 - いかりのまえば → "Super Fang"
 - ねこだまし → "Fake Out"
 
+**NATURE TRANSLATIONS (Critical for VGC):**
+- ようき → "Jolly" (+Speed, -Special Attack)
+- いじっぱり → "Adamant" (+Attack, -Special Attack)  
+- おくびょう → "Timid" (+Speed, -Attack)
+- ひかえめ → "Modest" (+Special Attack, -Attack)
+- わんぱく → "Impish" (+Defense, -Special Attack)
+- しんちょう → "Careful" (+Special Defense, -Special Attack)
+- れいせい → "Quiet" (+Special Attack, -Speed)
+- ゆうかん → "Brave" (+Attack, -Speed)
+
 **ANCIENT PARADOX POKEMON IDENTIFICATION (CRITICAL - DLC Forms):**
 - タケルライコ/Raging Bolt: Electric/Dragon, Protosynthesis ability, based on Raikou
 - ウネルミナモ/Walking Wake: Water/Dragon, Protosynthesis ability, based on Suicune  
@@ -1793,6 +1803,13 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 - Both are Ancient forms but different types and based on different legendary beasts
 - Raging Bolt has Electric moves (10まんボルト/Thunderbolt, じんらい/Thunderclap)
 - Walking Wake has Water moves (ハイドロポンプ/Hydro Pump, しおまき/Flip Turn)
+
+**OGERPON FORM IDENTIFICATION (Critical - Mask Forms):**
+- いしずえのめん/Cornerstone Mask → "Ogerpon-Cornerstone" (Grass/Rock, Tera Rock, Sturdy ability)
+- みどりのめん/Teal Mask → "Ogerpon-Teal" (Grass, Tera Grass, Defiant ability)
+- いどのめん/Wellspring Mask → "Ogerpon-Wellspring" (Grass/Water, Tera Water, Water Absorb ability)
+- かまどのめん/Hearthflame Mask → "Ogerpon-Hearthflame" (Grass/Fire, Tera Fire, Mold Breaker ability)
+- オーガポン → "Ogerpon" (base form identification)
 
 **ABILITY TRANSLATIONS (Critical for Paradox Pokemon):**
 - こだいかっせい/古代活性 → "Protosynthesis" (Ancient Paradox ability)
