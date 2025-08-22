@@ -1278,6 +1278,14 @@ def get_pokemon_sprite_url(pokemon_name: str) -> str:
             "koraidon": "koraidon",
             "miraidon": "miraidon",
             "ogerpon": "ogerpon",
+            "ogerpon-teal": "ogerpon-teal-mask",
+            "ogerpon-wellspring": "ogerpon-wellspring-mask", 
+            "ogerpon-hearthflame": "ogerpon-hearthflame-mask",
+            "ogerpon-cornerstone": "ogerpon-cornerstone-mask",
+            "ogerpon-teal-mask": "ogerpon-teal-mask",
+            "ogerpon-wellspring-mask": "ogerpon-wellspring-mask",
+            "ogerpon-hearthflame-mask": "ogerpon-hearthflame-mask", 
+            "ogerpon-cornerstone-mask": "ogerpon-cornerstone-mask",
             "fezandipiti": "fezandipiti",
             "munkidori": "munkidori",
             "okidogi": "okidogi",
@@ -1726,8 +1734,8 @@ Provide your response in the following JSON format:
 
 CRITICAL POKEMON NAME TRANSLATION RULES:
 **TREASURES OF RUIN - COMMON MISTRANSLATIONS:**
-- パオジアン/パオチエン/Pao Chien → "Chi-Yu" (Fire/Dark, Beads of Ruin ability)
-- チエンパオ/チェンパオ/Chien Pau → "Chien-Pao" (Ice/Dark, Sword of Ruin ability)  
+- チイユウ/チーユー/Chi Yu → "Chi-Yu" (Fire/Dark, Beads of Ruin ability)
+- パオジアン/パオチエン/Pao Chien → "Chien-Pao" (Ice/Dark, Sword of Ruin ability)
 - ディンルー/Ting Yu → "Ting-Lu" (Dark/Ground, Vessel of Ruin ability)
 - ウーラオス/Wo Chien → "Wo-Chien" (Dark/Grass, Tablets of Ruin ability)
 
@@ -2147,9 +2155,12 @@ def render_new_analysis_page():
                 help="Use LangChain for better content extraction (requires additional dependencies)"
             )
     
-    # Analyze button
-    if st.button("🔍 Analyze Article", type="primary", use_container_width=True):
+    # Analyze button (disabled during processing)
+    is_processing = st.session_state.get('is_processing', False)
+    if st.button("🔍 Analyze Article", type="primary", use_container_width=True, disabled=is_processing):
         if url or manual_text:
+            # Set processing state
+            st.session_state['is_processing'] = True
             with st.spinner("Analyzing article..."):
                 content = None
                 
@@ -2176,9 +2187,17 @@ def render_new_analysis_page():
                     st.session_state['article_content'] = content
                     analysis_images = images if enable_image_analysis else []
                     st.session_state['analysis_result'] = analyzer.analyze_article(content, url, analysis_images)
+                    # Clear processing state
+                    st.session_state['is_processing'] = False
                     st.rerun()
+                else:
+                    st.error("Unable to extract content from the provided source")
+                    # Clear processing state on error
+                    st.session_state['is_processing'] = False
         else:
             st.warning("Please provide either a URL or paste article text")
+            # Clear processing state if no input provided
+            st.session_state['is_processing'] = False
 
     # Results Section
     if 'analysis_result' in st.session_state and st.session_state['analysis_result']:
