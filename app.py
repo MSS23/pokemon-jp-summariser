@@ -17,9 +17,11 @@ from io import BytesIO
 from PIL import Image
 import hashlib
 from datetime import datetime, timedelta
+
 try:
     from langchain_community.document_loaders import WebBaseLoader
     from langchain.text_splitter import RecursiveCharacterTextSplitter
+
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
@@ -28,7 +30,7 @@ except ImportError:
 ITEM_TRANSLATIONS = {
     # English to Japanese
     "leftovers": "たべのこし",
-    "focus-sash": "きあいのタスキ", 
+    "focus-sash": "きあいのタスキ",
     "mystic-water": "しんぴのしずく",
     "life-orb": "いのちのたま",
     "choice-band": "こだわりハチマキ",
@@ -45,14 +47,13 @@ ITEM_TRANSLATIONS = {
     "mental-herb": "メンタルハーブ",
     "wide-lens": "こうかくレンズ",
     "mirror-herb": "ものまねハーブ",
-    
     # Japanese to English (reverse mapping)
     "たべのこし": "leftovers",
     "きあいのタスキ": "focus-sash",
     "しんぴのしずく": "mystic-water",
     "いのちのたま": "life-orb",
     "こだわりハチマキ": "choice-band",
-    "こだわりメガネ": "choice-specs", 
+    "こだわりメガネ": "choice-specs",
     "こだわりスカーフ": "choice-scarf",
     "とつげきチョッキ": "assault-vest",
     "オボンのみ": "sitrus-berry",
@@ -64,17 +65,35 @@ ITEM_TRANSLATIONS = {
     "ゴツゴツメット": "rocky-helmet",
     "メンタルハーブ": "mental-herb",
     "こうかくレンズ": "wide-lens",
-    "ものまねハーブ": "mirror-herb"
+    "ものまねハーブ": "mirror-herb",
 }
 
 # Common VGC Items List for Vision Recognition
 COMMON_VGC_ITEMS = [
-    "Leftovers", "Focus Sash", "Mystic Water", "Life Orb",
-    "Choice Band", "Choice Specs", "Choice Scarf", "Assault Vest", 
-    "Sitrus Berry", "Lum Berry", "Safety Goggles", "Booster Energy",
-    "Clear Amulet", "Covert Cloak", "Rocky Helmet", "Mental Herb",
-    "Wide Lens", "Mirror Herb", "Expert Belt", "Weakness Policy",
-    "たべのこし", "きあいのタスキ", "しんぴのしずく", "いのちのたま"
+    "Leftovers",
+    "Focus Sash",
+    "Mystic Water",
+    "Life Orb",
+    "Choice Band",
+    "Choice Specs",
+    "Choice Scarf",
+    "Assault Vest",
+    "Sitrus Berry",
+    "Lum Berry",
+    "Safety Goggles",
+    "Booster Energy",
+    "Clear Amulet",
+    "Covert Cloak",
+    "Rocky Helmet",
+    "Mental Herb",
+    "Wide Lens",
+    "Mirror Herb",
+    "Expert Belt",
+    "Weakness Policy",
+    "たべのこし",
+    "きあいのタスキ",
+    "しんぴのしずく",
+    "いのちのたま",
 ]
 
 # VGC Regulation Database (Scarlet & Violet Era)
@@ -83,69 +102,166 @@ VGC_REGULATIONS = {
         "period": "November 2022 - January 2023",
         "description": "Paldea Dex only, no legendaries/mythicals",
         "restricted": [],
-        "banned": ["Legendaries", "Mythicals", "Paradox Pokemon"]
+        "banned": ["Legendaries", "Mythicals", "Paradox Pokemon"],
     },
     "B": {
-        "period": "February 2023 - May 2023", 
+        "period": "February 2023 - May 2023",
         "description": "Paldea Dex + Home transfer, no restricted",
         "restricted": [],
-        "banned": ["Restricted Legendaries"]
+        "banned": ["Restricted Legendaries"],
     },
     "C": {
         "period": "May 2023 - September 2023",
         "description": "Series 1 with restricted legendaries allowed",
         "restricted": ["Koraidon", "Miraidon", "Box Legendaries"],
-        "banned": []
+        "banned": [],
     },
     "D": {
         "period": "September 2023 - January 2024",
         "description": "Series 2 with expanded legendary pool",
-        "restricted": ["Koraidon", "Miraidon", "Kyogre", "Groudon", "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem", "Xerneas", "Yveltal", "Zygarde", "Cosmog", "Cosmoem", "Solgaleo", "Lunala", "Necrozma"],
-        "banned": []
+        "restricted": [
+            "Koraidon",
+            "Miraidon",
+            "Kyogre",
+            "Groudon",
+            "Dialga",
+            "Palkia",
+            "Giratina",
+            "Reshiram",
+            "Zekrom",
+            "Kyurem",
+            "Xerneas",
+            "Yveltal",
+            "Zygarde",
+            "Cosmog",
+            "Cosmoem",
+            "Solgaleo",
+            "Lunala",
+            "Necrozma",
+        ],
+        "banned": [],
     },
     "E": {
         "period": "January 2024 - May 2024",
         "description": "Series 3 with Treasures of Ruin",
-        "restricted": ["Koraidon", "Miraidon", "Chi-Yu", "Chien-Pao", "Ting-Lu", "Wo-Chien"] + ["Kyogre", "Groudon", "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem", "Xerneas", "Yveltal", "Zygarde", "Solgaleo", "Lunala", "Necrozma"],
-        "banned": []
+        "restricted": [
+            "Koraidon",
+            "Miraidon",
+            "Chi-Yu",
+            "Chien-Pao",
+            "Ting-Lu",
+            "Wo-Chien",
+        ]
+        + [
+            "Kyogre",
+            "Groudon",
+            "Dialga",
+            "Palkia",
+            "Giratina",
+            "Reshiram",
+            "Zekrom",
+            "Kyurem",
+            "Xerneas",
+            "Yveltal",
+            "Zygarde",
+            "Solgaleo",
+            "Lunala",
+            "Necrozma",
+        ],
+        "banned": [],
     },
     "F": {
         "period": "May 2024 - September 2024",
         "description": "Series 4 with DLC legendaries",
-        "restricted": ["Koraidon", "Miraidon", "Kyogre", "Groudon", "Rayquaza", "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem", "Xerneas", "Yveltal", "Zygarde", "Solgaleo", "Lunala", "Necrozma", "Calyrex", "Calyrex-Ice", "Calyrex-Shadow"],
-        "banned": []
+        "restricted": [
+            "Koraidon",
+            "Miraidon",
+            "Kyogre",
+            "Groudon",
+            "Rayquaza",
+            "Dialga",
+            "Palkia",
+            "Giratina",
+            "Reshiram",
+            "Zekrom",
+            "Kyurem",
+            "Xerneas",
+            "Yveltal",
+            "Zygarde",
+            "Solgaleo",
+            "Lunala",
+            "Necrozma",
+            "Calyrex",
+            "Calyrex-Ice",
+            "Calyrex-Shadow",
+        ],
+        "banned": [],
     },
     "G": {
         "period": "September 2024 - January 2025",
-        "description": "Series 5 with expanded roster", 
+        "description": "Series 5 with expanded roster",
         "restricted": ["All Box Legendaries", "Calyrex forms", "Urshifu forms"],
-        "banned": []
+        "banned": [],
     },
     "H": {
         "period": "January 2025 - May 2025",
         "description": "Series 6 current format",
         "restricted": ["All Previous Restricted Pokemon"],
-        "banned": []
+        "banned": [],
     },
     "I": {
         "period": "May 2025 onwards",
         "description": "Series 7 upcoming format",
         "restricted": ["TBD"],
-        "banned": []
-    }
+        "banned": [],
+    },
 }
 
 # Regulation Detection Keywords
 REGULATION_KEYWORDS = {
-    "A": ["Paldea Dex", "no legendaries", "November 2022", "December 2022", "January 2023"],
+    "A": [
+        "Paldea Dex",
+        "no legendaries",
+        "November 2022",
+        "December 2022",
+        "January 2023",
+    ],
     "B": ["Home transfer", "February 2023", "March 2023", "April 2023", "May 2023"],
-    "C": ["restricted legendaries", "Series 1", "Koraidon", "Miraidon", "May 2023", "June 2023"],
-    "D": ["expanded legendary", "Series 2", "September 2023", "October 2023", "November 2023", "December 2023"],
-    "E": ["Treasures of Ruin", "Series 3", "Chi-Yu", "Chien-Pao", "January 2024", "February 2024"],
-    "F": ["DLC legendaries", "Series 4", "Calyrex", "May 2024", "June 2024", "July 2024"],
+    "C": [
+        "restricted legendaries",
+        "Series 1",
+        "Koraidon",
+        "Miraidon",
+        "May 2023",
+        "June 2023",
+    ],
+    "D": [
+        "expanded legendary",
+        "Series 2",
+        "September 2023",
+        "October 2023",
+        "November 2023",
+        "December 2023",
+    ],
+    "E": [
+        "Treasures of Ruin",
+        "Series 3",
+        "Chi-Yu",
+        "Chien-Pao",
+        "January 2024",
+        "February 2024",
+    ],
+    "F": [
+        "DLC legendaries",
+        "Series 4",
+        "Calyrex",
+        "May 2024",
+        "June 2024",
+        "July 2024",
+    ],
     "G": ["Series 5", "expanded roster", "September 2024", "October 2024"],
     "H": ["Series 6", "January 2025", "current format"],
-    "I": ["Series 7", "May 2025", "upcoming"]
+    "I": ["Series 7", "May 2025", "upcoming"],
 }
 
 # Page configuration
@@ -153,11 +269,12 @@ st.set_page_config(
     page_title="Pokemon VGC Article Analyzer",
     page_icon="⚔️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # CSS for styling
-st.markdown("""
+st.markdown(
+    """
 <style>
     .main {
         padding-top: 1rem;
@@ -727,115 +844,212 @@ st.markdown("""
         align-items: center;
         gap: 8px;
     }
+    
+    /* EV Source Transparency Indicators */
+    .ev-source-warning {
+        margin-top: 12px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        text-align: center;
+        border: 1px solid;
+    }
+    
+    .ev-source-default-calculated {
+        background: rgba(255, 152, 0, 0.1);
+        border-color: #ff9800;
+        color: #e65100;
+    }
+    
+    .ev-source-default-missing {
+        background: rgba(244, 67, 54, 0.1);
+        border-color: #f44336;
+        color: #c62828;
+    }
+    
+    .ev-source-default-invalid {
+        background: rgba(156, 39, 176, 0.1);
+        border-color: #9c27b0;
+        color: #7b1fa2;
+    }
+    
+    .ev-source-article {
+        background: rgba(76, 175, 80, 0.1);
+        border-color: #4caf50;
+        color: #2e7d32;
+    }
+    
+    .ev-container.has-warning {
+        border-color: #ff9800;
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+    }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
-def parse_ev_spread(ev_string: str) -> Dict[str, int]:
-    """Parse EV spread string into individual stat values, including Japanese formats"""
-    stat_names = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
+
+def parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
+    """Parse EV spread string into individual stat values, including Japanese formats
+    
+    Returns:
+        tuple: (ev_dict, source) where source indicates data authenticity
+    """
+    stat_names = ["hp", "atk", "def", "spa", "spd", "spe"]
     ev_dict = {stat: 0 for stat in stat_names}
-    
+
     if not ev_string or ev_string == "Not specified in article":
-        return ev_dict
-    
+        return validate_and_fix_evs(ev_dict)
+
     try:
         import re
-        
+
         # Handle standard format: "252/0/4/252/0/0"
-        if '/' in ev_string and not any(c in ev_string for c in ['HP', 'Atk', 'Def', 'SpA', 'SpD', 'Spe', 'H', 'A', 'B', 'C', 'D', 'S']):
-            values = [int(x.strip()) for x in ev_string.split('/')]
-            for i, value in enumerate(values[:6]):
-                if i < len(stat_names):
-                    ev_dict[stat_names[i]] = value
-            return ev_dict
-        
+        if "/" in ev_string and not any(
+            c in ev_string
+            for c in [
+                "HP",
+                "Atk",
+                "Def",
+                "SpA",
+                "SpD",
+                "Spe",
+                "H",
+                "A",
+                "B",
+                "C",
+                "D",
+                "S",
+            ]
+        ):
+            values = [int(x.strip()) for x in ev_string.split("/")]
+            # Early validation - if these look like calculated stats, skip parsing them
+            if not is_calculated_stats(values[:6]):
+                for i, value in enumerate(values[:6]):
+                    if i < len(stat_names):
+                        ev_dict[stat_names[i]] = value
+                return ev_dict
+
         # Enhanced pattern matching for multiple formats
         patterns = {
-            'hp': [
-                r'(\d+)\s*HP',
-                r'(\d+)\s*H(?![a-z])',  # H but not followed by lowercase (to avoid "Heavy")
-                r'H(\d+)',
-                r'(\d+)\s*(?:HP|ヒットポイント|体力)',
-                r'HP\s*(\d+)',
-                r'体力\s*(\d+)'
+            "hp": [
+                r"(\d+)\s*HP",
+                r"(\d+)\s*H(?![a-z])",  # H but not followed by lowercase (to avoid "Heavy")
+                r"H(\d+)",
+                r"(\d+)\s*(?:HP|ヒットポイント|体力)",
+                r"HP\s*(\d+)",
+                r"体力\s*(\d+)",
             ],
-            'atk': [
-                r'(\d+)\s*(?:Atk|Attack|A(?![a-z]))',
-                r'(\d+)\s*(?:攻撃|こうげき)',
-                r'A(\d+)',
-                r'攻撃\s*(\d+)',
-                r'(?:Atk|Attack)\s*(\d+)'
+            "atk": [
+                r"(\d+)\s*(?:Atk|Attack|A(?![a-z]))",
+                r"(\d+)\s*(?:攻撃|こうげき)",
+                r"A(\d+)",
+                r"攻撃\s*(\d+)",
+                r"(?:Atk|Attack)\s*(\d+)",
             ],
-            'def': [
-                r'(\d+)\s*(?:Def|Defense|B(?![a-z]))',
-                r'(\d+)\s*(?:防御|ぼうぎょ)',
-                r'B(\d+)',
-                r'防御\s*(\d+)',
-                r'(?:Def|Defense)\s*(\d+)'
+            "def": [
+                r"(\d+)\s*(?:Def|Defense|B(?![a-z]))",
+                r"(\d+)\s*(?:防御|ぼうぎょ)",
+                r"B(\d+)",
+                r"防御\s*(\d+)",
+                r"(?:Def|Defense)\s*(\d+)",
             ],
-            'spa': [
-                r'(\d+)\s*(?:SpA|Sp\.?\s*A|Special\s*Attack|C(?![a-z]))',
-                r'(\d+)\s*(?:特攻|とくこう|特殊攻撃)',
-                r'C(\d+)',
-                r'特攻\s*(\d+)',
-                r'特殊攻撃\s*(\d+)',
-                r'(?:SpA|Special\s*Attack)\s*(\d+)'
+            "spa": [
+                r"(\d+)\s*(?:SpA|Sp\.?\s*A|Special\s*Attack|C(?![a-z]))",
+                r"(\d+)\s*(?:特攻|とくこう|特殊攻撃)",
+                r"C(\d+)",
+                r"特攻\s*(\d+)",
+                r"特殊攻撃\s*(\d+)",
+                r"(?:SpA|Special\s*Attack)\s*(\d+)",
             ],
-            'spd': [
-                r'(\d+)\s*(?:SpD|Sp\.?\s*D|Special\s*Defense|D(?![a-z]))',
-                r'(\d+)\s*(?:特防|とくぼう|特殊防御)',
-                r'D(\d+)',
-                r'特防\s*(\d+)',
-                r'特殊防御\s*(\d+)',
-                r'(?:SpD|Special\s*Defense)\s*(\d+)'
+            "spd": [
+                r"(\d+)\s*(?:SpD|Sp\.?\s*D|Special\s*Defense|D(?![a-z]))",
+                r"(\d+)\s*(?:特防|とくぼう|特殊防御)",
+                r"D(\d+)",
+                r"特防\s*(\d+)",
+                r"特殊防御\s*(\d+)",
+                r"(?:SpD|Special\s*Defense)\s*(\d+)",
             ],
-            'spe': [
-                r'(\d+)\s*(?:Spe|Speed|S(?![a-z]))',
-                r'(\d+)\s*(?:素早さ|すばやさ|速度)',
-                r'S(\d+)',
-                r'素早さ\s*(\d+)',
-                r'速度\s*(\d+)',
-                r'(?:Spe|Speed)\s*(\d+)'
-            ]
+            "spe": [
+                r"(\d+)\s*(?:Spe|Speed|S(?![a-z]))",
+                r"(\d+)\s*(?:素早さ|すばやさ|速度)",
+                r"S(\d+)",
+                r"素早さ\s*(\d+)",
+                r"速度\s*(\d+)",
+                r"(?:Spe|Speed)\s*(\d+)",
+            ],
         }
-        
+
+        # First check for calculated stats patterns (liberty-note.com format)
+        # Pattern: H202, A205↑, B141, D106, S75 (comma-separated with nature indicators)
+        calc_stats_patterns = [
+            r"H(\d+),?\s*A(\d+)[↑↓]?,?\s*B(\d+),?\s*(?:C(\d+),?\s*)?D(\d+),?\s*S(\d+)",  # With nature indicators
+            r"H(\d+),\s*A(\d+),\s*B(\d+),\s*D(\d+),\s*S(\d+)",  # Simple comma-separated (5 values, missing SpA)
+            r"H(\d+),\s*A(\d+),\s*B(\d+),\s*C(\d+),\s*D(\d+),\s*S(\d+)",  # Simple comma-separated (6 values)
+        ]
+
+        for calc_pattern in calc_stats_patterns:
+            calc_stats_match = re.search(calc_pattern, ev_string)
+            if calc_stats_match:
+                groups = calc_stats_match.groups()
+                values = [int(g) if g else 0 for g in groups]
+                # Insert 0 for missing SpA if pattern has only 5 values
+                if len(values) == 5:  # Missing SpA
+                    values.insert(3, 0)  # Insert 0 at position 3 (SpA)
+                if is_calculated_stats(values):
+                    # Don't return early - let validate_and_fix_evs handle the zeros
+                    break  # Exit the pattern loop but continue to validation
+
         # Handle Japanese format with separators: H252-A0-B4-C252-D0-S0 or H252 A0 B4 C252 D0 S0
         japanese_format_patterns = [
-            r'H(\d+)[-・\s]+A(\d+)[-・\s]+B(\d+)[-・\s]+C(\d+)[-・\s]+D(\d+)[-・\s]+S(\d+)',
-            r'H(\d+)\s+A(\d+)\s+B(\d+)\s+C(\d+)\s+D(\d+)\s+S(\d+)',
-            r'H(\d+)-A(\d+)-B(\d+)-C(\d+)-D(\d+)-S(\d+)',
-            r'H(\d+)・A(\d+)・B(\d+)・C(\d+)・D(\d+)・S(\d+)',
+            r"H(\d+)[-・\s]+A(\d+)[-・\s]+B(\d+)[-・\s]+C(\d+)[-・\s]+D(\d+)[-・\s]+S(\d+)",
+            r"H(\d+)\s+A(\d+)\s+B(\d+)\s+C(\d+)\s+D(\d+)\s+S(\d+)",
+            r"H(\d+)-A(\d+)-B(\d+)-C(\d+)-D(\d+)-S(\d+)",
+            r"H(\d+)・A(\d+)・B(\d+)・C(\d+)・D(\d+)・S(\d+)",
             # Note.com specific patterns with extra spacing/formatting
-            r'H\s*(\d+)\s*[-・\s]\s*A\s*(\d+)\s*[-・\s]\s*B\s*(\d+)\s*[-・\s]\s*C\s*(\d+)\s*[-・\s]\s*D\s*(\d+)\s*[-・\s]\s*S\s*(\d+)'
+            r"H\s*(\d+)\s*[-・\s]\s*A\s*(\d+)\s*[-・\s]\s*B\s*(\d+)\s*[-・\s]\s*C\s*(\d+)\s*[-・\s]\s*D\s*(\d+)\s*[-・\s]\s*S\s*(\d+)",
         ]
-        
+
         for pattern in japanese_format_patterns:
             japanese_format_match = re.search(pattern, ev_string)
             if japanese_format_match:
                 values = [int(x) for x in japanese_format_match.groups()]
+                # Check if these are calculated stats instead of EVs
+                if not is_calculated_stats(values):
+                    for i, value in enumerate(values):
+                        if i < len(stat_names):
+                            ev_dict[stat_names[i]] = value
+                    return ev_dict
+
+        # Handle exact H/A/B/C/D/S pattern with word boundaries
+        exact_pattern_match = re.search(
+            r"\bH(\d+)\b.*?\bA(\d+)\b.*?\bB(\d+)\b.*?\bC(\d+)\b.*?\bD(\d+)\b.*?\bS(\d+)\b",
+            ev_string,
+        )
+        if exact_pattern_match:
+            values = [int(x) for x in exact_pattern_match.groups()]
+            # Check if these are calculated stats instead of EVs
+            if not is_calculated_stats(values):
                 for i, value in enumerate(values):
                     if i < len(stat_names):
                         ev_dict[stat_names[i]] = value
                 return ev_dict
-        
-        # Handle exact H/A/B/C/D/S pattern with word boundaries
-        exact_pattern_match = re.search(r'\bH(\d+)\b.*?\bA(\d+)\b.*?\bB(\d+)\b.*?\bC(\d+)\b.*?\bD(\d+)\b.*?\bS(\d+)\b', ev_string)
-        if exact_pattern_match:
-            values = [int(x) for x in exact_pattern_match.groups()]
-            for i, value in enumerate(values):
-                if i < len(stat_names):
-                    ev_dict[stat_names[i]] = value
-            return ev_dict
-        
+
         # Handle effort value prefix formats: 努力値: H252/A0/B4/C252/D0/S0
-        effort_match = re.search(r'(?:努力値|EV|ev)[:：]\s*H(\d+)[-/・\s]A(\d+)[-/・\s]B(\d+)[-/・\s]C(\d+)[-/・\s]D(\d+)[-/・\s]S(\d+)', ev_string)
+        effort_match = re.search(
+            r"(?:努力値|EV|ev)[:：]\s*H(\d+)[-/・\s]A(\d+)[-/・\s]B(\d+)[-/・\s]C(\d+)[-/・\s]D(\d+)[-/・\s]S(\d+)",
+            ev_string,
+        )
         if effort_match:
             values = [int(x) for x in effort_match.groups()]
-            for i, value in enumerate(values):
-                if i < len(stat_names):
-                    ev_dict[stat_names[i]] = value
-            return ev_dict
-        
+            # Even with EV prefix, validate the numbers
+            if not is_calculated_stats(values):
+                for i, value in enumerate(values):
+                    if i < len(stat_names):
+                        ev_dict[stat_names[i]] = value
+                return ev_dict
+
         # Try all patterns for each stat
         for stat, pattern_list in patterns.items():
             for pattern in pattern_list:
@@ -843,46 +1057,128 @@ def parse_ev_spread(ev_string: str) -> Dict[str, int]:
                 if match:
                     ev_dict[stat] = int(match.group(1))
                     break  # Use first match found for this stat
-        
+
         # Handle Japanese descriptive format with mixed separators
         # Example: HP252・攻撃0・防御4・特攻252・特防0・素早さ0
         japanese_desc_patterns = [
-            (r'HP(\d+)', 'hp'),
-            (r'攻撃(\d+)', 'atk'),
-            (r'防御(\d+)', 'def'),
-            (r'特攻(\d+)', 'spa'),
-            (r'特防(\d+)', 'spd'),
-            (r'素早さ(\d+)', 'spe'),
-            (r'体力(\d+)', 'hp'),
-            (r'こうげき(\d+)', 'atk'),
-            (r'ぼうぎょ(\d+)', 'def'),
-            (r'とくこう(\d+)', 'spa'),
-            (r'とくぼう(\d+)', 'spd'),
-            (r'すばやさ(\d+)', 'spe')
+            (r"HP(\d+)", "hp"),
+            (r"攻撃(\d+)", "atk"),
+            (r"防御(\d+)", "def"),
+            (r"特攻(\d+)", "spa"),
+            (r"特防(\d+)", "spd"),
+            (r"素早さ(\d+)", "spe"),
+            (r"体力(\d+)", "hp"),
+            (r"こうげき(\d+)", "atk"),
+            (r"ぼうぎょ(\d+)", "def"),
+            (r"とくこう(\d+)", "spa"),
+            (r"とくぼう(\d+)", "spd"),
+            (r"すばやさ(\d+)", "spe"),
         ]
-        
+
         for pattern, stat in japanese_desc_patterns:
             match = re.search(pattern, ev_string)
             if match:
                 ev_dict[stat] = int(match.group(1))
-    
+
     except:
         # If parsing fails, return zeros
         pass
-    
-    # Validate EV total and provide defaults if needed
-    ev_dict = validate_and_fix_evs(ev_dict)
-    return ev_dict
 
-def validate_and_fix_evs(ev_dict: Dict[str, int]) -> Dict[str, int]:
-    """Validate EV spread and provide reasonable defaults if incomplete"""
-    total = sum(ev_dict.values())
+    # Validate EV total and provide defaults if needed
+    return validate_and_fix_evs(ev_dict)
+
+
+def is_calculated_stats(numbers: List[int]) -> bool:
+    """Detect if numbers appear to be calculated stats rather than EVs"""
+    if not numbers or len(numbers) != 6:
+        return False
+
+    # Check for typical calculated stat patterns
+    # Calculated stats are usually 100-400+ range at level 50
+    # EVs are 0-252 per stat, total ≤508
+
+    # If any individual stat is >252, it's likely calculated stats
+    if any(num > 252 for num in numbers):
+        return True
+
+    # If total is way over 508, it's calculated stats
+    total = sum(numbers)
+    if total > 600:  # Much higher than max EV total
+        return True
+
+    # If all values are in typical calculated stat ranges (100-250)
+    # and none are 0, 4, or other common EV values
+    common_ev_values = {
+        0,
+        4,
+        6,
+        12,
+        20,
+        36,
+        44,
+        52,
+        60,
+        68,
+        76,
+        84,
+        92,
+        100,
+        108,
+        116,
+        124,
+        132,
+        140,
+        148,
+        156,
+        164,
+        172,
+        180,
+        188,
+        196,
+        204,
+        212,
+        220,
+        228,
+        236,
+        244,
+        252,
+    }
+    uncommon_values = [
+        num for num in numbers if num not in common_ev_values and num > 100
+    ]
+
+    # If most values are uncommon EV amounts and in calc stat range
+    if len(uncommon_values) >= 4 and all(100 <= num <= 250 for num in uncommon_values):
+        return True
+
+    return False
+
+
+def validate_and_fix_evs(ev_dict: Dict[str, int]) -> Tuple[Dict[str, int], str]:
+    """Validate EV spread and provide reasonable defaults if incomplete
     
+    Returns:
+        tuple: (ev_dict, source) where source is one of:
+        - 'article': EVs parsed from article content
+        - 'default_calculated_stats': Default spread due to calculated stats detected
+        - 'default_missing': Default spread due to missing/incomplete EVs
+        - 'default_invalid': Default spread due to invalid EV total
+    """
+    values_list = list(ev_dict.values())
+
+    # Check if these look like calculated stats instead of EVs
+    if is_calculated_stats(values_list):
+        # These appear to be calculated stats, not EVs
+        # Return default competitive EV spread instead
+        return {"hp": 252, "atk": 0, "def": 4, "spa": 252, "spd": 0, "spe": 0}, 'default_calculated_stats'
+
+    total = sum(ev_dict.values())
+
     # If EVs total 0 or are clearly incomplete, provide reasonable defaults
     if total == 0:
         # Common competitive spread: 252/0/4/252/0/0 (HP/Atk/Def/SpA/SpD/Spe)
-        return {'hp': 252, 'atk': 0, 'def': 4, 'spa': 252, 'spd': 0, 'spe': 0}
-    
+        return {"hp": 252, "atk": 0, "def": 4, "spa": 252, "spd": 0, "spe": 0}, 'default_missing'
+
     # If total is not 508 (max allowed), try to fix common issues
     if total != 508:
         # If close to 508, adjust the largest investment
@@ -892,25 +1188,25 @@ def validate_and_fix_evs(ev_dict: Dict[str, int]) -> Dict[str, int]:
             max_stat = max(ev_dict.items(), key=lambda x: x[1])
             if max_stat[1] + diff >= 0:
                 ev_dict[max_stat[0]] += diff
+            return ev_dict, 'article'  # Still from article, just adjusted
+
+        # If significantly different, provide default
+        elif total > 600 or total < 100:  # Clearly invalid
+            return {"hp": 252, "atk": 0, "def": 4, "spa": 252, "spd": 0, "spe": 0}, 'default_invalid'
         
-        # If significantly different, note as potentially incomplete
-        elif total < 400:  # Clearly incomplete
-            # Keep what we have but note it's incomplete
-            pass
-    
-    return ev_dict
+        # If moderately off but reasonable (partial data)
+        else:
+            return ev_dict, 'article'  # Keep partial data from article
+
+    # Valid total of 508, return as-is from article
+    return ev_dict, 'article'
+
 
 def get_stat_icon(stat: str) -> str:
     """Get emoji icon for stat"""
-    icons = {
-        'hp': '❤️',
-        'atk': '⚔️', 
-        'def': '🛡️',
-        'spa': '🔮',
-        'spd': '🔰',
-        'spe': '⚡'
-    }
-    return icons.get(stat, '📊')
+    icons = {"hp": "❤️", "atk": "⚔️", "def": "🛡️", "spa": "🔮", "spd": "🔰", "spe": "⚡"}
+    return icons.get(stat, "📊")
+
 
 def get_pokemon_type_class(tera_type: str) -> str:
     """Get CSS class for Pokemon type"""
@@ -918,46 +1214,48 @@ def get_pokemon_type_class(tera_type: str) -> str:
         return "type-normal"
     return f"type-{tera_type.lower()}"
 
+
 def get_role_class(role: str) -> str:
     """Get CSS class for Pokemon role"""
     if not role or role == "Not specified":
         return "role-utility"
-    
+
     role_lower = role.lower().replace(" ", "-")
     role_mappings = {
-        'physical-attacker': 'role-physical-attacker',
-        'special-attacker': 'role-special-attacker', 
-        'physical-wall': 'role-physical-wall',
-        'special-wall': 'role-special-wall',
-        'support': 'role-support',
-        'speed-control': 'role-speed-control',
-        'utility': 'role-utility'
+        "physical-attacker": "role-physical-attacker",
+        "special-attacker": "role-special-attacker",
+        "physical-wall": "role-physical-wall",
+        "special-wall": "role-special-wall",
+        "support": "role-support",
+        "speed-control": "role-speed-control",
+        "utility": "role-utility",
     }
-    
+
     for key, class_name in role_mappings.items():
         if key in role_lower:
             return class_name
-    
+
     return "role-utility"
+
 
 def create_ev_visualization(ev_spread: str) -> str:
     """Create HTML for EV visualization with progress bars"""
-    ev_dict = parse_ev_spread(ev_spread)
+    ev_dict, ev_source = parse_ev_spread(ev_spread)
     total_evs = sum(ev_dict.values())
-    
+
     # Check if total is reasonable (max 508)
     total_color = "#4CAF50" if total_evs <= 508 else "#FF5722"
-    
+
     stats_html = ""
-    stat_names = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
-    stat_labels = ['HP', 'ATK', 'DEF', 'SPA', 'SPD', 'SPE']
-    
+    stat_names = ["hp", "atk", "def", "spa", "spd", "spe"]
+    stat_labels = ["HP", "ATK", "DEF", "SPA", "SPD", "SPE"]
+
     for i, stat in enumerate(stat_names):
         value = ev_dict[stat]
         percentage = min((value / 252) * 100, 100)  # Max 252 EVs per stat
         icon = get_stat_icon(stat)
         label = stat_labels[i]
-        
+
         # Determine highlighting class based on EV investment
         if value == 0:
             investment_class = ""
@@ -973,151 +1271,192 @@ def create_ev_visualization(ev_spread: str) -> str:
         tooltip_text = f"{label}: {value} EVs ({percentage:.1f}% of max)"
         if value >= 252:
             tooltip_text += " - MAXED OUT!"
-        tooltip_text = tooltip_text.replace('"', '&quot;')
-        
+        tooltip_text = tooltip_text.replace('"', "&quot;")
+
         stats_html += (
             f'<div class="ev-stat ev-{stat} {investment_class} tooltip" data-tooltip="{tooltip_text}">'
             f'<div class="ev-stat-icon">{icon}</div>'
             f'<div class="ev-stat-name">{label}</div>'
             f'<div class="ev-stat-bar-container">'
             f'<div class="ev-stat-bar" style="width: {percentage}%"></div>'
-            f'</div>'
+            f"</div>"
             f'<div class="ev-stat-value">{value}</div>'
-            f'</div>'
+            f"</div>"
         )
+
+    # Create warning message based on EV source
+    warning_html = ""
+    container_class = "ev-container"
     
+    if ev_source == 'default_calculated_stats':
+        warning_html = '<div class="ev-source-warning ev-source-default-calculated">⚠️ Default Spread - Calculated stats detected in article (NOT real EVs)</div>'
+        container_class = "ev-container has-warning"
+    elif ev_source == 'default_missing':
+        warning_html = '<div class="ev-source-warning ev-source-default-missing">⚠️ Default Spread - No EV data found in article</div>'
+        container_class = "ev-container has-warning"
+    elif ev_source == 'default_invalid':
+        warning_html = '<div class="ev-source-warning ev-source-default-invalid">⚠️ Default Spread - Invalid EV data in article</div>'
+        container_class = "ev-container has-warning"
+    elif ev_source == 'article':
+        warning_html = '<div class="ev-source-warning ev-source-article">✅ From Article - EV spread parsed from original content</div>'
+
     html = (
-        f'<div class="ev-container">'
+        f'<div class="{container_class}">'
         f'<div class="ev-header">'
         f'<div class="ev-title">📊 EV Spread</div>'
         f'<div class="ev-total" style="color: {total_color}; border-color: {total_color}">'
-        f'{total_evs}/508 EVs'
-        f'</div>'
-        f'</div>'
+        f"{total_evs}/508 EVs"
+        f"</div>"
+        f"</div>"
         f'<div class="ev-stats-grid">'
-        f'{stats_html}'
-        f'</div>'
-        f'</div>'
+        f"{stats_html}"
+        f"</div>"
+        f"{warning_html}"
+        f"</div>"
     )
-    
+
     return html
+
 
 def format_moves_html(moves: List[str]) -> str:
     """Generate HTML for Pokemon moves"""
     if not moves:
         return '<div class="move-item">No moves specified</div>'
-    
+
     move_html = ""
     for move in moves:
         if move and move != "Not specified in article":
             move_html += f'<div class="move-item">{move}</div>'
-    
+
     return move_html if move_html else '<div class="move-item">No moves specified</div>'
+
 
 def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, Any]]:
     """Extract images from webpage that might contain VGC data"""
     images = []
     try:
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         response = requests.get(url, headers=headers, timeout=30)
         response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
         # Find all images
-        img_tags = soup.find_all('img')
-        
+        img_tags = soup.find_all("img")
+
         for img_tag in img_tags[:max_images]:
             try:
-                img_src = img_tag.get('src')
+                img_src = img_tag.get("src")
                 if not img_src:
                     continue
-                
+
                 # Convert relative URLs to absolute
                 img_url = urljoin(url, img_src)
-                
+
                 # Skip very small images (likely icons/decorations)
-                width = img_tag.get('width')
-                height = img_tag.get('height')
+                width = img_tag.get("width")
+                height = img_tag.get("height")
                 if width and height:
                     try:
                         if int(width) < 100 or int(height) < 100:
                             continue
                     except:
                         pass
-                
+
                 # Download and process image
                 img_response = requests.get(img_url, headers=headers, timeout=15)
                 if img_response.status_code == 200:
                     # Convert to base64 for Gemini Vision
-                    img_data = base64.b64encode(img_response.content).decode('utf-8')
-                    
+                    img_data = base64.b64encode(img_response.content).decode("utf-8")
+
                     # Get image info
                     try:
                         pil_img = Image.open(BytesIO(img_response.content))
                         img_format = pil_img.format
                         img_size = pil_img.size
                     except:
-                        img_format = 'unknown'
+                        img_format = "unknown"
                         img_size = (0, 0)
-                    
-                    images.append({
-                        'url': img_url,
-                        'data': img_data,
-                        'format': img_format,
-                        'size': img_size,
-                        'alt_text': img_tag.get('alt', ''),
-                        'title': img_tag.get('title', ''),
-                        'content_type': img_response.headers.get('content-type', '')
-                    })
-                    
+
+                    images.append(
+                        {
+                            "url": img_url,
+                            "data": img_data,
+                            "format": img_format,
+                            "size": img_size,
+                            "alt_text": img_tag.get("alt", ""),
+                            "title": img_tag.get("title", ""),
+                            "content_type": img_response.headers.get(
+                                "content-type", ""
+                            ),
+                        }
+                    )
+
             except Exception as e:
                 continue
-                
+
     except Exception as e:
         st.warning(f"Could not extract images: {str(e)}")
-    
+
     return images
+
 
 def is_potentially_vgc_image(image_info: Dict[str, Any]) -> bool:
     """Determine if an image might contain VGC-relevant data"""
     # Check alt text and title for VGC keywords
-    text_content = (image_info.get('alt_text', '') + ' ' + 
-                   image_info.get('title', '')).lower()
-    
+    text_content = (
+        image_info.get("alt_text", "") + " " + image_info.get("title", "")
+    ).lower()
+
     vgc_keywords = [
-        'pokemon', 'team', 'ev', 'iv', 'stats', 'battle', 'vgc',
-        'ポケモン', 'チーム', '努力値', '個体値', 'バトル',
-        'doubles', 'tournament', 'ranking'
+        "pokemon",
+        "team",
+        "ev",
+        "iv",
+        "stats",
+        "battle",
+        "vgc",
+        "ポケモン",
+        "チーム",
+        "努力値",
+        "個体値",
+        "バトル",
+        "doubles",
+        "tournament",
+        "ranking",
     ]
-    
+
     for keyword in vgc_keywords:
         if keyword in text_content:
             return True
-    
+
     # Check image size (VGC images are often screenshots)
-    width, height = image_info.get('size', (0, 0))
+    width, height = image_info.get("size", (0, 0))
     if width > 400 and height > 300:  # Reasonable screenshot size
         return True
-    
+
     # Check file format
-    if image_info.get('format') in ['PNG', 'JPEG', 'JPG']:
+    if image_info.get("format") in ["PNG", "JPEG", "JPG"]:
         return True
-    
+
     return False
 
-def encode_image_for_gemini(image_data: str, format_type: str = 'jpeg') -> Dict[str, Any]:
+
+def encode_image_for_gemini(
+    image_data: str, format_type: str = "jpeg"
+) -> Dict[str, Any]:
     """Prepare image data for Gemini Vision API"""
-    return {
-        'mime_type': f'image/{format_type.lower()}',
-        'data': image_data
-    }
+    return {"mime_type": f"image/{format_type.lower()}", "data": image_data}
+
 
 def generate_content_hash(content: str) -> str:
     """Generate SHA-256 hash for content to use as cache key"""
-    return hashlib.sha256(content.encode('utf-8')).hexdigest()[:16]  # Use first 16 chars for shorter keys
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()[
+        :16
+    ]  # Use first 16 chars for shorter keys
+
 
 def ensure_cache_directory() -> str:
     """Create cache directory if it doesn't exist and return path"""
@@ -1125,108 +1464,121 @@ def ensure_cache_directory() -> str:
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
 
+
 def get_cache_file_path(content_hash: str) -> str:
     """Get full path for cache file"""
     cache_dir = ensure_cache_directory()
     return os.path.join(cache_dir, f"{content_hash}.json")
+
 
 def check_cache(content: str, url: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Check if content analysis exists in cache"""
     try:
         content_hash = generate_content_hash(content)
         cache_file = get_cache_file_path(content_hash)
-        
+
         if os.path.exists(cache_file):
-            with open(cache_file, 'r', encoding='utf-8') as f:
+            with open(cache_file, "r", encoding="utf-8") as f:
                 cache_data = json.load(f)
-            
+
             # Check if cache is still valid (optional: implement TTL)
-            cache_timestamp = datetime.fromisoformat(cache_data.get('timestamp', '2000-01-01'))
-            
+            cache_timestamp = datetime.fromisoformat(
+                cache_data.get("timestamp", "2000-01-01")
+            )
+
             # Cache valid for 7 days (adjust as needed)
             if datetime.now() - cache_timestamp < timedelta(days=7):
-                return cache_data.get('analysis_result')
-        
+                return cache_data.get("analysis_result")
+
         return None
     except Exception as e:
         # If cache read fails, return None (will trigger API call)
         return None
 
-def save_to_cache(content: str, analysis_result: Dict[str, Any], url: Optional[str] = None) -> None:
+
+def save_to_cache(
+    content: str, analysis_result: Dict[str, Any], url: Optional[str] = None
+) -> None:
     """Save analysis result to cache"""
     try:
         content_hash = generate_content_hash(content)
         cache_file = get_cache_file_path(content_hash)
-        
+
         cache_data = {
             "hash": content_hash,
             "url": url,
             "timestamp": datetime.now().isoformat(),
             "analysis_result": analysis_result,
-            "content_preview": content[:200] + "..." if len(content) > 200 else content
+            "content_preview": content[:200] + "..." if len(content) > 200 else content,
         }
-        
-        with open(cache_file, 'w', encoding='utf-8') as f:
+
+        with open(cache_file, "w", encoding="utf-8") as f:
             json.dump(cache_data, f, ensure_ascii=False, indent=2)
-            
+
     except Exception as e:
         # If cache write fails, continue without caching (non-critical)
         pass
+
 
 def get_cache_stats() -> Dict[str, int]:
     """Get cache statistics"""
     try:
         cache_dir = ensure_cache_directory()
-        cache_files = [f for f in os.listdir(cache_dir) if f.endswith('.json')]
-        
+        cache_files = [f for f in os.listdir(cache_dir) if f.endswith(".json")]
+
         total_size = 0
         for file in cache_files:
             file_path = os.path.join(cache_dir, file)
             total_size += os.path.getsize(file_path)
-        
+
         return {
             "cached_articles": len(cache_files),
-            "total_size_mb": round(total_size / (1024 * 1024), 2)
+            "total_size_mb": round(total_size / (1024 * 1024), 2),
         }
     except:
         return {"cached_articles": 0, "total_size_mb": 0}
+
 
 def clear_cache() -> bool:
     """Clear all cached articles"""
     try:
         cache_dir = ensure_cache_directory()
-        cache_files = [f for f in os.listdir(cache_dir) if f.endswith('.json')]
-        
+        cache_files = [f for f in os.listdir(cache_dir) if f.endswith(".json")]
+
         for file in cache_files:
             os.remove(os.path.join(cache_dir, file))
-        
+
         return True
     except:
         return False
+
 
 def format_strategy_list(items: List[str], list_type: str = "strength") -> str:
     """Generate HTML for strategy lists (strengths/weaknesses)"""
     if not items:
         return f'<div class="strategy-item">No {list_type}s specified</div>'
-    
+
     html = ""
     for item in items:
         if item and item != "Not specified":
             html += f'<div class="strategy-item">{item}</div>'
-    
-    return html if html else f'<div class="strategy-item">No {list_type}s specified</div>'
+
+    return (
+        html if html else f'<div class="strategy-item">No {list_type}s specified</div>'
+    )
+
 
 def get_pokemon_sprite_url(pokemon_name: str) -> str:
     """Get Pokemon sprite URL from PokeAPI"""
     try:
         # Convert name to lowercase and handle special characters
         name = pokemon_name.lower().replace(" ", "-").replace("'", "").replace(".", "")
-        
+
         # Handle Pokemon name variations and common mistranslations
         name_mapping = {
             # Common variations
             "nidoran-m": "nidoran-m",
-            "nidoran-f": "nidoran-f", 
+            "nidoran-f": "nidoran-f",
             "mr-mime": "mr-mime",
             "farfetchd": "farfetchd",
             "ho-oh": "ho-oh",
@@ -1238,7 +1590,6 @@ def get_pokemon_sprite_url(pokemon_name: str) -> str:
             "tapu-bulu": "tapu-bulu",
             "tapu-fini": "tapu-fini",
             "type-null": "type-null",
-            
             # Treasures of Ruin - Common mistranslations
             "chi-yu": "chi-yu",
             "chien-pao": "chien-pao",
@@ -1247,9 +1598,8 @@ def get_pokemon_sprite_url(pokemon_name: str) -> str:
             "pao-chien": "chien-pao",  # Common mistranslation
             "chien-pau": "chien-pao",  # Alternative spelling
             "chi-yu": "chi-yu",
-            "ting-yu": "ting-lu",     # Common mistranslation
+            "ting-yu": "ting-lu",  # Common mistranslation
             "wo-chien": "wo-chien",
-            
             # Paldean Pokemon
             "gimmighoul": "gimmighoul",
             "gholdengo": "gholdengo",
@@ -1273,58 +1623,72 @@ def get_pokemon_sprite_url(pokemon_name: str) -> str:
             "iron-leaves": "iron-leaves",
             "iron-boulder": "iron-boulder",
             "iron-crown": "iron-crown",
-            
             # Legendary Pokemon
             "koraidon": "koraidon",
+            "korraidon": "koraidon",  # Common misspelling
             "miraidon": "miraidon",
             "ogerpon": "ogerpon",
             "ogerpon-teal": "ogerpon-teal",
-            "ogerpon-wellspring": "ogerpon-wellspring", 
+            "ogerpon-wellspring": "ogerpon-wellspring",
             "ogerpon-hearthflame": "ogerpon-hearthflame",
             "ogerpon-cornerstone": "ogerpon-cornerstone",
             "ogerpon-teal-mask": "ogerpon-teal",
             "ogerpon-wellspring-mask": "ogerpon-wellspring",
-            "ogerpon-hearthflame-mask": "ogerpon-hearthflame", 
+            "ogerpon-hearthflame-mask": "ogerpon-hearthflame",
             "ogerpon-cornerstone-mask": "ogerpon-cornerstone",
             "fezandipiti": "fezandipiti",
             "munkidori": "munkidori",
             "okidogi": "okidogi",
             "terapagos": "terapagos",
-            
             # Regional forms
             "paldean-tauros": "tauros-paldea-combat",
             "paldean-wooper": "wooper-paldea",
-            
+            # Common misspellings and variations
+            "incineroar": "incineroar",
+            "inceneroar": "incineroar",  # Common misspelling
+            "grimmsnarl": "grimmsnarl",
+            "grimsnarl": "grimmsnarl",  # Common misspelling
+            "landorus": "landorus-incarnate",
+            "landorus-therian": "landorus-therian",
+            "tornadus": "tornadus-incarnate",
+            "tornadus-therian": "tornadus-therian",
+            "thundurus": "thundurus-incarnate",
+            "thundurus-therian": "thundurus-therian",
             # Other common issues
             "mime-jr": "mime-jr",
             "porygon-z": "porygon-z",
-            "porygon2": "porygon2"
+            "porygon2": "porygon2",
         }
-        
+
         api_name = name_mapping.get(name, name)
-        
+
         # Get Pokemon data from PokeAPI
-        response = requests.get(f"https://pokeapi.co/api/v2/pokemon/{api_name}", timeout=10)
+        response = requests.get(
+            f"https://pokeapi.co/api/v2/pokemon/{api_name}", timeout=10
+        )
         if response.status_code == 200:
             data = response.json()
-            return data['sprites']['front_default']
+            return data["sprites"]["front_default"]
         else:
             # Fallback to a default Pokemon image
             return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png"
-            
+
     except Exception:
         # Return a default Pokemon image on error
         return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png"
 
+
 class GeminiVGCAnalyzer:
     """Handles VGC article analysis using Google Gemini AI"""
-    
+
     def __init__(self):
         self.api_key = self._get_api_key()
         if self.api_key:
             genai.configure(api_key=self.api_key)
             self.model = genai.GenerativeModel("gemini-2.0-flash-exp")
-            self.vision_model = genai.GenerativeModel("gemini-2.0-flash-exp")  # Same model handles vision
+            self.vision_model = genai.GenerativeModel(
+                "gemini-2.0-flash-exp"
+            )  # Same model handles vision
         else:
             st.error("⚠️ Google API key not found. Please set it in Streamlit secrets.")
             self.model = None
@@ -1341,26 +1705,26 @@ class GeminiVGCAnalyzer:
         """Scrape article content from URL"""
         try:
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
             response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
+
+            soup = BeautifulSoup(response.text, "html.parser")
+
             # Remove script and style elements
             for script in soup(["script", "style"]):
                 script.decompose()
-            
+
             # Extract text content
             text = soup.get_text()
-            
+
             # Clean up whitespace
             lines = (line.strip() for line in text.splitlines())
-            text = '\n'.join(line for line in lines if line)
-            
+            text = "\n".join(line for line in lines if line)
+
             return text[:10000]  # Limit to first 10k characters
-            
+
         except Exception as e:
             st.error(f"Error scraping article: {str(e)}")
             return None
@@ -1371,45 +1735,52 @@ class GeminiVGCAnalyzer:
             parsed = urlparse(url)
             if not parsed.netloc:
                 return False
-            
+
             # Check if URL is accessible
             response = requests.head(url, timeout=10)
             return response.status_code == 200
-            
+
         except:
             return False
 
-    def scrape_article_enhanced(self, url: str) -> Tuple[Optional[str], List[Dict[str, Any]]]:
+    def scrape_article_enhanced(
+        self, url: str
+    ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
         """Enhanced article scraping with image extraction and note.com handling"""
         try:
             # Extract images first
             images = extract_images_from_url(url)
             vgc_images = [img for img in images if is_potentially_vgc_image(img)]
-            
+
             # Special handling for note.com articles
-            if 'note.com' in url:
+            if "note.com" in url:
                 try:
                     content = self._scrape_note_com_article(url)
                     if content:
                         return content, vgc_images
                 except Exception as e:
                     st.warning(f"note.com special handling failed: {str(e)}")
-            
+
             # Enhanced text extraction with LangChain if available
             if LANGCHAIN_AVAILABLE:
                 try:
                     loader = WebBaseLoader(url)
                     documents = loader.load()
                     if documents:
-                        text_content = "\n".join([doc.page_content for doc in documents])
-                        return text_content[:12000], vgc_images  # Increased limit for better content
+                        text_content = "\n".join(
+                            [doc.page_content for doc in documents]
+                        )
+                        return (
+                            text_content[:12000],
+                            vgc_images,
+                        )  # Increased limit for better content
                 except Exception as e:
                     st.warning(f"LangChain extraction failed, using fallback: {str(e)}")
-            
+
             # Fallback to original method
             content = self.scrape_article(url)
             return content, vgc_images
-            
+
         except Exception as e:
             st.error(f"Enhanced scraping failed: {str(e)}")
             return None, []
@@ -1418,83 +1789,114 @@ class GeminiVGCAnalyzer:
         """Specialized scraper for note.com articles"""
         try:
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate',
-                'Connection': 'keep-alive'
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate",
+                "Connection": "keep-alive",
             }
-            
+
             response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
+
+            soup = BeautifulSoup(response.text, "html.parser")
+
             # Remove unwanted elements
-            for unwanted in soup(["script", "style", "nav", "header", "footer", "aside", "noscript"]):
+            for unwanted in soup(
+                ["script", "style", "nav", "header", "footer", "aside", "noscript"]
+            ):
                 unwanted.decompose()
-            
+
             # Try to find the main content area (note.com specific selectors)
             content_selectors = [
                 # Modern note.com selectors
                 '[data-testid="article-body"]',
-                '.note-common-styles__textnote-body',
-                '.p-article__body',
-                '.note-body',
-                'article',
-                '.article-body',
+                ".note-common-styles__textnote-body",
+                ".p-article__body",
+                ".note-body",
+                "article",
+                ".article-body",
                 # Additional selectors for embedded content
-                '.p-note__content',
-                '.p-article__content-wrapper',
-                '.c-article-body',
-                '.note-content',
+                ".p-note__content",
+                ".p-article__content-wrapper",
+                ".c-article-body",
+                ".note-content",
                 # Fallback selectors
-                'main',
-                '#article-body'
+                "main",
+                "#article-body",
             ]
-            
+
             main_content = None
             for selector in content_selectors:
                 main_content = soup.select_one(selector)
                 if main_content:
                     break
-            
+
             if main_content:
                 # Extract text while preserving structure
-                text_content = main_content.get_text(separator='\n', strip=True)
+                text_content = main_content.get_text(separator="\n", strip=True)
             else:
                 # Fallback to general content extraction
-                text_content = soup.get_text(separator='\n', strip=True)
-            
+                text_content = soup.get_text(separator="\n", strip=True)
+
             # Clean up the text
             lines = []
             for line in text_content.splitlines():
                 line = line.strip()
                 if line and len(line) > 2:  # Skip very short lines
                     lines.append(line)
-            
-            final_content = '\n'.join(lines)
-            
+
+            final_content = "\n".join(lines)
+
             # Look for Pokemon-related sections specifically
             pokemon_keywords = [
-                'ポケモン', 'pokemon', '努力値', 'EV', 'チーム', 'team', 'パーティ', 'party',
-                'バトル', 'battle', 'ダブル', 'double', 'VGC', 'vgc', 
-                'ランクバトル', 'ranked', 'トーナメント', 'tournament',
-                'シングル', 'single', 'ダブルバトル', 'double battle',
-                '反省', 'reflection', 'レート', 'rating', 'BO1', 'BO3', '構築', 'team building',
-                'regulation', 'series', 'format'
+                "ポケモン",
+                "pokemon",
+                "努力値",
+                "EV",
+                "チーム",
+                "team",
+                "パーティ",
+                "party",
+                "バトル",
+                "battle",
+                "ダブル",
+                "double",
+                "VGC",
+                "vgc",
+                "ランクバトル",
+                "ranked",
+                "トーナメント",
+                "tournament",
+                "シングル",
+                "single",
+                "ダブルバトル",
+                "double battle",
+                "反省",
+                "reflection",
+                "レート",
+                "rating",
+                "BO1",
+                "BO3",
+                "構築",
+                "team building",
+                "regulation",
+                "series",
+                "format",
             ]
-            
+
             content_lower = final_content.lower()
-            has_pokemon_content = any(keyword.lower() in content_lower for keyword in pokemon_keywords)
-            
+            has_pokemon_content = any(
+                keyword.lower() in content_lower for keyword in pokemon_keywords
+            )
+
             # Enhanced extraction based on content relevance
             if has_pokemon_content:
                 # Try to extract more content if it seems Pokemon-related
                 return final_content[:15000]  # Increased limit for Pokemon content
             else:
                 return final_content[:8000]  # Standard limit for general content
-                
+
         except Exception as e:
             st.warning(f"note.com scraping error: {str(e)}")
             return None
@@ -1503,19 +1905,21 @@ class GeminiVGCAnalyzer:
         """Analyze images for VGC data using Gemini Vision"""
         if not self.vision_model or not images:
             return ""
-        
+
         image_analysis_results = []
-        
-        for i, image in enumerate(images[:3]):  # Limit to 3 images to avoid token limits
+
+        for i, image in enumerate(
+            images[:3]
+        ):  # Limit to 3 images to avoid token limits
             try:
                 st.info(f"🖼️ Analyzing image {i+1}/{min(len(images), 3)}...")
-                
+
                 # Prepare image for Gemini
                 image_part = {
-                    'mime_type': f'image/{image.get("format", "jpeg").lower()}',
-                    'data': image['data']
+                    "mime_type": f'image/{image.get("format", "jpeg").lower()}',
+                    "data": image["data"],
                 }
-                
+
                 vision_prompt = """
                 CRITICAL: Analyze this Pokemon VGC team image with EXTREME DETAIL. This is likely a note.com format with specific layout:
 
@@ -1604,31 +2008,40 @@ class GeminiVGCAnalyzer:
                 IMAGE_TYPE: [team composition/battle screenshot/stats chart/other]
                 LAYOUT_VALIDATION: [Confirm proper parsing order was followed: Name->Typing->Ability->Moves->Item]
                 """
-                
-                response = self.vision_model.generate_content([vision_prompt, image_part])
+
+                response = self.vision_model.generate_content(
+                    [vision_prompt, image_part]
+                )
                 if response and response.text:
-                    image_analysis_results.append(f"Image {i+1} Analysis:\n{response.text}\n")
-                    
+                    image_analysis_results.append(
+                        f"Image {i+1} Analysis:\n{response.text}\n"
+                    )
+
             except Exception as e:
                 st.warning(f"Could not analyze image {i+1}: {str(e)}")
                 continue
-        
+
         return "\n".join(image_analysis_results)
 
-    def analyze_article(self, content: str, url: Optional[str] = None, images: Optional[List[Dict[str, Any]]] = None) -> Optional[Dict[str, Any]]:
+    def analyze_article(
+        self,
+        content: str,
+        url: Optional[str] = None,
+        images: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
         """Analyze article content using Gemini AI with caching support and optional image analysis"""
-        
+
         if not self.model:
             st.error("Gemini AI model not available")
             return None
-        
+
         # Check cache first
         cached_result = check_cache(content, url)
         if cached_result:
             # Display cache hit indicator
             st.success("✅ Using cached analysis (no API call needed)")
             return cached_result
-        
+
         # Analyze images if provided
         image_analysis = ""
         if images and len(images) > 0:
@@ -1636,7 +2049,7 @@ class GeminiVGCAnalyzer:
             image_analysis = self.analyze_images(images)
             if image_analysis:
                 st.success(f"✅ Image analysis complete - extracted additional data!")
-        
+
         # Combine text and image analysis
         combined_content = content
         if image_analysis:
@@ -1723,7 +2136,7 @@ Provide your response in the following JSON format:
             "held_item": "Item name in English",
             "tera_type": "Tera type in English",
             "moves": ["Move 1", "Move 2", "Move 3", "Move 4"],
-            "ev_spread": "HP/Atk/Def/SpA/SpD/Spe format (e.g., 252/0/4/252/0/0)",
+            "ev_spread": "HP/Atk/Def/SpA/SpD/Spe format (e.g., 252/0/4/252/0/0) - ONLY if found in article. Use 'Not specified in article' if missing.",
             "nature": "Nature name in English",
             "role": "Role in the team (e.g., Physical Attacker, Special Wall, etc.)",
             "ev_explanation": "Detailed explanation of EV spread reasoning, including speed benchmarks, survival calculations, and strategic considerations mentioned in the article"
@@ -1821,7 +2234,19 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 - Always use hyphens for compound names: "Tapu-Koko", "Ultra-Necrozma", "Necrozma-Dusk-Mane"
 
 **CRITICAL EV PARSING GUIDELINES:**
-**Japanese EV Format Recognition:**
+
+⚠️ **CALCULATED STATS vs EV SPREADS WARNING** ⚠️
+**NEVER confuse calculated stats with EV spreads:**
+- Calculated stats: H202, A205↑, B141, D106, S75 (actual in-game stats at level 50)
+- EV spreads: H252, A0, B4, C252, D0, S0 (effort value investments 0-252)
+- If numbers look like calculated stats (>252 individual values, or unusual ranges like 141, 205), REJECT and mark as "Not specified in article"
+
+**TRANSPARENCY REQUIREMENT:**
+- If no EV data found: Use "Not specified in article" (application will show appropriate warnings)
+- If calculated stats detected: Use "Not specified in article" (application will warn users about default spreads)
+- If incomplete EV data: Include what you found, even if partial
+
+**Japanese EV Format Recognition (REAL EVs ONLY):**
 - H252-A0-B4-C252-D0-S0 (H=HP, A=Attack, B=Defense, C=Special Attack, D=Special Defense, S=Speed)
 - 努力値: H252/A0/B4/C252/D0/S0 (effort value prefix)
 - HP252・攻撃0・防御4・特攻252・特防0・素早さ0 (full Japanese names)
@@ -1841,9 +2266,11 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 **COMPREHENSIVE EV EXTRACTION RULES:**
 1. **Search Everywhere**: Pokemon sections, team summary, battle examples, calculations
 2. **Number Recognition**: Any 6-number sequence that sums to ≤508 could be EVs
+   ⚠️ **REJECT sequences with individual values >252 or totals >600 (these are calculated stats)**
 3. **Context Clues**: Numbers near stat names, in Pokemon descriptions, adjustment explanations
 4. **Partial Data**: Even incomplete EV info is valuable (e.g., "HP252振り" = at least HP has 252)
-5. **Japanese Stat Mapping**: 
+5. **Validation Priority**: When in doubt, use default EV spread rather than incorrect calculated stats
+6. **Japanese Stat Mapping**: 
    - HP/体力/ヒットポイント/H → HP
    - 攻撃/こうげき/物理/A → Attack  
    - 防御/ぼうぎょ/物理耐久/B → Defense
@@ -1864,6 +2291,15 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 - **Nickname Patterns**: Common Japanese nicknames for Pokemon
 - **Strategy Context**: Pokemon mentioned as counters, threats, or synergies
 - **Battle Examples**: Pokemon in damage calculations or scenario descriptions
+
+**CRITICAL POKEMON IDENTIFICATION RULES:**
+- **Incineroar vs Grimmsnarl Confusion Prevention**:
+  - Incineroar (ガオガエン): Fire/Dark, Intimidate ability, learns Fake Out, Flare Blitz, U-turn
+  - Grimmsnarl (ブリムオン): Fairy/Dark, Prankster ability, learns Thunder Wave, Reflect, Light Screen
+  - If "威嚇" (Intimidate) mentioned → likely Incineroar (NOT Grimmsnarl)
+  - If "いたずらごころ" (Prankster) mentioned → Grimmsnarl (NOT Incineroar)
+  - If Fire-type moves mentioned → Incineroar
+  - If support moves like Light Screen/Reflect → Grimmsnarl
 
 **CRITICAL EXTRACTION REQUIREMENTS:**
 1. **MAXIMUM EFFORT**: Extract EVERY possible Pokemon and EV data point
@@ -1887,6 +2323,12 @@ ENHANCED GUIDELINES:
 9. **Format Flexibility**: Handle non-standard article structures
 10. **Type Consistency**: Ensure Pokemon types match detected moves/abilities
 
+**TEAM VALIDATION REQUIREMENTS:**
+- **NO DUPLICATE POKEMON**: Each Pokemon should appear exactly once in the team
+- **Team Size**: Exactly 6 Pokemon (use "Unknown Pokemon" if fewer detected)
+- **Cross-Reference Check**: Verify Pokemon names against sprites, moves, and abilities
+- **Spelling Consistency**: Use official English Pokemon names only
+
 **FINAL VERIFICATION CHECKLIST:**
 ✓ All Pokemon mentioned in article identified (not just team members)
 ✓ EV data extracted from ALL possible sources (text, calcs, examples)
@@ -1898,13 +2340,15 @@ ENHANCED GUIDELINES:
 ✓ **CRITICAL**: Move names correctly translated (Bark Out → Snarl)
 ✓ **CRITICAL**: Pokemon types match detected moves and abilities
 ✓ **CRITICAL**: Paradox Pokemon correctly distinguished by moveset/type
+✓ **CRITICAL**: No duplicate Pokemon in team (each Pokemon appears exactly once)
+✓ **CRITICAL**: Incineroar vs Grimmsnarl properly distinguished by abilities and moves
 
 Respond only with the JSON, no additional text.
 """
 
         # Display API call indicator
         st.info("🔄 Analyzing with Gemini AI...")
-        
+
         try:
             response = self.model.generate_content(prompt)
             if response and response.text:
@@ -1915,18 +2359,18 @@ Respond only with the JSON, no additional text.
                 if response_text.endswith("```"):
                     response_text = response_text[:-3]
                 response_text = response_text.strip()
-                
+
                 result = json.loads(response_text)
-                
+
                 # Save to cache for future use
                 save_to_cache(content, result, url)
                 st.success("🆕 Analysis complete and cached!")
-                
+
                 return result
             else:
                 st.error("No response from Gemini AI")
                 return None
-                
+
         except json.JSONDecodeError as e:
             st.error(f"Failed to parse AI response: {e}")
             return None
@@ -1934,24 +2378,25 @@ Respond only with the JSON, no additional text.
             st.error(f"Error during analysis: {str(e)}")
             return None
 
+
 def format_evs_for_pokepaste(ev_dict: Dict[str, int]) -> str:
     """Format EV dictionary into standard pokepaste format"""
     # Standard pokepaste stat order and abbreviations
     stat_order = [
-        ('hp', 'HP'),
-        ('atk', 'Atk'), 
-        ('def', 'Def'),
-        ('spa', 'SpA'),
-        ('spd', 'SpD'),
-        ('spe', 'Spe')
+        ("hp", "HP"),
+        ("atk", "Atk"),
+        ("def", "Def"),
+        ("spa", "SpA"),
+        ("spd", "SpD"),
+        ("spe", "Spe"),
     ]
-    
+
     # Collect non-zero EVs
     ev_parts = []
     for stat_key, stat_name in stat_order:
         if ev_dict.get(stat_key, 0) > 0:
             ev_parts.append(f"{ev_dict[stat_key]} {stat_name}")
-    
+
     # Join with " / " separator as per pokepaste standard
     if ev_parts:
         return " / ".join(ev_parts)
@@ -1959,68 +2404,116 @@ def format_evs_for_pokepaste(ev_dict: Dict[str, int]) -> str:
         # Default spread if no EVs specified
         return "252 HP / 252 SpA / 4 SpD"
 
-def create_pokepaste(pokemon_team: List[Dict[str, Any]], team_name: str = "VGC Team") -> str:
+
+def create_pokepaste(
+    pokemon_team: List[Dict[str, Any]], team_name: str = "VGC Team"
+) -> str:
     """Generate clean pokepaste format for the team"""
     pokepaste_content = ""
     
+    # Check if any Pokemon have default EVs to add disclaimer
+    has_default_evs = False
     for pokemon in pokemon_team:
-        if not pokemon.get('name') or pokemon['name'] == "Not specified in article":
+        if pokemon.get("ev_spread") and pokemon["ev_spread"] != "Not specified in article":
+            _, ev_source = parse_ev_spread(pokemon["ev_spread"])
+            if ev_source.startswith('default'):
+                has_default_evs = True
+                break
+    
+    if has_default_evs:
+        pokepaste_content += f"// {team_name} - DISCLAIMER: Some EV spreads are defaults (not from article)\n"
+        pokepaste_content += "// Check comments on individual Pokemon for details\n\n"
+
+    for pokemon in pokemon_team:
+        if not pokemon.get("name") or pokemon["name"] == "Not specified in article":
             continue
-            
+
         # Pokemon name and held item
         pokepaste_content += f"{pokemon['name']}"
-        if pokemon.get('held_item') and pokemon['held_item'] != "Not specified in article":
+        if (
+            pokemon.get("held_item")
+            and pokemon["held_item"] != "Not specified in article"
+        ):
             pokepaste_content += f" @ {pokemon['held_item']}"
         pokepaste_content += "\n"
-        
+
         # Ability
-        if pokemon.get('ability') and pokemon['ability'] != "Not specified in article":
+        if pokemon.get("ability") and pokemon["ability"] != "Not specified in article":
             pokepaste_content += f"Ability: {pokemon['ability']}\n"
-        
+
         # Tera Type
-        if pokemon.get('tera_type') and pokemon['tera_type'] != "Not specified in article":
+        if (
+            pokemon.get("tera_type")
+            and pokemon["tera_type"] != "Not specified in article"
+        ):
             pokepaste_content += f"Tera Type: {pokemon['tera_type']}\n"
-        
+
         # EVs (format: HP / Atk / Def / SpA / SpD / Spe)
-        if pokemon.get('ev_spread') and pokemon['ev_spread'] != "Not specified in article":
+        if (
+            pokemon.get("ev_spread")
+            and pokemon["ev_spread"] != "Not specified in article"
+        ):
             # Parse the raw EV string and format it properly
-            ev_dict = parse_ev_spread(pokemon['ev_spread'])
+            ev_dict, ev_source = parse_ev_spread(pokemon["ev_spread"])
             formatted_evs = format_evs_for_pokepaste(ev_dict)
-            pokepaste_content += f"EVs: {formatted_evs}\n"
-        
+            
+            if ev_source.startswith('default'):
+                # Add disclaimer for default spreads
+                if ev_source == 'default_calculated_stats':
+                    pokepaste_content += f"EVs: {formatted_evs}  // WARNING: Default spread - calculated stats detected in article\n"
+                elif ev_source == 'default_missing':
+                    pokepaste_content += f"EVs: {formatted_evs}  // WARNING: Default spread - no EV data in article\n"
+                elif ev_source == 'default_invalid':
+                    pokepaste_content += f"EVs: {formatted_evs}  // WARNING: Default spread - invalid EV data in article\n"
+                else:
+                    pokepaste_content += f"EVs: {formatted_evs}  // WARNING: Default spread applied\n"
+            else:
+                pokepaste_content += f"EVs: {formatted_evs}\n"
+
         # Nature
-        if pokemon.get('nature') and pokemon['nature'] != "Not specified in article":
+        if pokemon.get("nature") and pokemon["nature"] != "Not specified in article":
             pokepaste_content += f"{pokemon['nature']} Nature\n"
-        
+
         # Moves
-        if pokemon.get('moves'):
-            for move in pokemon['moves']:
+        if pokemon.get("moves"):
+            for move in pokemon["moves"]:
                 if move and move != "Not specified in article":
                     pokepaste_content += f"- {move}\n"
-        
+
         pokepaste_content += "\n"
-    
+
     return pokepaste_content
 
-def render_team_strategy_section(team_analysis: Dict[str, Any], result: Dict[str, Any] = None) -> None:
+
+def render_team_strategy_section(
+    team_analysis: Dict[str, Any], result: Dict[str, Any] = None
+) -> None:
     """Render team strategy section with proper HTML"""
     st.markdown("### 🎯 Team Strategy")
-    
+
     # Regulation information
-    regulation_info = result.get('regulation_info', {}) if result else {}
-    if regulation_info and regulation_info.get('regulation') != 'Unknown':
-        regulation = regulation_info.get('regulation', 'Unknown')
-        format_desc = regulation_info.get('format', 'Not specified')
-        tournament_context = regulation_info.get('tournament_context', '')
-        
+    regulation_info = result.get("regulation_info", {}) if result else {}
+    if regulation_info and regulation_info.get("regulation") != "Unknown":
+        regulation = regulation_info.get("regulation", "Unknown")
+        format_desc = regulation_info.get("format", "Not specified")
+        tournament_context = regulation_info.get("tournament_context", "")
+
         st.markdown("#### 🏆 VGC Format Information")
-        
+
         reg_color = {
-            'A': '#FF6B6B', 'B': '#4ECDC4', 'C': '#45B7D1', 'D': '#96CEB4', 
-            'E': '#FFEAA7', 'F': '#DDA0DD', 'G': '#98D8C8', 'H': '#F7DC6F', 'I': '#BB8FCE'
-        }.get(regulation, '#95A5A6')
-        
-        st.markdown(f"""
+            "A": "#FF6B6B",
+            "B": "#4ECDC4",
+            "C": "#45B7D1",
+            "D": "#96CEB4",
+            "E": "#FFEAA7",
+            "F": "#DDA0DD",
+            "G": "#98D8C8",
+            "H": "#F7DC6F",
+            "I": "#BB8FCE",
+        }.get(regulation, "#95A5A6")
+
+        st.markdown(
+            f"""
         <div class="regulation-container" style="background: linear-gradient(135deg, {reg_color}20, {reg_color}10); border-left: 4px solid {reg_color}; padding: 15px; margin: 10px 0; border-radius: 8px;">
             <div style="font-weight: bold; color: {reg_color}; font-size: 1.1em;">
                 📋 Regulation {regulation}
@@ -2030,80 +2523,102 @@ def render_team_strategy_section(team_analysis: Dict[str, Any], result: Dict[str
             </div>
             {f'<div style="margin-top: 5px; font-size: 0.9em; color: #666;"><strong>Tournament:</strong> {tournament_context}</div>' if tournament_context else ""}
         </div>
-        """, unsafe_allow_html=True)
-    
+        """,
+            unsafe_allow_html=True,
+        )
+
     # Strategy overview
-    strategy = team_analysis.get('strategy', 'Not specified')
-    st.markdown(f"""
+    strategy = team_analysis.get("strategy", "Not specified")
+    st.markdown(
+        f"""
     <div class="summary-container">
         <div class="summary-content">
             <strong>Overall Strategy:</strong><br>
             {strategy}
         </div>
     </div>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     # Strengths and Weaknesses in columns
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.markdown("#### 💪 Strengths")
-        strengths = team_analysis.get('strengths', [])
+        strengths = team_analysis.get("strengths", [])
         if strengths:
             for strength in strengths:
                 if strength and strength != "Not specified":
-                    st.markdown(f"""
+                    st.markdown(
+                        f"""
                     <div class="strategy-item">
                         {strength}
                     </div>
-                    """, unsafe_allow_html=True)
+                    """,
+                        unsafe_allow_html=True,
+                    )
         else:
-            st.markdown('<div class="strategy-item">No strengths specified</div>', unsafe_allow_html=True)
-    
+            st.markdown(
+                '<div class="strategy-item">No strengths specified</div>',
+                unsafe_allow_html=True,
+            )
+
     with col2:
         st.markdown("#### ⚠️ Weaknesses")
-        weaknesses = team_analysis.get('weaknesses', [])
+        weaknesses = team_analysis.get("weaknesses", [])
         if weaknesses:
             for weakness in weaknesses:
                 if weakness and weakness != "Not specified":
-                    st.markdown(f"""
+                    st.markdown(
+                        f"""
                     <div class="strategy-item">
                         {weakness}
                     </div>
-                    """, unsafe_allow_html=True)
+                    """,
+                        unsafe_allow_html=True,
+                    )
         else:
-            st.markdown('<div class="strategy-item">No weaknesses specified</div>', unsafe_allow_html=True)
-    
+            st.markdown(
+                '<div class="strategy-item">No weaknesses specified</div>',
+                unsafe_allow_html=True,
+            )
+
     # Meta relevance
     st.markdown("#### 🌟 Meta Relevance")
-    meta_relevance = team_analysis.get('meta_relevance', 'Not specified')
-    st.markdown(f"""
+    meta_relevance = team_analysis.get("meta_relevance", "Not specified")
+    st.markdown(
+        f"""
     <div class="meta-relevance">
         {meta_relevance}
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
+
 
 def get_cached_articles() -> List[Dict[str, Any]]:
     """Get list of all cached articles with metadata"""
     try:
         cache_dir = ensure_cache_directory()
-        cache_files = [f for f in os.listdir(cache_dir) if f.endswith('.json')]
-        
+        cache_files = [f for f in os.listdir(cache_dir) if f.endswith(".json")]
+
         articles = []
         for file in cache_files:
             file_path = os.path.join(cache_dir, file)
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, "r", encoding="utf-8") as f:
                     cache_data = json.load(f)
                 articles.append(cache_data)
             except:
                 continue
-        
+
         # Sort by timestamp (newest first)
-        articles.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        articles.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
         return articles
     except:
         return []
+
 
 def delete_cached_article(content_hash: str) -> bool:
     """Delete a specific cached article"""
@@ -2116,78 +2631,94 @@ def delete_cached_article(content_hash: str) -> bool:
     except:
         return False
 
+
 def render_new_analysis_page():
     """Render the new analysis page (original functionality)"""
     # Header
-    st.markdown('<div class="team-header"><h1>⚔️ Pokemon VGC Article Analyzer</h1><p>Analyze Japanese VGC articles, showcase teams, and download results</p></div>', unsafe_allow_html=True)
-    
+    st.markdown(
+        '<div class="team-header"><h1>⚔️ Pokemon VGC Article Analyzer</h1><p>Analyze Japanese VGC articles, showcase teams, and download results</p></div>',
+        unsafe_allow_html=True,
+    )
+
     # Initialize analyzer
     analyzer = GeminiVGCAnalyzer()
-    
+
     # Main content area - Article Input Section
     st.markdown("## 📝 Article Analysis")
-    
+
     # Input section in main area instead of sidebar
     col1, col2, col3 = st.columns([2, 2, 1])
-    
+
     with col1:
         url = st.text_input(
             "Japanese VGC Article URL",
             placeholder="https://example.com/vgc-article",
-            help="Enter the URL of a Japanese Pokemon VGC article"
+            help="Enter the URL of a Japanese Pokemon VGC article",
         )
-    
+
     with col2:
         # Cache status in header
         cache_stats = get_cache_stats()
-        st.metric("Cache", f"{cache_stats['cached_articles']} articles ({cache_stats['total_size_mb']} MB)")
-    
+        st.metric(
+            "Cache",
+            f"{cache_stats['cached_articles']} articles ({cache_stats['total_size_mb']} MB)",
+        )
+
     with col3:
-        if st.button("🗑️ Clear", help="Clear cache", disabled=cache_stats["cached_articles"] == 0):
+        if st.button(
+            "🗑️ Clear", help="Clear cache", disabled=cache_stats["cached_articles"] == 0
+        ):
             if clear_cache():
                 st.success("Cache cleared!")
                 st.rerun()
-    
+
     # Manual text input
     manual_text = st.text_area(
         "Or paste Japanese article content directly:",
         height=150,
-        placeholder="Paste Japanese article content here..."
+        placeholder="Paste Japanese article content here...",
     )
-    
+
     # Advanced options
     with st.expander("🔧 Advanced Options"):
         col1, col2 = st.columns(2)
         with col1:
             enable_image_analysis = st.checkbox(
-                "🖼️ Enable Image Analysis", 
-                value=True, 
-                help="Extract and analyze images from articles for additional Pokemon/EV data"
+                "🖼️ Enable Image Analysis",
+                value=True,
+                help="Extract and analyze images from articles for additional Pokemon/EV data",
             )
         with col2:
             enable_langchain = st.checkbox(
-                "🔗 Enhanced Text Extraction", 
-                value=LANGCHAIN_AVAILABLE, 
+                "🔗 Enhanced Text Extraction",
+                value=LANGCHAIN_AVAILABLE,
                 disabled=not LANGCHAIN_AVAILABLE,
-                help="Use LangChain for better content extraction (requires additional dependencies)"
+                help="Use LangChain for better content extraction (requires additional dependencies)",
             )
-    
+
     # Analyze button (disabled during processing)
-    is_processing = st.session_state.get('is_processing', False)
-    if st.button("🔍 Analyze Article", type="primary", use_container_width=True, disabled=is_processing):
+    is_processing = st.session_state.get("is_processing", False)
+    if st.button(
+        "🔍 Analyze Article",
+        type="primary",
+        use_container_width=True,
+        disabled=is_processing,
+    ):
         if url or manual_text:
             # Set processing state
-            st.session_state['is_processing'] = True
+            st.session_state["is_processing"] = True
             with st.spinner("Analyzing article..."):
                 content = None
-                
+
                 if url:
                     if analyzer.validate_url(url):
                         if enable_image_analysis:
                             # Use enhanced scraping with image extraction
                             content, images = analyzer.scrape_article_enhanced(url)
                             if images:
-                                st.info(f"📸 Found {len(images)} images that may contain VGC data")
+                                st.info(
+                                    f"📸 Found {len(images)} images that may contain VGC data"
+                                )
                         else:
                             # Use standard scraping without images
                             content = analyzer.scrape_article(url)
@@ -2198,133 +2729,155 @@ def render_new_analysis_page():
                 elif manual_text:
                     content = manual_text
                     images = []
-                
+
                 if content:
                     # Store content and trigger analysis (with or without images)
-                    st.session_state['article_content'] = content
+                    st.session_state["article_content"] = content
                     analysis_images = images if enable_image_analysis else []
-                    st.session_state['analysis_result'] = analyzer.analyze_article(content, url, analysis_images)
+                    st.session_state["analysis_result"] = analyzer.analyze_article(
+                        content, url, analysis_images
+                    )
                     # Clear processing state
-                    st.session_state['is_processing'] = False
+                    st.session_state["is_processing"] = False
                     st.rerun()
                 else:
                     st.error("Unable to extract content from the provided source")
                     # Clear processing state on error
-                    st.session_state['is_processing'] = False
+                    st.session_state["is_processing"] = False
         else:
             st.warning("Please provide either a URL or paste article text")
             # Clear processing state if no input provided
-            st.session_state['is_processing'] = False
+            st.session_state["is_processing"] = False
 
     # Results Section
-    if 'analysis_result' in st.session_state and st.session_state['analysis_result']:
+    if "analysis_result" in st.session_state and st.session_state["analysis_result"]:
         st.divider()
-        result = st.session_state['analysis_result']
-        
+        result = st.session_state["analysis_result"]
+
         # Section 1: Article Summary
         st.markdown("## 📖 Article Summary")
-        
+
         # Article title and summary
-        title = result.get('title', 'Article Title')
-        summary = result.get('summary', 'No summary available')
-        
-        st.markdown(f"""
+        title = result.get("title", "Article Title")
+        summary = result.get("summary", "No summary available")
+
+        st.markdown(
+            f"""
         <div class="summary-container">
             <h3 style="color: #1e293b; margin-bottom: 16px;">{title}</h3>
             <div class="summary-content">{summary}</div>
         </div>
-        """, unsafe_allow_html=True)
-        
+        """,
+            unsafe_allow_html=True,
+        )
+
         st.divider()
-        
+
         # Section 2: Team Strategy Analysis
-        if 'team_analysis' in result:
-            render_team_strategy_section(result['team_analysis'], result)
+        if "team_analysis" in result:
+            render_team_strategy_section(result["team_analysis"], result)
             st.divider()
-        
+
         # Section 3: Downloads Section
         st.markdown("## 📥 Export & Downloads")
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
             # Translated article download
-            if result.get('translated_content'):
+            if result.get("translated_content"):
                 translated_text = f"Title: {result.get('title', 'VGC Article')}\n\n"
                 translated_text += f"Summary: {result.get('summary', '')}\n\n"
                 translated_text += f"Full Translation:\n{result['translated_content']}"
-                
+
                 st.download_button(
                     label="📄 Download Translation",
                     data=translated_text,
                     file_name="vgc_article_translation.txt",
                     mime="text/plain",
-                    use_container_width=True
+                    use_container_width=True,
                 )
-        
+
         with col2:
             # Pokepaste download
-            if result.get('pokemon_team'):
-                pokepaste_content = create_pokepaste(result['pokemon_team'], result.get('title', 'VGC Team'))
-                
+            if result.get("pokemon_team"):
+                pokepaste_content = create_pokepaste(
+                    result["pokemon_team"], result.get("title", "VGC Team")
+                )
+
                 st.download_button(
                     label="🎮 Download Pokepaste",
                     data=pokepaste_content,
                     file_name="vgc_team_pokepaste.txt",
                     mime="text/plain",
-                    use_container_width=True
+                    use_container_width=True,
                 )
-        
+
         with col3:
             # Full translation view toggle
-            if result.get('translated_content'):
+            if result.get("translated_content"):
                 if st.button("📖 View Full Translation", use_container_width=True):
-                    st.session_state['show_translation'] = not st.session_state.get('show_translation', False)
-        
+                    st.session_state["show_translation"] = not st.session_state.get(
+                        "show_translation", False
+                    )
+
         # Full Translation Section (read-only)
-        if st.session_state.get('show_translation', False) and result.get('translated_content'):
+        if st.session_state.get("show_translation", False) and result.get(
+            "translated_content"
+        ):
             st.divider()
             st.markdown("## 📖 Full Article Translation")
-            st.markdown(f"""
+            st.markdown(
+                f"""
             <div class="summary-container" style="max-height: 400px; overflow-y: auto;">
                 <div class="summary-content" style="white-space: pre-wrap; line-height: 1.6;">
                     {result['translated_content']}
                 </div>
             </div>
-            """, unsafe_allow_html=True)
-        
+            """,
+                unsafe_allow_html=True,
+            )
+
         st.divider()
-        
+
         # Section 4: Team Showcase
-        if result.get('pokemon_team'):
+        if result.get("pokemon_team"):
             st.markdown("## 🌟 Team Showcase")
-            
-            pokemon_team = result['pokemon_team']
-            
+
+            pokemon_team = result["pokemon_team"]
+
             # Create rows of 3 Pokemon each
             for i in range(0, len(pokemon_team), 3):
                 cols = st.columns(3)
-                
+
                 for j, col in enumerate(cols):
                     if i + j < len(pokemon_team):
                         pokemon = pokemon_team[i + j]
-                        
+
                         with col:
-                            if pokemon.get('name') and pokemon['name'] != "Not specified in article":
+                            if (
+                                pokemon.get("name")
+                                and pokemon["name"] != "Not specified in article"
+                            ):
                                 # Get Pokemon sprite
-                                sprite_url = get_pokemon_sprite_url(pokemon['name'])
-                                
+                                sprite_url = get_pokemon_sprite_url(pokemon["name"])
+
                                 # Display Pokemon sprite
                                 try:
-                                    st.image(sprite_url, width=120, caption=pokemon['name'])
+                                    st.image(
+                                        sprite_url, width=120, caption=pokemon["name"]
+                                    )
                                 except:
                                     st.markdown(f"**{pokemon['name']}**")
-                                
+
                                 # Get styling classes
-                                type_class = get_pokemon_type_class(pokemon.get('tera_type', ''))
-                                role_class = get_role_class(pokemon.get('role', ''))
-                                
+                                type_class = get_pokemon_type_class(
+                                    pokemon.get("tera_type", "")
+                                )
+                                role_class = get_role_class(pokemon.get("role", ""))
+
                                 # Pokemon basic info
-                                st.markdown(f"""
+                                st.markdown(
+                                    f"""
                                 <div class="pokemon-card {type_class} {role_class}">
                                     <div class="pokemon-info-grid">
                                         <div class="info-item">
@@ -2349,36 +2902,54 @@ def render_new_analysis_page():
                                         </div>
                                     </div>
                                 </div>
-                                """, unsafe_allow_html=True)
-                                
+                                """,
+                                    unsafe_allow_html=True,
+                                )
+
                                 # Enhanced EV Visualization
-                                ev_spread = pokemon.get('ev_spread', 'Not specified')
-                                if ev_spread and ev_spread != 'Not specified':
-                                    st.markdown(create_ev_visualization(ev_spread), unsafe_allow_html=True)
-                                
+                                ev_spread = pokemon.get("ev_spread", "Not specified")
+                                if ev_spread and ev_spread != "Not specified":
+                                    st.markdown(
+                                        create_ev_visualization(ev_spread),
+                                        unsafe_allow_html=True,
+                                    )
+
                                 # Moves section (separate to avoid HTML nesting issues)
                                 st.markdown("**🎯 Moves:**")
-                                moves = pokemon.get('moves', [])
+                                moves = pokemon.get("moves", [])
                                 if moves:
                                     for move in moves:
                                         if move and move != "Not specified in article":
-                                            st.markdown(f"""
+                                            st.markdown(
+                                                f"""
                                             <div class="move-item">
                                                 {move}
                                             </div>
-                                            """, unsafe_allow_html=True)
+                                            """,
+                                                unsafe_allow_html=True,
+                                            )
                                 else:
-                                    st.markdown('<div class="move-item">No moves specified</div>', unsafe_allow_html=True)
-                                
+                                    st.markdown(
+                                        '<div class="move-item">No moves specified</div>',
+                                        unsafe_allow_html=True,
+                                    )
+
                                 # EV Explanation
-                                if pokemon.get('ev_explanation') and pokemon['ev_explanation'] != "Not specified in article":
+                                if (
+                                    pokemon.get("ev_explanation")
+                                    and pokemon["ev_explanation"]
+                                    != "Not specified in article"
+                                ):
                                     with st.expander("📊 EV Strategy Details"):
-                                        st.markdown(f'<div class="ev-explanation">{pokemon["ev_explanation"]}</div>', unsafe_allow_html=True)
-        
-    
+                                        st.markdown(
+                                            f'<div class="ev-explanation">{pokemon["ev_explanation"]}</div>',
+                                            unsafe_allow_html=True,
+                                        )
+
     else:
         # Welcome/instruction content
-        st.markdown("""
+        st.markdown(
+            """
         ## Welcome to the Pokemon VGC Article Analyzer! 🎮
         
         This tool helps you:
@@ -2401,37 +2972,49 @@ def render_new_analysis_page():
         - ✅ **Export functionality** for sharing and importing teams
         
         Ready to analyze your first article? Enter a URL above to get started! 🚀
-        """)
+        """
+        )
+
 
 def render_previous_articles_page():
     """Render the previously searched articles page"""
-    st.markdown('<div class="team-header"><h1>📚 Previously Searched Articles</h1><p>Browse and reload your cached VGC article analyses</p></div>', unsafe_allow_html=True)
-    
+    st.markdown(
+        '<div class="team-header"><h1>📚 Previously Searched Articles</h1><p>Browse and reload your cached VGC article analyses</p></div>',
+        unsafe_allow_html=True,
+    )
+
     # Get cached articles
     cached_articles = get_cached_articles()
-    
+
     if not cached_articles:
-        st.markdown("""
+        st.markdown(
+            """
         ## No Articles Found 🔍
         
         You haven't analyzed any articles yet. Go to the **New Analysis** page to start analyzing Japanese VGC articles.
         
         Once you analyze articles, they'll appear here for quick access without needing to re-process them.
-        """)
+        """
+        )
         return
-    
+
     # Search and filter controls
     col1, col2, col3 = st.columns([3, 2, 1])
-    
+
     with col1:
-        search_query = st.text_input("🔍 Search articles", placeholder="Search by title, Pokemon names, or URL...")
-    
+        search_query = st.text_input(
+            "🔍 Search articles",
+            placeholder="Search by title, Pokemon names, or URL...",
+        )
+
     with col2:
-        sort_option = st.selectbox("📅 Sort by", ["Newest First", "Oldest First", "Title A-Z"])
-    
+        sort_option = st.selectbox(
+            "📅 Sort by", ["Newest First", "Oldest First", "Title A-Z"]
+        )
+
     with col3:
         st.metric("Total Articles", len(cached_articles))
-    
+
     # Filter articles based on search
     filtered_articles = cached_articles
     if search_query:
@@ -2440,46 +3023,52 @@ def render_previous_articles_page():
         for article in cached_articles:
             # Search in title, URL, and Pokemon names
             searchable_text = ""
-            searchable_text += article.get('analysis_result', {}).get('title', '').lower()
-            searchable_text += article.get('url', '').lower()
-            searchable_text += article.get('content_preview', '').lower()
-            
+            searchable_text += (
+                article.get("analysis_result", {}).get("title", "").lower()
+            )
+            searchable_text += article.get("url", "").lower()
+            searchable_text += article.get("content_preview", "").lower()
+
             # Search in Pokemon names
-            pokemon_team = article.get('analysis_result', {}).get('pokemon_team', [])
+            pokemon_team = article.get("analysis_result", {}).get("pokemon_team", [])
             for pokemon in pokemon_team:
-                searchable_text += pokemon.get('name', '').lower()
-            
+                searchable_text += pokemon.get("name", "").lower()
+
             if search_lower in searchable_text:
                 filtered_articles.append(article)
-    
+
     # Sort articles
     if sort_option == "Oldest First":
-        filtered_articles.sort(key=lambda x: x.get('timestamp', ''))
+        filtered_articles.sort(key=lambda x: x.get("timestamp", ""))
     elif sort_option == "Title A-Z":
-        filtered_articles.sort(key=lambda x: x.get('analysis_result', {}).get('title', '').lower())
-    
+        filtered_articles.sort(
+            key=lambda x: x.get("analysis_result", {}).get("title", "").lower()
+        )
+
     st.markdown(f"## 📖 Articles ({len(filtered_articles)} found)")
-    
+
     # Display articles
     for i, article in enumerate(filtered_articles):
-        analysis_result = article.get('analysis_result', {})
-        title = analysis_result.get('title', 'Untitled Article')
-        summary = analysis_result.get('summary', 'No summary available')
-        timestamp = article.get('timestamp', '')
-        url = article.get('url', 'No URL')
-        pokemon_team = analysis_result.get('pokemon_team', [])
-        
+        analysis_result = article.get("analysis_result", {})
+        title = analysis_result.get("title", "Untitled Article")
+        summary = analysis_result.get("summary", "No summary available")
+        timestamp = article.get("timestamp", "")
+        url = article.get("url", "No URL")
+        pokemon_team = analysis_result.get("pokemon_team", [])
+
         # Format timestamp
         try:
             from datetime import datetime
-            parsed_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+
+            parsed_time = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
             formatted_time = parsed_time.strftime("%Y-%m-%d %H:%M")
         except:
             formatted_time = timestamp
-        
+
         # Create article card
         with st.container():
-            st.markdown(f"""
+            st.markdown(
+                f"""
             <div class="summary-container" style="margin-bottom: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                     <h3 style="color: #1e293b; margin: 0; flex: 1;">{title}</h3>
@@ -2491,43 +3080,52 @@ def render_previous_articles_page():
                     {summary[:200]}{"..." if len(summary) > 200 else ""}
                 </div>
             </div>
-            """, unsafe_allow_html=True)
-            
+            """,
+                unsafe_allow_html=True,
+            )
+
             # Pokemon team preview
             if pokemon_team:
                 cols = st.columns(min(len(pokemon_team), 6))
                 for j, pokemon in enumerate(pokemon_team[:6]):
                     if j < len(cols):
                         with cols[j]:
-                            if pokemon.get('name') and pokemon['name'] != "Not specified in article":
-                                sprite_url = get_pokemon_sprite_url(pokemon['name'])
+                            if (
+                                pokemon.get("name")
+                                and pokemon["name"] != "Not specified in article"
+                            ):
+                                sprite_url = get_pokemon_sprite_url(pokemon["name"])
                                 try:
-                                    st.image(sprite_url, width=60, caption=pokemon['name'])
+                                    st.image(
+                                        sprite_url, width=60, caption=pokemon["name"]
+                                    )
                                 except:
                                     st.markdown(f"**{pokemon['name']}**")
-            
+
             # Action buttons
             col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
-            
+
             with col1:
                 if st.button(f"📖 View Analysis", key=f"view_{i}"):
                     # Load this analysis into session state and switch to new analysis page
-                    st.session_state['analysis_result'] = analysis_result
-                    st.session_state['article_content'] = article.get('content_preview', '')
-                    st.session_state['current_page'] = "New Analysis"
+                    st.session_state["analysis_result"] = analysis_result
+                    st.session_state["article_content"] = article.get(
+                        "content_preview", ""
+                    )
+                    st.session_state["current_page"] = "New Analysis"
                     st.rerun()
-            
+
             with col2:
-                if analysis_result.get('translated_content'):
+                if analysis_result.get("translated_content"):
                     translated_text = f"Title: {title}\n\nSummary: {summary}\n\nFull Translation:\n{analysis_result['translated_content']}"
                     st.download_button(
                         label="📄 Download Translation",
                         data=translated_text,
                         file_name=f"translation_{i+1}.txt",
                         mime="text/plain",
-                        key=f"download_trans_{i}"
+                        key=f"download_trans_{i}",
                     )
-            
+
             with col3:
                 if pokemon_team:
                     pokepaste_content = create_pokepaste(pokemon_team, title)
@@ -2536,57 +3134,77 @@ def render_previous_articles_page():
                         data=pokepaste_content,
                         file_name=f"team_{i+1}.txt",
                         mime="text/plain",
-                        key=f"download_paste_{i}"
+                        key=f"download_paste_{i}",
                     )
-            
+
             with col4:
                 if st.button("🗑️", key=f"delete_{i}", help="Delete this article"):
-                    if delete_cached_article(article.get('hash', '')):
+                    if delete_cached_article(article.get("hash", "")):
                         st.success("Article deleted!")
                         st.rerun()
                     else:
                         st.error("Failed to delete article")
-            
+
             st.divider()
+
 
 def main():
     """Main application with navigation"""
     # Sidebar navigation
     with st.sidebar:
         st.markdown("## 🧭 Navigation")
-        
+
         # Initialize current page in session state
-        if 'current_page' not in st.session_state:
-            st.session_state['current_page'] = "New Analysis"
-        
+        if "current_page" not in st.session_state:
+            st.session_state["current_page"] = "New Analysis"
+
         # Navigation buttons
-        if st.button("📝 New Analysis", use_container_width=True, 
-                    type="primary" if st.session_state['current_page'] == "New Analysis" else "secondary"):
-            st.session_state['current_page'] = "New Analysis"
+        if st.button(
+            "📝 New Analysis",
+            use_container_width=True,
+            type=(
+                "primary"
+                if st.session_state["current_page"] == "New Analysis"
+                else "secondary"
+            ),
+        ):
+            st.session_state["current_page"] = "New Analysis"
             st.rerun()
-        
-        if st.button("📚 Previous Articles", use_container_width=True,
-                    type="primary" if st.session_state['current_page'] == "Previous Articles" else "secondary"):
-            st.session_state['current_page'] = "Previous Articles"
+
+        if st.button(
+            "📚 Previous Articles",
+            use_container_width=True,
+            type=(
+                "primary"
+                if st.session_state["current_page"] == "Previous Articles"
+                else "secondary"
+            ),
+        ):
+            st.session_state["current_page"] = "Previous Articles"
             st.rerun()
-        
+
         st.divider()
-        
+
         # Cache stats
         cache_stats = get_cache_stats()
-        st.metric("Cached Articles", cache_stats['cached_articles'])
+        st.metric("Cached Articles", cache_stats["cached_articles"])
         st.metric("Cache Size", f"{cache_stats['total_size_mb']} MB")
-        
-        if st.button("🗑️ Clear All Cache", use_container_width=True, disabled=cache_stats["cached_articles"] == 0):
+
+        if st.button(
+            "🗑️ Clear All Cache",
+            use_container_width=True,
+            disabled=cache_stats["cached_articles"] == 0,
+        ):
             if clear_cache():
                 st.success("Cache cleared!")
                 st.rerun()
-    
+
     # Render the appropriate page
-    if st.session_state['current_page'] == "New Analysis":
+    if st.session_state["current_page"] == "New Analysis":
         render_new_analysis_page()
-    elif st.session_state['current_page'] == "Previous Articles":
+    elif st.session_state["current_page"] == "Previous Articles":
         render_previous_articles_page()
+
 
 if __name__ == "__main__":
     main()
