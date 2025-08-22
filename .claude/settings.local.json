@@ -16,7 +16,14 @@
       "Bash(C:/Python313/python.exe -m flake8:*)",
       "Bash(timeout:*)",
       "Bash(pip install:*)",
-      "WebFetch(domain:note.com)"
+      "WebFetch(domain:note.com)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:liberty-note.com)",
+      "WebSearch",
+      "WebFetch(domain:cona5757.hatenablog.com)",
+      "WebFetch(domain:tamii-poke.hateblo.jp)"
     ],
     "defaultMode": "acceptEdits"
   }
