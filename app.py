@@ -890,6 +890,26 @@ st.markdown(
 )
 
 
+def safe_parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
+    """Safe wrapper for parse_ev_spread that handles backwards compatibility
+    
+    Returns:
+        tuple: (ev_dict, source) where source indicates data authenticity
+    """
+    try:
+        result = parse_ev_spread(ev_string)
+        if isinstance(result, tuple) and len(result) == 2:
+            return result
+        elif isinstance(result, dict):
+            # Old format returned just the dict, assume it's from article
+            return result, 'article'
+        else:
+            # Unexpected format, return default
+            return {'hp': 252, 'atk': 0, 'def': 4, 'spa': 252, 'spd': 0, 'spe': 0}, 'default_missing'
+    except Exception as e:
+        # If parsing fails completely, return safe defaults
+        return {'hp': 252, 'atk': 0, 'def': 4, 'spa': 252, 'spd': 0, 'spe': 0}, 'default_missing'
+
 def parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
     """Parse EV spread string into individual stat values, including Japanese formats
     
@@ -1240,7 +1260,7 @@ def get_role_class(role: str) -> str:
 
 def create_ev_visualization(ev_spread: str) -> str:
     """Create HTML for EV visualization with progress bars"""
-    ev_dict, ev_source = parse_ev_spread(ev_spread)
+    ev_dict, ev_source = safe_parse_ev_spread(ev_spread)
     total_evs = sum(ev_dict.values())
 
     # Check if total is reasonable (max 508)
@@ -2415,7 +2435,7 @@ def create_pokepaste(
     has_default_evs = False
     for pokemon in pokemon_team:
         if pokemon.get("ev_spread") and pokemon["ev_spread"] != "Not specified in article":
-            _, ev_source = parse_ev_spread(pokemon["ev_spread"])
+            _, ev_source = safe_parse_ev_spread(pokemon["ev_spread"])
             if ev_source.startswith('default'):
                 has_default_evs = True
                 break
@@ -2454,7 +2474,7 @@ def create_pokepaste(
             and pokemon["ev_spread"] != "Not specified in article"
         ):
             # Parse the raw EV string and format it properly
-            ev_dict, ev_source = parse_ev_spread(pokemon["ev_spread"])
+            ev_dict, ev_source = safe_parse_ev_spread(pokemon["ev_spread"])
             formatted_evs = format_evs_for_pokepaste(ev_dict)
             
             if ev_source.startswith('default'):
@@ -2800,9 +2820,13 @@ def render_new_analysis_page():
         with col2:
             # Pokepaste download
             if result.get("pokemon_team"):
-                pokepaste_content = create_pokepaste(
-                    result["pokemon_team"], result.get("title", "VGC Team")
-                )
+                try:
+                    pokepaste_content = create_pokepaste(
+                        result["pokemon_team"], result.get("title", "VGC Team")
+                    )
+                except Exception as e:
+                    st.error(f"Error creating pokepaste: {str(e)}")
+                    pokepaste_content = f"// Error generating pokepaste: {str(e)}\n// Please try analyzing the article again"
 
                 st.download_button(
                     label="🎮 Download Pokepaste",
@@ -2909,10 +2933,15 @@ def render_new_analysis_page():
                                 # Enhanced EV Visualization
                                 ev_spread = pokemon.get("ev_spread", "Not specified")
                                 if ev_spread and ev_spread != "Not specified":
-                                    st.markdown(
-                                        create_ev_visualization(ev_spread),
-                                        unsafe_allow_html=True,
-                                    )
+                                    try:
+                                        st.markdown(
+                                            create_ev_visualization(ev_spread),
+                                            unsafe_allow_html=True,
+                                        )
+                                    except Exception as e:
+                                        st.error(f"Error displaying EV spread: {str(e)}")
+                                        # Show basic fallback
+                                        st.markdown("⚠️ EV spread could not be displayed - using default competitive spread")
 
                                 # Moves section (separate to avoid HTML nesting issues)
                                 st.markdown("**🎯 Moves:**")
@@ -3128,7 +3157,12 @@ def render_previous_articles_page():
 
             with col3:
                 if pokemon_team:
-                    pokepaste_content = create_pokepaste(pokemon_team, title)
+                    try:
+                        pokepaste_content = create_pokepaste(pokemon_team, title)
+                    except Exception as e:
+                        st.error(f"Error creating pokepaste: {str(e)}")
+                        pokepaste_content = f"// Error generating pokepaste: {str(e)}\n// Please try re-analyzing the article"
+                    
                     st.download_button(
                         label="🎮 Download Pokepaste",
                         data=pokepaste_content,
