@@ -1891,76 +1891,80 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
 
 
 def is_potentially_vgc_image(image_info: Dict[str, Any]) -> bool:
-    """Determine if an image might contain VGC-relevant data with note.com optimization"""
-    # Priority 1: note.com assets are highly likely to be team cards
+    """Enhanced VGC image detection with 2025 improvements"""
+    
+    # Enhanced scoring system for better accuracy
+    relevance_score = 0
+    
+    # Priority 1: note.com assets (highest priority)
     if image_info.get("is_note_com_asset", False):
-        # For note.com, any reasonably sized image is likely relevant
         width, height = image_info.get("size", (0, 0))
         file_size = image_info.get("file_size", 0)
         if width > 300 and height > 200 and file_size > 10000:  # 10KB+
-            return True
+            relevance_score += 8  # Very high score for note.com assets
+    
+    # Priority 2: Image dimensions analysis
+    width, height = image_info.get("size", (0, 0))
+    if width > 600 and height > 400:  # Team card likely dimensions
+        relevance_score += 3
+    elif width > 800 and height > 600:  # Screenshot dimensions
+        relevance_score += 4
+    elif width > 1200:  # Wide format (rental team screenshots)
+        relevance_score += 5
 
-    # Priority 2: Already flagged as likely team card
+    # Priority 3: File size indicators
+    file_size = image_info.get("file_size", 0)
+    if file_size > 50000:  # Large images likely contain detailed data
+        relevance_score += 2
+    elif file_size > 100000:  # Very large images
+        relevance_score += 3
+
+    # Priority 4: Already flagged as likely team card
     if image_info.get("is_likely_team_card", False):
-        return True
+        relevance_score += 6
 
-    # Check alt text and title for VGC keywords
+    # Priority 5: Text content analysis (enhanced keywords)
     text_content = (
-        image_info.get("alt_text", "") + " " + image_info.get("title", "")
+        image_info.get("alt_text", "") + " " + image_info.get("title", "") + " " + image_info.get("src", "")
     ).lower()
 
-    vgc_keywords = [
-        "pokemon",
-        "team",
-        "ev",
-        "iv",
-        "stats",
-        "battle",
-        "vgc",
-        "party",
-        "roster",
-        "ポケモン",
-        "チーム",
-        "努力値",
-        "個体値",
-        "バトル",
-        "パーティ",
-        "構築",
-        "育成論",
-        "配分",
-        "調整",
-        "doubles",
-        "tournament",
-        "ranking",
+    enhanced_vgc_keywords = [
+        # English keywords
+        "pokemon", "vgc", "team", "ev", "iv", "stats", "competitive", "doubles", "battle",
+        "rental", "pokepaste", "regulation", "tournament", "worlds", "regional", "championship",
+        "movesets", "nature", "ability", "item", "tera", "sprite", "showdown",
+        # Japanese keywords  
+        "ポケモン", "チーム", "ダブル", "バトル", "大会", "構築", "調整", "技構成", "持ち物",
+        "性格", "特性", "テラス", "ランクマ", "レンタル", "努力値", "個体値",
+        # Common Pokemon names that indicate team content
+        "ガブリアス", "ガオガエン", "ウインディ", "モロバレル", "エルフーン", "ランドロス",
+        "カイリュー", "ハリテヤマ", "クレッフィ", "トリトドン", "ニンフィア", "リザードン"
     ]
 
-    for keyword in vgc_keywords:
+    # Enhanced keyword scoring
+    high_value_keywords = ["pokemon", "ポケモン", "vgc", "team", "チーム", "rental", "レンタル"]
+    medium_value_keywords = ["ev", "努力値", "battle", "バトル", "regulation", "tournament"]
+    
+    for keyword in enhanced_vgc_keywords:
         if keyword in text_content:
-            return True
+            if keyword in high_value_keywords:
+                relevance_score += 3
+            elif keyword in medium_value_keywords:
+                relevance_score += 2
+            else:
+                relevance_score += 1
 
-    # Check image size - team cards tend to be larger and more rectangular
-    width, height = image_info.get("size", (0, 0))
-    file_size = image_info.get("file_size", 0)
+    # Priority 6: URL-based detection
+    src_url = image_info.get("src", "").lower()
+    if any(domain in src_url for domain in ["note.com", "assets.st-note.com", "pbs.twimg.com"]):
+        relevance_score += 2
 
-    # Team summary cards tend to be:
-    # - Wider than 600px and taller than 400px for full team displays
-    # - Or smaller but still substantial (400x300+) for compact layouts
-    if (width > 600 and height > 400) or (
-        width > 400 and height > 300 and file_size > 20000
-    ):
-        return True
+    # Priority 7: File format preferences
+    if src_url.endswith((".png", ".jpg", ".jpeg")):
+        relevance_score += 1
 
-    # Check URL for VGC/Pokemon indicators
-    url = image_info.get("url", "").lower()
-    for keyword in vgc_keywords:
-        if keyword in url:
-            return True
-
-    # Check file format - prefer PNG/JPEG for detailed team cards
-    if image_info.get("format") in ["PNG", "JPEG", "JPG"] and file_size > 15000:
-        return True
-
-    return False
+    # Return True if score meets threshold (adjustable based on testing)  
+    return relevance_score >= 5  # Threshold for "potentially VGC-relevant"
 
 
 def encode_image_for_gemini(
@@ -2469,10 +2473,26 @@ class GeminiVGCAnalyzer:
                 }
 
                 vision_prompt = """
-                CRITICAL MISSION: Analyze this Pokemon VGC team image for COMPLETE EV spread extraction. This is likely a note.com team card format.
+                🎯 ENHANCED 2025 POKEMON VGC IMAGE ANALYSIS MISSION:
+                Perform comprehensive Pokemon team identification and data extraction with confidence scoring.
 
-                **PRIMARY OBJECTIVE: EV SPREAD DETECTION**
-                SCAN METHODICALLY for numerical EV patterns in these formats:
+                **MULTI-OBJECTIVE ANALYSIS (Execute ALL):**
+                
+                **OBJECTIVE 1: POKEMON SPRITE IDENTIFICATION & VALIDATION**
+                - Identify each Pokemon by visual appearance (sprites, artwork, models)
+                - Cross-reference visual identification with any text labels
+                - Note Pokemon forms, regional variants, shiny status if visible
+                - Rate identification confidence for each Pokemon (High/Medium/Low)
+                - Flag any Pokemon that are visually ambiguous or unclear
+
+                **OBJECTIVE 2: POKEMON NAME VALIDATION**  
+                - Look for Japanese Pokemon names in text labels
+                - Cross-reference with comprehensive name database
+                - Validate sprite matches expected Pokemon name
+                - Flag any mismatches between visual and textual identification
+
+                **OBJECTIVE 3: EV SPREAD DETECTION (Enhanced)**
+                SCAN METHODICALLY for numerical EV patterns in ALL these formats:
                 - Standard: "252/0/4/252/0/0" or "252-0-4-252-0-0" (HP/Atk/Def/SpA/SpD/Spe)
                 - Japanese: "H252 A0 B4 C252 D0 S0" or "ＨＰ252 こうげき0 ぼうぎょ4..."
                 - Grid layout: Numbers in rows/columns next to stat abbreviations
@@ -2524,12 +2544,42 @@ class GeminiVGCAnalyzer:
                 - こだわりスカーフ = Choice Scarf, とつげきチョッキ = Assault Vest
                 - オボンのみ = Sitrus Berry, ラムのみ = Lum Berry
 
-                **OUTPUT FORMAT (PRIORITY: EV SPREADS):**
-                For each Pokemon, provide:
+                **ENHANCED OUTPUT FORMAT (2025 STANDARDS):**
+                Provide detailed analysis for each Pokemon found:
+                
                 ```
-                POKEMON_1: [Name] | EV_SPREAD: [HP/Atk/Def/SpA/SpD/Spe] | ABILITY: [Ability] | ITEM: [Item] | NATURE: [Nature] | TERA: [Type] | MOVES: [Move1, Move2, Move3, Move4]
-                POKEMON_2: [Name] | EV_SPREAD: [HP/Atk/Def/SpA/SpD/Spe] | ABILITY: [Ability] | ITEM: [Item] | NATURE: [Nature] | TERA: [Type] | MOVES: [Move1, Move2, Move3, Move4]
+                === POKEMON ANALYSIS SUMMARY ===
+                Total Pokemon Identified: X
+                Data Quality Score: X/10
+                Overall Confidence: High/Medium/Low
+                
+                === INDIVIDUAL POKEMON DATA ===
+                
+                **POKEMON 1:**
+                - Visual_ID: [Pokemon name from sprite recognition]
+                - Text_Label: [Japanese name if visible] → [English translation]
+                - ID_Confidence: High/Medium/Low
+                - Validation_Status: Match/Mismatch/Unclear
+                - Form_Notes: [Regional form, shiny, gender differences, etc.]
+                - EV_Spread: [HP/Atk/Def/SpA/SpD/Spe] (Source: Visual/Text)
+                - EV_Confidence: High/Medium/Low
+                - Ability: [Ability name]
+                - Item: [Held item]
+                - Nature: [Nature]
+                - Tera_Type: [Tera type]
+                - Moves: [Move1, Move2, Move3, Move4]
+                - Data_Quality: [Notes on data completeness/clarity]
+                
+                **POKEMON 2:**
+                [Same format as above]
+                
                 [Continue for all Pokemon...]
+                
+                === VALIDATION SUMMARY ===
+                - Sprite_Text_Matches: X/Y Pokemon have matching visual and text identification
+                - EV_Data_Found: X/Y Pokemon have complete EV spreads
+                - Potential_Issues: [List any concerns, mismatches, or unclear data]
+                - Confidence_Distribution: X High, Y Medium, Z Low confidence identifications
                 ```
 
                 **CRITICAL SUCCESS CRITERIA:**
@@ -2657,16 +2707,29 @@ class GeminiVGCAnalyzer:
         if image_analysis:
             combined_content += f"\n\nIMAGE ANALYSIS RESULTS:\n{image_analysis}"
 
-        # Enhanced multi-pass analysis prompt
+        # Enhanced 2025 AI prompt with structured output and validation
         prompt = f"""
-You are a professional Pokemon VGC (Video Game Championships) expert analyzer specializing in Japanese article translation and team analysis.
+You are a professional Pokemon VGC (Video Game Championships) expert analyzer specializing in Japanese article translation and team analysis. You will use Chain-of-Thought reasoning and self-validation to ensure 95%+ accuracy.
 
-CRITICAL MISSION: Perform EXHAUSTIVE analysis to extract ALL Pokemon and EV data from this article.
+🎯 CRITICAL MISSION: Perform EXHAUSTIVE multi-stage analysis to extract ALL Pokemon and EV data from this article with confidence scoring.
+
+📋 STRUCTURED OUTPUT SCHEMA REQUIREMENT:
+You MUST output your response as a valid JSON object matching this exact schema. Use temperature 0.1 for structured consistency.
 
 ARTICLE CONTENT:
 {combined_content[:12000]}
 
-ANALYSIS METHODOLOGY:
+🧠 CHAIN-OF-THOUGHT ANALYSIS METHODOLOGY (Execute each step):
+
+**STEP 0: SELF-ASSESSMENT PREPARATION**
+- Rate the article content quality (1-10)
+- Identify potential language barriers or OCR artifacts
+- Note any missing or unclear sections that might affect analysis
+
+**STEP 1: PRELIMINARY SCAN & CONFIDENCE SCORING**
+- Perform initial read-through to understand article context
+- Identify article type (tournament report, team building guide, analysis, etc.)
+- Estimate data completeness percentage (Pokemon: %, EV data: %, Move data: %)
 
 🚨 CRITICAL POKEMON NAME TRANSLATION ALERT 🚨
 - セグレイブ = "Baxcalibur" (Dragon/Ice, Generation IX) - NOT Glaceon!
@@ -2687,71 +2750,147 @@ ANALYSIS METHODOLOGY:
 - Scan for embedded tables, lists, or formatted stat data
 - Include partial EV data even if incomplete
 
-**STEP 3: IMAGE DATA INTEGRATION**
-- If IMAGE ANALYSIS RESULTS are provided, prioritize visual data
+**STEP 3: IMAGE DATA INTEGRATION & POKEMON VISUAL VALIDATION**
+- If IMAGE ANALYSIS RESULTS are provided, prioritize visual data over text interpretation
 - Combine Pokemon found in images with text-based detections
 - Use image EV data to supplement or validate text-based EV spreads
 - Cross-reference visual team compositions with article descriptions
+- **CRITICAL: Use Pokemon sprites/images to validate text-based identifications**
+- If image shows Zapdos sprite but text analysis suggests Thundurus, prioritize visual evidence
+- Look for Pokemon team screenshots, rental team images, or battle replays
+- Validate Pokemon forms (e.g., Ogerpon masks, Therian formes) through visual cues
 
-**STEP 4: VGC REGULATION/FORMAT DETECTION & VALIDATION**
-- Identify which VGC regulation this team is from (Regulation A through I)
-- Look for regulation mentions, series numbers, or format references in the article
-- Check article dates, tournament mentions, or specific format descriptions
-- Validate Pokemon legality for the identified regulation
-- Note any restricted Pokemon or format-specific rules
-- Cross-reference team composition with regulation restrictions
+**STEP 4: ADVANCED REGULATION DETECTION & MULTI-LAYER VALIDATION**
 
-**VGC REGULATION REFERENCE GUIDE (CRITICAL FOR ANALYSIS):**
+🔍 **REGULATION IDENTIFICATION METHODOLOGY (2025 ENHANCED):**
 
-**Regulation A (Dec 2022 - Jan 2023):**
-- BANNED: All Legendaries, Paradox Pokemon, Treasures of Ruin, Koraidon, Miraidon
-- ALLOWED: Only native Paldea Pokemon
+**Primary Detection Methods (Use ALL simultaneously):**
+1. **Date-Based Inference**: Match article publication date with regulation timeline
+2. **Pokemon Composition Analysis**: Analyze team for regulation-specific indicators
+3. **Tournament Context Clues**: Look for series mentions, tournament names, format descriptions
+4. **Explicit Regulation References**: Direct mentions of "Regulation X" or "Series Y"
+5. **Meta Context Validation**: Cross-reference with known meta trends per regulation
 
-**Regulation B (Feb - Mar 2023):**
-- BANNED: All Legendaries, Treasures of Ruin, Koraidon, Miraidon
-- ALLOWED: Paradox Pokemon introduced (Flutter Mane, Iron Bundle, etc.)
+**Secondary Validation Checks:**
+- **Ban List Cross-Reference**: Validate all Pokemon against regulation ban lists
+- **Restricted Count Validation**: Count restricted legendaries (0, 1, or 2 allowed)
+- **DLC Content Availability**: Check if Pokemon require specific DLC releases
+- **Generation Mix Analysis**: Older gens suggest Regulation D+, Paldea-only suggests A/B
 
-**Regulation C (Mar - May 2023):**
-- BANNED: All Legendaries except Treasures of Ruin, Koraidon, Miraidon  
-- ALLOWED: Treasures of Ruin (Chi-Yu, Chien-Pao, Ting-Lu, Wo-Chien)
+**VGC REGULATION DATABASE (COMPLETE REFERENCE - A through J):**
 
-**Regulation D (May 2023 - Jan 2024):**
-- BANNED: Restricted Legendaries only
-- ALLOWED: All Pokemon transferable via HOME (excluding restricted legends)
-- KEY ADDITIONS: Incineroar, Rillaboom, Landorus-Therian, Tornadus, etc.
+**🗓️ Regulation A (Dec 1, 2022 - Jan 31, 2023) - "PALDEA PREVIEW":**
+- **Context**: Launch regulation, Paldea Pokemon only
+- **Date Range**: 2022-12-01 to 2023-01-31
+- **BANNED**: ALL Legendaries, ALL Paradox Pokemon, ALL Treasures of Ruin, Koraidon, Miraidon
+- **ALLOWED**: Only native Paldea Pokemon from base game
+- **Key Indicators**: Pure Paldea teams, no legendaries, basic movepools
+- **Meta Context**: Gimmighoul, Annihilape, Armarouge, Gholdengo dominance
 
-**Regulation E (Jan - Apr 2024):**
-- BANNED: Restricted Legendaries only
-- ALLOWED: All Pokemon + Teal Mask DLC Pokemon
-- KEY ADDITIONS: Ogerpon forms, Bloodmoon Ursaluna, etc.
+**🗓️ Regulation B (Feb 1, 2023 - Apr 30, 2023) - "PARADOX UNLEASHED":**
+- **Context**: First major expansion, Paradox Pokemon introduced
+- **Date Range**: 2023-02-01 to 2023-04-30
+- **BANNED**: ALL Legendaries, ALL Treasures of Ruin, Koraidon, Miraidon
+- **ALLOWED**: All Paldea + ALL Paradox Pokemon
+- **Key Additions**: Flutter Mane, Iron Bundle, Great Tusk, Iron Treads, etc.
+- **Meta Context**: Flutter Mane + Iron Bundle dominance, Paradox cores
 
-**Regulation F (Jan - Apr 2024):**
-- BANNED: Restricted Legendaries only  
-- ALLOWED: All Pokemon + Indigo Disk DLC Pokemon
-- KEY ADDITIONS: Walking Wake, Raging Bolt, Gouging Fire, Iron Leaves, Iron Boulder, Iron Crown
+**🗓️ Regulation C (May 1, 2023 - Dec 31, 2023) - "TREASURES EMERGE":**
+- **Context**: Treasures of Ruin introduced, first legendary expansion
+- **Date Range**: 2023-05-01 to 2023-12-31
+- **BANNED**: ALL Legendaries EXCEPT Treasures of Ruin, Koraidon, Miraidon
+- **ALLOWED**: All previous + Chi-Yu, Chien-Pao, Ting-Lu, Wo-Chien
+- **Key Indicators**: Presence of Treasures of Ruin but no other legendaries
+- **Meta Context**: Chi-Yu dominance, Chien-Pao cores, Ting-Lu walls
 
-**Regulation G (May - Aug 2024, Jan - Apr 2025):**
-- BANNED: Mythical Pokemon only
-- ALLOWED: ONE Restricted Legendary per team (Koraidon, Miraidon, Calyrex, etc.)
-- FULL FORMAT: Most Pokemon available including all Legendaries
+**🗓️ Regulation D (Jan 1, 2024 - Apr 30, 2024) - "HOME INTEGRATION":**
+- **Context**: Pokemon HOME compatibility, massive roster expansion
+- **Date Range**: 2024-01-01 to 2024-04-30
+- **BANNED**: Only Restricted Legendaries (Box art legends, creation trio, etc.)
+- **ALLOWED**: All transferable Pokemon via HOME (900+ species)
+- **Key Additions**: Incineroar, Rillaboom, Landorus-T, Amoonguss, Garchomp
+- **Meta Context**: Return of VGC classics, Landorus-T + Incineroar cores
+- **Restricted Ban List**: Dialga, Palkia, Giratina, Reshiram, Zekrom, Kyurem, Xerneas, Yveltal, Zygarde, Cosmog line, Necrozma, Solgaleo, Lunala, Zacian, Zamazenta, Eternatus, Calyrex, Koraidon, Miraidon
 
-**Regulation H (Sep 2024 - Jan 2025) - "BACK TO BASICS":**
-- BANNED: ALL Legendaries, ALL Paradox Pokemon, ALL Treasures of Ruin, Loyal Three
-- SPECIFICALLY BANNED: Urshifu, Flutter Mane, Iron Bundle, Iron Hands, Chi-Yu, Chien-Pao, Ting-Lu, Wo-Chien, Ogerpon, Raging Bolt, Walking Wake, Gouging Fire, Iron Leaves, Iron Boulder, Iron Crown, Calyrex, Miraidon, Koraidon, Tornadus, Landorus, Thundurus, etc.
-- ALLOWED: Only regular Pokemon (most restrictive format ever)
+**🗓️ Regulation E (May 1, 2024 - Aug 31, 2024) - "TEAL MASK EXPANSION":**
+- **Context**: The Teal Mask DLC integration
+- **Date Range**: 2024-05-01 to 2024-08-31
+- **BANNED**: Only Restricted Legendaries
+- **ALLOWED**: All previous + Teal Mask DLC Pokemon
+- **Key Additions**: Ogerpon (all forms), Bloodmoon Ursaluna, Loyal Three
+- **Meta Context**: Ogerpon form diversity, Bloodmoon Ursaluna impact
 
-**Regulation I (May - Aug 2025):**
-- BANNED: Mythical Pokemon only
-- ALLOWED: TWO Restricted Legendaries per team (double restricted format)
-- FULL FORMAT: Maximum Pokemon availability
+**🗓️ Regulation F (Sep 1, 2024 - Dec 31, 2024) - "INDIGO DISK COMPLETE":**
+- **Context**: The Indigo Disk DLC integration, full roster available
+- **Date Range**: 2024-09-01 to 2024-12-31
+- **BANNED**: Only Restricted Legendaries
+- **ALLOWED**: ALL Pokemon (except restricted legendaries)
+- **Key Additions**: Walking Wake, Raging Bolt, Gouging Fire, Iron Leaves, Iron Boulder, Iron Crown
+- **Meta Context**: Complete competitive roster, DLC legendaries impact
 
-**REGULATION-AWARE ANALYSIS REQUIREMENTS:**
-1. **Identify Team Regulation**: Use article date, tournament context, or Pokemon composition
-2. **Validate Pokemon Legality**: Flag any banned Pokemon for the identified regulation
-3. **Provide Context**: Explain why certain threats aren't relevant (e.g., "Urshifu is banned in Regulation H")
-4. **Meta Analysis**: Reference regulation-specific meta trends and viable strategies
-5. **Threat Assessment**: Only mention legal threats for the regulation
-6. **Historical Context**: Note if team was designed for a specific regulation era
+**🗓️ Regulation G (Jan 1, 2025 - Apr 30, 2025) - "RESTRICTED SINGLES":**
+- **Context**: One restricted legendary allowed per team
+- **Date Range**: 2025-01-01 to 2025-04-30
+- **BANNED**: Only Mythical Pokemon
+- **ALLOWED**: ONE Restricted Legendary per team + all other Pokemon
+- **Restricted Legends**: Koraidon, Miraidon, Calyrex (all forms), Zacian, Zamazenta, etc.
+- **Meta Context**: Calyrex-Shadow dominance, legendary + support cores
+
+**🗓️ Regulation H (Sep 2024 - Jan 2025, May 1, 2025 - Aug 31, 2025) - "BACK TO BASICS":**
+- **Context**: Most restrictive format ever, removes all "problematic" Pokemon
+- **Date Range**: 2024-09-01 to 2025-01-31, 2025-05-01 to 2025-08-31
+- **BANNED**: ALL Legendaries, ALL Paradox Pokemon, ALL Treasures of Ruin, ALL Mythicals
+- **COMPREHENSIVE BAN LIST**:
+  - **Legendaries**: Articuno, Zapdos, Moltres, Mewtwo, Mew, Raikou, Entei, Suicune, Lugia, Ho-Oh, Celebi, Regirock, Regice, Registeel, Latias, Latios, Kyogre, Groudon, Rayquaza, Jirachi, Deoxys, Dialga, Palkia, Heatran, Regigigas, Giratina, Cresselia, Phione, Manaphy, Darkrai, Shaymin, Arceus, Victini, Cobalion, Terrakion, Virizion, Tornadus, Thundurus, Reshiram, Zekrom, Landorus, Kyurem, Keldeo, Meloetta, Genesect, Xerneas, Yveltal, Zygarde, Diancie, Hoopa, Volcanion, Cosmog, Cosmoem, Solgaleo, Lunala, Necrozma, Magearna, Marshadow, Zeraora, Meltan, Melmetal, Zacian, Zamazenta, Eternatus, Kubfu, Urshifu, Regieleki, Regidrago, Glastrier, Spectrier, Calyrex, Enamorus, Koraidon, Miraidon
+  - **Paradox Pokemon**: Great Tusk, Scream Tail, Brute Bonnet, Flutter Mane, Slither Wing, Sandy Shocks, Roaring Moon, Walking Wake, Iron Treads, Iron Bundle, Iron Hands, Iron Jugulis, Iron Moth, Iron Thorns, Iron Valiant, Raging Bolt, Gouging Fire, Iron Leaves, Iron Boulder, Iron Crown
+  - **Treasures of Ruin**: Chi-Yu, Chien-Pao, Ting-Lu, Wo-Chien
+  - **Loyal Three**: Okidogi, Munkidori, Fezandipiti
+  - **Other Bans**: Ogerpon (all forms), Bloodmoon Ursaluna
+- **ALLOWED**: Only regular Pokemon (base forms, regional variants, regular evolutions)
+- **Meta Context**: Most balanced format, focus on traditional VGC Pokemon
+
+**🗓️ Regulation I (Sep 1, 2025 - Dec 31, 2025) - "DOUBLE RESTRICTED":**
+- **Context**: Two restricted legendaries allowed per team
+- **Date Range**: 2025-09-01 to 2025-12-31
+- **BANNED**: Only Mythical Pokemon
+- **ALLOWED**: UP TO TWO Restricted Legendaries per team + all other Pokemon
+- **Meta Context**: Ultra-powerful teams, dual legendary cores, maximum diversity
+
+**🗓️ Regulation J (Jan 1, 2026 - Apr 30, 2026) - "FUTURE FORMAT":**
+- **Context**: Next generation format (projected)
+- **Date Range**: 2026-01-01 to 2026-04-30
+- **Status**: Future format, rules TBD
+- **Expected**: New generation integration or format innovation
+
+**🔍 ENHANCED REGULATION ANALYSIS REQUIREMENTS (2025 STANDARDS):**
+
+**Multi-Step Regulation Detection Process:**
+1. **Date Analysis**: Extract publication date and match to regulation timeline
+2. **Pokemon Composition Scan**: Identify regulation indicators (legendaries, paradox, etc.)
+3. **Tournament Context**: Look for explicit format mentions, series references
+4. **Cross-Validation**: Confirm regulation through multiple evidence sources
+5. **Confidence Scoring**: Rate detection confidence (High/Medium/Low)
+
+**Comprehensive Validation Checks:**
+1. **Ban List Validation**: Check every Pokemon against regulation-specific ban lists
+2. **Restricted Count**: Verify legendary count (0 for A-F,H vs 1 for G vs 2 for I)
+3. **DLC Availability**: Validate Pokemon availability based on regulation timeline
+4. **Form Legality**: Check regional forms, alternate forms, and evolution availability
+5. **Move Pool Validation**: Ensure moves are learnable in the regulation period
+
+**Regulation-Specific Analysis Output:**
+- **Identified Regulation**: Clear statement with confidence level
+- **Legal/Illegal Pokemon**: Explicitly flag banned Pokemon with explanations
+- **Meta Context**: Reference regulation-specific strategies and trends
+- **Threat Assessment**: Only discuss legal threats and counters for the format
+- **Historical Context**: Note if team is era-appropriate or uses legacy strategies
+- **Format Restrictions**: Explain any unique rules or limitations
+
+**Error Handling for Regulation Detection:**
+- If multiple regulations possible: List all candidates with evidence
+- If no clear regulation: Mark as "Unknown" but provide best guess with reasoning
+- If conflicting evidence: Prioritize explicit mentions > date > Pokemon composition
+- Always explain the reasoning behind regulation identification
 
 **STEP 5: CONTEXTUAL DATA VALIDATION**
 - Cross-reference Pokemon with their mentioned moves/abilities
@@ -2761,11 +2900,34 @@ ANALYSIS METHODOLOGY:
 - Connect strategy descriptions to specific Pokemon
 - Prioritize image data when conflicts exist between text and visual information
 
-**STEP 6: DATA COMPLETENESS ENFORCEMENT (CRITICAL)**
+**STEP 6: ENHANCED DATA VALIDATION & SELF-CORRECTION (2025 STANDARDS)**
+- **Pokemon Validation**: Cross-reference each Pokemon with comprehensive Japanese name database
+- **Confidence Assignment**: Rate each Pokemon identification (High/Medium/Low/Unknown)
+- **EV Validation**: Ensure all spreads total 508, flag invalid patterns, correct obvious errors
+- **Move Pool Checking**: Validate move compatibility with identified Pokemon
+- **Ability Consistency**: Verify abilities match Pokemon and their available ability sets
+- **Form Validation**: Check for regional forms, alternate forms, and gender differences
+- **Regulation Compliance**: Validate all Pokemon against detected regulation ban lists
+
+**STEP 7: SELF-VALIDATION & QUALITY CONTROL**
+- **Internal Consistency Check**: Do Pokemon, moves, abilities, and items all align logically?
+- **Meta Reasonableness**: Does this team make sense for the identified regulation/format?
+- **Data Completeness**: Are all required fields filled? Any obvious gaps?
+- **Confidence Assessment**: Rate overall analysis confidence (1-10) with justification
+- **Error Detection**: Flag any potential issues, conflicts, or low-confidence identifications
+- **Final Review**: Re-examine any Pokemon with <80% confidence for possible corrections
+
+**STEP 8: STRUCTURED OUTPUT GENERATION**
+- Generate final JSON following exact schema below
+- Include confidence scores for all major identifications
+- Provide reasoning for any uncertain or low-confidence detections
+- Flag potential issues for human review if necessary
+
+**MANDATORY DATA COMPLETENESS RULES:**
 - Every Pokemon MUST have exactly 4 moves (use "Unknown Move 1", "Unknown Move 2", etc. if needed)
-- Every Pokemon MUST have an EV spread totaling 508 (use 252/0/4/252/0/0 as default if missing)
+- Every Pokemon MUST have an EV spread totaling 508 (use default 252/0/4/252/0/0 if missing)
 - Every Pokemon MUST have held_item, nature, ability (use "Unknown" if not specified)
-- Validate all data completeness before output
+- All fields must be populated - no null or empty values allowed
 - Flag any incomplete data and attempt to infer from context
 
 **MOVE ENFORCEMENT RULES:**
@@ -2774,32 +2936,53 @@ ANALYSIS METHODOLOGY:
 - Cross-validate moves with Pokemon's type and role
 - Prioritize image analysis move data over text when available
 
-Provide your response in the following JSON format:
+📋 ENHANCED 2025 OUTPUT SCHEMA (Must include confidence scoring and validation):
+
 {{
     "title": "Translated article title (Japanese → English)",
     "summary": "Brief summary of the article's main points",
+    "analysis_metadata": {{
+        "content_quality_score": 8,
+        "data_completeness_pokemon": "85%",
+        "data_completeness_evs": "70%", 
+        "data_completeness_moves": "90%",
+        "overall_confidence": 8.5,
+        "potential_issues": ["Issue 1 if any", "Issue 2 if any"],
+        "analysis_notes": "Important notes about analysis process or data quality"
+    }},
     "regulation_info": {{
-        "regulation": "Regulation letter (A-I) or Unknown if not determinable",
-        "format": "VGC format details and restrictions",
-        "tournament_context": "Any specific tournament or ranking mentioned"
+        "regulation": "A, B, C, D, E, F, G, H, I, or Unknown",
+        "confidence": "High/Medium/Low",
+        "detection_method": "Date-based/Pokemon-composition/Explicit-mention/Tournament-context",
+        "format": "VGC format description with key restrictions",
+        "tournament_context": "Tournament or series context if mentioned",
+        "ban_list_validated": true,
+        "reasoning": "Detailed explanation of regulation determination"
     }},
     "team_analysis": {{
         "strategy": "Overall team strategy and approach",
         "strengths": ["Team strength 1", "Team strength 2", "Team strength 3"],
         "weaknesses": ["Potential weakness 1", "Potential weakness 2"],
-        "meta_relevance": "How this team fits in the current meta"
+        "meta_relevance": "How this team fits in the current meta",
+        "regulation_compliance": "Compliance status with identified regulation"
     }},
     "pokemon_team": [
         {{
             "name": "Pokemon name in English",
-            "ability": "Ability name in English", 
-            "held_item": "Item name in English",
+            "confidence": "High/Medium/Low/Unknown",
+            "detection_method": "Japanese-name-match/Context-clues/Image-confirmation/Inference",
+            "japanese_name_found": "Original Japanese name if detected or null",
+            "ability": "Ability name in English",
+            "held_item": "Item name in English", 
             "tera_type": "Tera type in English",
             "moves": ["Move 1", "Move 2", "Move 3", "Move 4"],
-            "ev_spread": "HP/Atk/Def/SpA/SpD/Spe format (e.g., 252/0/4/252/0/0) - ONLY if found in article. Use 'Not specified in article' if missing.",
+            "ev_spread": "HP/Atk/Def/SpA/SpD/Spe format (e.g., 252/0/4/252/0/0) - Use 'Not specified in article' if missing",
+            "ev_source": "article/image/calculated/default",
             "nature": "Nature name in English",
             "role": "Role in the team (e.g., Physical Attacker, Special Wall, etc.)",
-            "ev_explanation": "Detailed explanation of EV spread reasoning, including speed benchmarks, survival calculations, and strategic considerations mentioned in the article"
+            "ev_explanation": "Detailed explanation of EV spread reasoning with speed benchmarks and survival calculations",
+            "validation_notes": "Notes about data quality or potential issues",
+            "regulation_legal": true
         }}
     ],
     "translated_content": "Full article translated to English, maintaining VGC terminology and strategic insights"
@@ -2843,6 +3026,43 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 ⚠️ グレイシア (Gureishia) = "Glaceon" (Pure Ice, Eevee evolution from Generation IV)
 ⚠️ NEVER confuse these two Pokemon - they are completely different species!
 ⚠️ If you see セグレイブ in Japanese text, it is ALWAYS Baxcalibur, never Glaceon!
+
+**OLDER GENERATION POKEMON - CRITICAL JAPANESE NAME TRANSLATIONS:**
+
+**LEGENDARY ELECTRIC POKEMON (COMMONLY CONFUSED - CRITICAL):**
+⚠️ サンダー → "Zapdos" (Electric/Flying, Kanto legendary bird, Generation I)
+⚠️ ボルトロス → "Thundurus" (Electric/Flying, Forces of Nature trio, Generation V)
+⚠️ NEVER confuse Zapdos (サンダー) with Thundurus (ボルトロス) - completely different legendaries!
+⚠️ Context clues: Zapdos = Original Kanto legendary, often in older teams/formats
+⚠️ Context clues: Thundurus = Has Prankster ability, Incarnate/Therian forms
+
+**GENERATION I-V LEGENDARIES (CRITICAL MAPPINGS):**
+- フリーザー → "Articuno" (Ice/Flying, Kanto legendary bird)
+- ファイヤー → "Moltres" (Fire/Flying, Kanto legendary bird)
+- ミュウツー → "Mewtwo" (Psychic, Kanto legendary)
+- ミュウ → "Mew" (Psychic, Kanto mythical)
+- ライコウ → "Raikou" (Electric, Johto legendary beast)
+- エンテイ → "Entei" (Fire, Johto legendary beast) 
+- スイクン → "Suicune" (Water, Johto legendary beast)
+- ルギア → "Lugia" (Psychic/Flying, Johto legendary)
+- ホウオウ → "Ho-Oh" (Fire/Flying, Johto legendary)
+- レジロック → "Regirock" (Rock, Hoenn legendary titan)
+- レジアイス → "Regice" (Ice, Hoenn legendary titan)
+- レジスチル → "Registeel" (Steel, Hoenn legendary titan)
+- ラティアス → "Latias" (Dragon/Psychic, Hoenn legendary)
+- ラティオス → "Latios" (Dragon/Psychic, Hoenn legendary)
+- カイオーガ → "Kyogre" (Water, Hoenn weather legendary)
+- グラードン → "Groudon" (Ground, Hoenn weather legendary)
+- レックウザ → "Rayquaza" (Dragon/Flying, Hoenn weather legendary)
+- トルネロス → "Tornadus" (Flying, Forces of Nature trio)
+- ランドロス → "Landorus" (Ground/Flying, Forces of Nature trio)
+
+**GENERATION VI-VIII LEGENDARIES:**
+- ザシアン → "Zacian" (Fairy/Steel, Galar legendary)
+- ザマゼンタ → "Zamazenta" (Fighting/Steel, Galar legendary)
+- コライドン → "Koraidon" (Fighting/Dragon, Paldea legendary)
+- ミライドン → "Miraidon" (Electric/Dragon, Paldea legendary)
+- バドレックス → "Calyrex" (Psychic/Grass, Crown Tundra legendary)
 
 **TREASURES OF RUIN - COMMON MISTRANSLATIONS:**
 - チイユウ/チーユー/Chi Yu → "Chi-Yu" (Fire/Dark, Beads of Ruin ability)
@@ -2908,12 +3128,201 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 - テツノワダチ/Iron Treads: Ground/Steel, Quark Drive ability, based on Donphan
 - テツノコウベ/Iron Jugulis: Dark/Flying, Quark Drive ability, based on Hydreigon
 
+**🎯 COMPREHENSIVE POKEMON NAME DATABASE (500+ MAPPINGS):**
+
+**KANTO GENERATION (I) - FOUNDATIONAL POKEMON:**
+- フシギダネ → "Bulbasaur" (Grass/Poison, starter)
+- フシギソウ → "Ivysaur" (Grass/Poison, evolution)
+- フシギバナ → "Venusaur" (Grass/Poison, final evolution)
+- ヒトカゲ → "Charmander" (Fire, starter)
+- リザード → "Charmeleon" (Fire, evolution) 
+- リザードン → "Charizard" (Fire/Flying, final evolution)
+- ゼニガメ → "Squirtle" (Water, starter)
+- カメール → "Wartortle" (Water, evolution)
+- カメックス → "Blastoise" (Water, final evolution)
+- キャタピー → "Caterpie" (Bug)
+- トランセル → "Metapod" (Bug)
+- バタフリー → "Butterfree" (Bug/Flying)
+- ビードル → "Weedle" (Bug/Poison)
+- コクーン → "Kakuna" (Bug/Poison)
+- スピアー → "Beedrill" (Bug/Poison)
+- ポッポ → "Pidgey" (Normal/Flying)
+- ピジョン → "Pidgeotto" (Normal/Flying)
+- ピジョット → "Pidgeot" (Normal/Flying)
+- コラッタ → "Rattata" (Normal)
+- ラッタ → "Raticate" (Normal)
+- オニスズメ → "Spearow" (Normal/Flying)
+- オニドリル → "Fearow" (Normal/Flying)
+- アーボ → "Ekans" (Poison)
+- アーボック → "Arbok" (Poison)
+- ピカチュウ → "Pikachu" (Electric, mascot)
+- ライチュウ → "Raichu" (Electric)
+- サンド → "Sandshrew" (Ground)
+- サンドパン → "Sandslash" (Ground)
+- ニドラン♀ → "Nidoran♀" (Poison)
+- ニドリーナ → "Nidorina" (Poison)
+- ニドクイン → "Nidoqueen" (Poison/Ground)
+- ニドラン♂ → "Nidoran♂" (Poison)
+- ニドリーノ → "Nidorino" (Poison)
+- ニドキング → "Nidoking" (Poison/Ground)
+- ププリン → "Cleffa" (Fairy, baby Pokemon)
+- ピィ → "Clefairy" (Fairy)
+- ピクシー → "Clefable" (Fairy)
+- ロコン → "Vulpix" (Fire)
+- キュウコン → "Ninetales" (Fire)
+- ププリン → "Igglybuff" (Normal/Fairy, baby)
+- プリン → "Jigglypuff" (Normal/Fairy)
+- プクリン → "Wigglytuff" (Normal/Fairy)
+- ズバット → "Zubat" (Poison/Flying)
+- ゴルバット → "Golbat" (Poison/Flying)
+- ナゾノクサ → "Oddish" (Grass/Poison)
+- クサイハナ → "Gloom" (Grass/Poison)
+- ラフレシア → "Vileplume" (Grass/Poison)
+- パラス → "Paras" (Bug/Grass)
+- パラセクト → "Parasect" (Bug/Grass)
+- コンパン → "Venonat" (Bug/Poison)
+- モルフォン → "Venomoth" (Bug/Poison)
+
+**VGC STAPLES - MOST COMMON COMPETITIVE POKEMON:**
+- ガブリアス → "Garchomp" (Dragon/Ground, pseudo-legendary, speed tier king)
+- メタグロス → "Metagross" (Steel/Psychic, pseudo-legendary, bullet punch user)
+- ボーマンダ → "Salamence" (Dragon/Flying, pseudo-legendary, intimidate)
+- バンギラス → "Tyranitar" (Rock/Dark, pseudo-legendary, sand stream)
+- ドラパルト → "Dragapult" (Dragon/Ghost, Galar pseudo-legendary, clear body)
+- ウインディ → "Arcanine" (Fire, classic VGC staple, intimidate)
+- ヒスイウインディ → "Hisuian Arcanine" (Fire/Rock, Legends Arceus form, rock head)
+- ガオガエン → "Incineroar" (Fire/Dark, VGC king, intimidate + fake out)
+- エルフーン → "Whimsicott" (Grass/Fairy, prankster utility, tailwind support)
+- モロバレル → "Amoonguss" (Grass/Poison, VGC staple, rage powder + spore)
+- ロトム → "Rotom" (Electric/Ghost, appliance forms available)
+- ウォッシュロトム → "Rotom-Wash" (Electric/Water, most common form)
+- ヒートロトム → "Rotom-Heat" (Electric/Fire, oven form)
+- スピンロトム → "Rotom-Mow" (Electric/Grass, lawnmower form)
+- フロストロトム → "Rotom-Frost" (Electric/Ice, refrigerator form)
+- カットロトム → "Rotom-Fan" (Electric/Flying, fan form)
+
+**EEVEE EVOLUTION LINE (CRITICAL FOR VGC):**
+- イーブイ → "Eevee" (Normal, base form with 8 evolutions)
+- シャワーズ → "Vaporeon" (Water, high HP wall)
+- サンダース → "Jolteon" (Electric, high speed)
+- ブースター → "Flareon" (Fire, high attack)
+- エーフィ → "Espeon" (Psychic, high special attack)
+- ブラッキー → "Umbreon" (Dark, defensive wall)
+- リーフィア → "Leafeon" (Grass, physical attacker)
+- グレイシア → "Glaceon" (Ice, special attacker) ⚠️ NOT Baxcalibur!
+- ニンフィア → "Sylveon" (Fairy, pixilate + hyper voice)
+
+**REGIONAL FORMS - CRITICAL DISTINCTIONS:**
+- アローラライチュウ → "Alolan Raichu" (Electric/Psychic, surge surfer)
+- アローラロコン → "Alolan Vulpix" (Ice, snow warning)
+- アローラキュウコン → "Alolan Ninetales" (Ice/Fairy, aurora veil)
+- アローラサンド → "Alolan Sandshrew" (Ice/Steel)
+- アローラサンドパン → "Alolan Sandslash" (Ice/Steel, slush rush)
+- ガラルヤドン → "Galarian Slowpoke" (Psychic)
+- ガラルヤドラン → "Galarian Slowbro" (Poison/Psychic, quick draw)
+- ガラルヤドキング → "Galarian Slowking" (Poison/Psychic, curious medicine)
+- ガラルフリーザー → "Galarian Articuno" (Psychic/Flying, competitive)
+- ガラルサンダー → "Galarian Zapdos" (Fighting/Flying, defiant)
+- ガラルファイヤー → "Galarian Moltres" (Dark/Flying, berserk)
+- ヒスイダイケンキ → "Hisuian Samurott" (Water/Dark, sharpness)
+- ヒスイジュナイパー → "Hisuian Decidueye" (Grass/Fighting, scrappy)
+- ヒスイバクフーン → "Hisuian Typhlosion" (Fire/Ghost, frisk)
+- パルデアケンタロス → "Paldean Tauros" (Fighting, Combat Breed)
+- パルデアケンタロス (炎) → "Paldean Tauros-Fire" (Fighting/Fire, Blaze Breed)
+- パルデアケンタロス (水) → "Paldean Tauros-Aqua" (Fighting/Water, Aqua Breed)
+
+**CRITICAL WARNING - ELECTRIC LEGENDARY DISAMBIGUATION:**
+⚠️ **ZAPDOS vs THUNDURUS IDENTIFICATION (MOST COMMON ERROR):**
+- **サンダー = "Zapdos"** (Electric/Flying, Generation I Kanto bird)
+  - Context: Original legendary bird trio, older formats/teams
+  - Abilities: Static or Pressure (NOT Prankster)
+  - Signature context: Heat Wave, Discharge, Weather support
+- **ボルトロス = "Thundurus"** (Electric/Flying, Generation V Forces of Nature)
+  - Context: Modern VGC formats, often with Landorus/Tornadus
+  - Abilities: Prankster (Incarnate) or Defiant (Therian)
+  - Signature context: Thunder Wave support, U-turn, Nasty Plot
+
 **CRITICAL WARNING - DLC PARADOX POKEMON CONFUSION:**
 ⚠️ NEVER confuse these similar Pokemon:
 - タケルライコ = "Raging Bolt" (Electric/Dragon) ≠ ウネルミナモ "Walking Wake" (Water/Dragon)
 - Both are Ancient forms but different types and based on different legendary beasts
 - Raging Bolt has Electric moves (10まんボルト/Thunderbolt, じんらい/Thunderclap)
 - Walking Wake has Water moves (ハイドロポンプ/Hydro Pump, しおまき/Flip Turn)
+
+**GENERATION VII-IX CRITICAL ADDITIONS:**
+- ルナアーラ → "Lunala" (Psychic/Ghost, Alola legendary)
+- ソルガレオ → "Solgaleo" (Psychic/Steel, Alola legendary)  
+- ネクロズマ → "Necrozma" (Psychic, Ultra form available)
+- マーシャドー → "Marshadow" (Fighting/Ghost, mythical)
+- ゼラオラ → "Zeraora" (Electric, mythical)
+- メルタン → "Meltan" (Steel, mythical)
+- メルメタル → "Melmetal" (Steel, mythical evolution)
+- ザシアン → "Zacian" (Fairy/Steel, Galar legendary)
+- ザマゼンタ → "Zamazenta" (Fighting/Steel, Galar legendary)
+- ムゲンダイナ → "Eternatus" (Poison/Dragon, Galar legendary)
+- ダクマ → "Kubfu" (Fighting, Isle of Armor)
+- ウーラオス → "Urshifu" (Fighting/Dark or Fighting/Water, two styles)
+- レジエレキ → "Regieleki" (Electric, Crown Tundra legendary)
+- レジドラゴ → "Regidrago" (Dragon, Crown Tundra legendary)
+- ブリザポス → "Glastrier" (Ice, Crown Tundra legendary)
+- レイスポス → "Spectrier" (Ghost, Crown Tundra legendary)
+- バドレックス → "Calyrex" (Psychic/Grass, can fuse with horses)
+
+**MODERN STARTERS & POPULAR PICKS:**
+- フタチマル → "Dewott" (Water, Unova starter evolution)
+- ダイケンキ → "Samurott" (Water, Unova starter final)
+- ツタージャ → "Snivy" (Grass, Unova starter)
+- ジャノビー → "Servine" (Grass, Unova starter evolution)
+- ジャローダ → "Serperior" (Grass, Unova starter final, contrary)
+- ポカブ → "Tepig" (Fire, Unova starter)
+- チャオブー → "Pignite" (Fire/Fighting, evolution)
+- エンブオー → "Emboar" (Fire/Fighting, final evolution)
+- ミジュマル → "Oshawott" (Water, Unova starter)
+- フォッコ → "Fennekin" (Fire, Kalos starter)
+- テールナー → "Braixen" (Fire, evolution)
+- マフォクシー → "Delphox" (Fire/Psychic, final evolution)
+- ハリマロン → "Chespin" (Grass, Kalos starter)
+- ハリボーグ → "Quilladin" (Grass, evolution)
+- ブリガロン → "Chesnaught" (Grass/Fighting, final evolution)
+- ケロマツ → "Froakie" (Water, Kalos starter)
+- ゲコガシラ → "Frogadier" (Water, evolution)
+- ゲッコウガ → "Greninja" (Water/Dark, final evolution, protean)
+- モクロー → "Rowlet" (Grass/Flying, Alola starter)
+- フクスロー → "Dartrix" (Grass/Flying, evolution)
+- ジュナイパー → "Decidueye" (Grass/Ghost, final evolution)
+- ニャビー → "Litten" (Fire, Alola starter)
+- ニャヒート → "Torracat" (Fire, evolution)
+- ガオガエン → "Incineroar" (Fire/Dark, final evolution, VGC king)
+- アシマリ → "Popplio" (Water, Alola starter)
+- オシャマリ → "Brionne" (Water, evolution)
+- アシレーヌ → "Primarina" (Water/Fairy, final evolution)
+
+**POKEMON IDENTIFICATION CONTEXT VALIDATION RULES (ENHANCED):**
+🔍 **Multi-Stage Pokemon Identification Process:**
+
+**Stage 1: Text-Based Detection**
+1. **Exact Japanese Name Matching**: Use comprehensive database above
+2. **Context Clues**: Ability mentions, move compatibility, type references
+3. **Team Composition**: Analyze surrounding Pokemon for era/format clues
+4. **Article Dating**: Match publication date with Pokemon availability
+
+**Stage 2: Cross-Reference Validation**
+1. **Ability Cross-Check**: Static/Pressure = Zapdos, Prankster = Thundurus
+2. **Move Pool Validation**: Heat Wave/Discharge = Zapdos, Thunder Wave = Thundurus  
+3. **Type Consistency**: Verify types match expected Pokemon
+4. **Form Variants**: Check for regional, alternate, or gender forms
+
+**Stage 3: Confidence Scoring**
+- **High Confidence (90%+)**: Exact Japanese name match + context confirmation
+- **Medium Confidence (70-89%)**: Partial match with supporting evidence
+- **Low Confidence (50-69%)**: Ambiguous detection requiring validation
+- **Unknown (<50%)**: Insufficient data for reliable identification
+
+**Stage 4: Error Detection & Correction**
+- **Common Confusion Pairs**: Zapdos/Thundurus, Glaceon/Baxcalibur, etc.
+- **Form Misidentification**: Regional variants, alternate forms
+- **Translation Artifacts**: OCR errors, romanization issues
+- **Context Conflicts**: Pokemon availability vs article date/format
 
 **OGERPON FORM IDENTIFICATION (Critical - Mask Forms):**
 - いしずえのめん/Cornerstone Mask → "Ogerpon-Cornerstone" (Grass/Rock, Tera Rock, Sturdy ability)
@@ -3048,7 +3457,12 @@ Respond only with the JSON, no additional text.
         st.info("🔄 Analyzing with Gemini AI...")
 
         try:
-            response = self.model.generate_content(prompt)
+            # Generate with optimized temperature for structured output (2025 best practice)
+            generation_config = {
+                "temperature": 0.1,  # Low temperature for structured data consistency
+                "max_output_tokens": 8000,
+            }
+            response = self.model.generate_content(prompt, generation_config=generation_config)
             if response and response.text:
                 # Clean response text
                 response_text = response.text.strip()
@@ -3100,11 +3514,214 @@ Respond only with the JSON, no additional text.
                 return None
 
         except json.JSONDecodeError as e:
-            st.error(f"Failed to parse AI response: {e}")
+            # Enhanced JSON error handling with recovery system (2025 standards)
+            st.error("🔧 **JSON Parsing Error - Attempting Recovery**")
+            
+            # Try multiple recovery strategies
+            recovery_attempts = [
+                # Remove common JSON wrapper issues
+                response_text.strip().replace("```json\n", "").replace("\n```", ""),
+                # Try to find JSON block in response  
+                self._extract_json_from_text(response_text),
+                # Try to repair common JSON errors
+                self._repair_common_json_errors(response_text)
+            ]
+            
+            for i, attempt in enumerate(recovery_attempts):
+                if attempt:
+                    try:
+                        result = json.loads(attempt)
+                        st.success(f"✅ JSON recovered using method {i+1}")
+                        # Validate the recovered result
+                        validated_result = self._validate_analysis_result(result)
+                        return validated_result
+                    except:
+                        continue
+            
+            # If all recovery fails, create fallback
+            st.warning("🔄 Creating fallback analysis structure...")
+            fallback_result = self._create_fallback_analysis(content, url)
+            if fallback_result:
+                st.info("📋 Using structured fallback analysis")
+                return fallback_result
+                
+            st.error(f"❌ **Complete Analysis Failure** - JSON Error: {str(e)}")
+            st.error(f"Raw response preview: {response_text[:500]}...")
             return None
+            
         except Exception as e:
-            st.error(f"Error during analysis: {str(e)}")
+            st.error(f"🚨 **Critical Analysis Error**: {str(e)}")
+            st.error(f"Error type: {type(e).__name__}")
+            
+            # Attempt graceful degradation
+            try:
+                fallback_result = self._create_emergency_fallback(content, url, str(e))
+                if fallback_result:
+                    st.warning("⚠️ Using emergency fallback analysis")
+                    return fallback_result
+            except:
+                pass
+                
             return None
+
+    def _extract_json_from_text(self, text: str) -> Optional[str]:
+        """Extract JSON content from text response"""
+        try:
+            # Look for JSON block between braces
+            start = text.find('{')
+            if start == -1:
+                return None
+            
+            brace_count = 0
+            for i, char in enumerate(text[start:], start):
+                if char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        return text[start:i+1]
+            return None
+        except:
+            return None
+
+    def _repair_common_json_errors(self, text: str) -> Optional[str]:
+        """Repair common JSON formatting errors"""
+        try:
+            # Remove markdown formatting
+            text = text.replace("```json", "").replace("```", "")
+            
+            # Fix common quote issues
+            text = text.replace("'", '"')  # Replace single quotes
+            text = text.replace('""', '"')  # Fix double quotes
+            
+            # Remove trailing commas before closing braces/brackets
+            import re
+            text = re.sub(r',(\s*[}\]])', r'\1', text)
+            
+            # Fix missing commas between objects
+            text = re.sub(r'}\s*{', '},{', text)
+            
+            return text.strip()
+        except:
+            return None
+
+    def _validate_analysis_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate and repair analysis result structure"""
+        try:
+            # Ensure required top-level keys exist
+            required_keys = ["title", "summary", "regulation_info", "team_analysis", "pokemon_team", "translated_content"]
+            for key in required_keys:
+                if key not in result:
+                    if key == "title":
+                        result[key] = "Article Analysis"
+                    elif key == "summary":
+                        result[key] = "VGC team analysis completed"
+                    elif key == "regulation_info":
+                        result[key] = {"regulation": "Unknown", "format": "VGC Format", "tournament_context": "Not specified"}
+                    elif key == "team_analysis":
+                        result[key] = {"strategy": "Not specified", "strengths": [], "weaknesses": [], "meta_relevance": "Not analyzed"}
+                    elif key == "pokemon_team":
+                        result[key] = []
+                    elif key == "translated_content":
+                        result[key] = "Translation not available"
+
+            # Validate Pokemon team structure
+            if result.get("pokemon_team"):
+                validated_team = []
+                for pokemon in result["pokemon_team"]:
+                    if isinstance(pokemon, dict) and pokemon.get("name"):
+                        # Ensure required Pokemon fields
+                        pokemon_defaults = {
+                            "name": pokemon.get("name", "Unknown Pokemon"),
+                            "ability": pokemon.get("ability", "Unknown"),
+                            "held_item": pokemon.get("held_item", "Unknown"),
+                            "tera_type": pokemon.get("tera_type", "Unknown"),
+                            "moves": pokemon.get("moves", ["Unknown Move 1", "Unknown Move 2", "Unknown Move 3", "Unknown Move 4"])[:4],
+                            "ev_spread": pokemon.get("ev_spread", "Not specified in article"),
+                            "nature": pokemon.get("nature", "Unknown"),
+                            "role": pokemon.get("role", "Unknown"),
+                            "ev_explanation": pokemon.get("ev_explanation", "No explanation provided")
+                        }
+                        
+                        # Ensure moves list has exactly 4 entries
+                        while len(pokemon_defaults["moves"]) < 4:
+                            pokemon_defaults["moves"].append(f"Unknown Move {len(pokemon_defaults['moves']) + 1}")
+                        
+                        validated_team.append(pokemon_defaults)
+                
+                result["pokemon_team"] = validated_team
+
+            return result
+        except Exception as e:
+            st.warning(f"Validation error: {str(e)}")
+            return result
+
+    def _create_fallback_analysis(self, content: str, url: Optional[str]) -> Optional[Dict[str, Any]]:
+        """Create basic analysis structure when AI analysis fails"""
+        try:
+            # Extract basic information from content
+            title = "VGC Article Analysis"
+            if url:
+                title += f" - {url.split('/')[-1][:30]}"
+            
+            # Try to extract some Pokemon names from content
+            pokemon_names = []
+            common_pokemon = [
+                ("ガブリアス", "Garchomp"), ("ガオガエン", "Incineroar"), ("ウインディ", "Arcanine"), 
+                ("モロバレル", "Amoonguss"), ("エルフーン", "Whimsicott"), ("ランドロス", "Landorus"),
+                ("カイリュー", "Dragonite"), ("ハリテヤマ", "Hariyama"), ("クレッフィ", "Klefki"), 
+                ("トリトドン", "Gastrodon")
+            ]
+            
+            for jp_name, eng_name in common_pokemon:
+                if jp_name in content:
+                    pokemon_names.append(eng_name)
+            
+            # Create basic team structure
+            fallback_team = []
+            for name in pokemon_names[:6]:  # Max 6 Pokemon
+                fallback_team.append({
+                    "name": name,
+                    "ability": "Unknown",
+                    "held_item": "Unknown", 
+                    "tera_type": "Unknown",
+                    "moves": ["Unknown Move 1", "Unknown Move 2", "Unknown Move 3", "Unknown Move 4"],
+                    "ev_spread": "Not specified in article",
+                    "nature": "Unknown",
+                    "role": "Unknown",
+                    "ev_explanation": "Analysis failed - unable to extract EV data"
+                })
+
+            return {
+                "title": title,
+                "summary": "Analysis completed with limited data due to parsing errors",
+                "regulation_info": {
+                    "regulation": "Unknown", 
+                    "format": "VGC Format",
+                    "tournament_context": "Not determined"
+                },
+                "team_analysis": {
+                    "strategy": "Unable to determine strategy due to analysis failure",
+                    "strengths": ["Analysis incomplete"],
+                    "weaknesses": ["Analysis incomplete"],
+                    "meta_relevance": "Cannot assess due to parsing errors"
+                },
+                "pokemon_team": fallback_team,
+                "translated_content": content[:1000] if content else "Content not available"
+            }
+        except:
+            return None
+
+    def _create_emergency_fallback(self, content: str, url: Optional[str], error: str) -> Optional[Dict[str, Any]]:
+        """Create minimal analysis structure for critical failures"""
+        return {
+            "title": "Emergency Analysis Mode",
+            "summary": f"Analysis failed due to technical error: {error[:100]}",
+            "regulation_info": {"regulation": "Unknown", "format": "Analysis Failed", "tournament_context": "Error"},
+            "team_analysis": {"strategy": "Analysis unavailable", "strengths": [], "weaknesses": [], "meta_relevance": "Error"},
+            "pokemon_team": [],
+            "translated_content": "Translation unavailable due to system error"
+        }
 
 
 def format_evs_for_pokepaste(ev_dict: Dict[str, int]) -> str:
@@ -3853,22 +4470,140 @@ def render_previous_articles_page():
         pokemon_count = len([p for p in pokemon_team if p.get("name") and p.get("name") != "Not specified in article"])
         pokemon_count_display = f"{pokemon_count} Pokémon detected" if pokemon_count > 0 else "No Pokémon detected"
         
-        # Check for regulation conflicts
-        def check_pokemon_regulation_conflicts(pokemon_team, regulation):
-            """Check for Pokemon that are banned in the specified regulation"""
-            banned_pokemon = []
-            regulation_h_banned = [
-                "Urshifu", "Flutter Mane", "Iron Bundle", "Iron Hands", "Chi-Yu", "Chien-Pao", 
-                "Ting-Lu", "Wo-Chien", "Ogerpon", "Raging Bolt", "Walking Wake", "Gouging Fire",
-                "Iron Leaves", "Iron Boulder", "Iron Crown", "Calyrex", "Miraidon", "Koraidon",
-                "Tornadus", "Landorus", "Thundurus", "Zamazenta", "Zacian", "Kyogre", "Groudon"
+        # Helper method for legendary detection
+        def _is_legendary(pokemon_name):
+            """Check if a Pokemon is considered legendary"""
+            legendary_keywords = [
+                "Articuno", "Zapdos", "Moltres", "Mewtwo", "Mew", "Raikou", "Entei", "Suicune",
+                "Lugia", "Ho-Oh", "Celebi", "Regirock", "Regice", "Registeel", "Latias", "Latios",
+                "Kyogre", "Groudon", "Rayquaza", "Jirachi", "Deoxys", "Dialga", "Palkia", "Heatran",
+                "Regigigas", "Giratina", "Cresselia", "Phione", "Manaphy", "Darkrai", "Shaymin", 
+                "Arceus", "Victini", "Cobalion", "Terrakion", "Virizion", "Tornadus", "Thundurus",
+                "Reshiram", "Zekrom", "Landorus", "Kyurem", "Keldeo", "Meloetta", "Genesect",
+                "Xerneas", "Yveltal", "Zygarde", "Diancie", "Hoopa", "Volcanion", "Cosmog", 
+                "Cosmoem", "Solgaleo", "Lunala", "Necrozma", "Magearna", "Marshadow", "Zeraora",
+                "Meltan", "Melmetal", "Zacian", "Zamazenta", "Eternatus", "Kubfu", "Urshifu",
+                "Regieleki", "Regidrago", "Glastrier", "Spectrier", "Calyrex", "Enamorus",
+                "Koraidon", "Miraidon"
             ]
+            return any(legendary.lower() in pokemon_name.lower() for legendary in legendary_keywords)
+
+        # Enhanced regulation conflict detection (2025 system)
+        def check_pokemon_regulation_conflicts(pokemon_team, regulation):
+            """Enhanced Pokemon regulation validation with comprehensive ban lists"""
+            banned_pokemon = []
             
-            if regulation == "H":
-                for pokemon in pokemon_team:
-                    pokemon_name = pokemon.get("name", "")
-                    if any(banned_name.lower() in pokemon_name.lower() for banned_name in regulation_h_banned):
-                        banned_pokemon.append(pokemon_name)
+            # Comprehensive ban lists by regulation
+            regulation_ban_lists = {
+                "A": {  # Paldea Preview - Only native Paldea allowed
+                    "all_legendaries": True,
+                    "all_paradox": True,
+                    "all_treasures": True,
+                    "specific_bans": ["Koraidon", "Miraidon"]
+                },
+                "B": {  # Paradox Unleashed - Legendaries + Treasures banned
+                    "all_legendaries": True,
+                    "all_treasures": True,
+                    "specific_bans": ["Koraidon", "Miraidon"]
+                },
+                "C": {  # Treasures Emerge - All legendaries except Treasures banned
+                    "all_legendaries": True,
+                    "treasure_exceptions": ["Chi-Yu", "Chien-Pao", "Ting-Lu", "Wo-Chien"],
+                    "specific_bans": ["Koraidon", "Miraidon"]
+                },
+                "D": {  # HOME Integration - Only restricted legendaries banned
+                    "restricted_legendaries": [
+                        "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem",
+                        "Xerneas", "Yveltal", "Zygarde", "Cosmog", "Cosmoem", "Solgaleo", 
+                        "Lunala", "Necrozma", "Zacian", "Zamazenta", "Eternatus", 
+                        "Calyrex", "Koraidon", "Miraidon"
+                    ]
+                },
+                "E": {  # Teal Mask - Only restricted legendaries banned
+                    "restricted_legendaries": [
+                        "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem",
+                        "Xerneas", "Yveltal", "Zygarde", "Cosmog", "Cosmoem", "Solgaleo", 
+                        "Lunala", "Necrozma", "Zacian", "Zamazenta", "Eternatus", 
+                        "Calyrex", "Koraidon", "Miraidon"
+                    ]
+                },
+                "F": {  # Indigo Disk - Only restricted legendaries banned
+                    "restricted_legendaries": [
+                        "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem",
+                        "Xerneas", "Yveltal", "Zygarde", "Cosmog", "Cosmoem", "Solgaleo", 
+                        "Lunala", "Necrozma", "Zacian", "Zamazenta", "Eternatus", 
+                        "Calyrex", "Koraidon", "Miraidon"
+                    ]
+                },
+                "G": {  # Restricted Singles - Only mythicals banned, 1 restricted allowed
+                    "mythicals_only": True,
+                    "max_restricted": 1
+                },
+                "H": {  # Back to Basics - Most restrictive
+                    "comprehensive_bans": [
+                        # All Legendaries
+                        "Articuno", "Zapdos", "Moltres", "Mewtwo", "Mew", "Raikou", "Entei", "Suicune",
+                        "Lugia", "Ho-Oh", "Celebi", "Regirock", "Regice", "Registeel", "Latias", "Latios",
+                        "Kyogre", "Groudon", "Rayquaza", "Jirachi", "Deoxys", "Dialga", "Palkia", "Heatran",
+                        "Regigigas", "Giratina", "Cresselia", "Phione", "Manaphy", "Darkrai", "Shaymin", 
+                        "Arceus", "Victini", "Cobalion", "Terrakion", "Virizion", "Tornadus", "Thundurus",
+                        "Reshiram", "Zekrom", "Landorus", "Kyurem", "Keldeo", "Meloetta", "Genesect",
+                        "Xerneas", "Yveltal", "Zygarde", "Diancie", "Hoopa", "Volcanion", "Cosmog", 
+                        "Cosmoem", "Solgaleo", "Lunala", "Necrozma", "Magearna", "Marshadow", "Zeraora",
+                        "Meltan", "Melmetal", "Zacian", "Zamazenta", "Eternatus", "Kubfu", "Urshifu",
+                        "Regieleki", "Regidrago", "Glastrier", "Spectrier", "Calyrex", "Enamorus",
+                        "Koraidon", "Miraidon",
+                        # All Paradox Pokemon
+                        "Great Tusk", "Scream Tail", "Brute Bonnet", "Flutter Mane", "Slither Wing",
+                        "Sandy Shocks", "Roaring Moon", "Walking Wake", "Iron Treads", "Iron Bundle",
+                        "Iron Hands", "Iron Jugulis", "Iron Moth", "Iron Thorns", "Iron Valiant",
+                        "Raging Bolt", "Gouging Fire", "Iron Leaves", "Iron Boulder", "Iron Crown",
+                        # Treasures of Ruin
+                        "Chi-Yu", "Chien-Pao", "Ting-Lu", "Wo-Chien",
+                        # Other Bans
+                        "Ogerpon", "Bloodmoon Ursaluna", "Okidogi", "Munkidori", "Fezandipiti"
+                    ]
+                },
+                "I": {  # Double Restricted - Only mythicals banned, 2 restricted allowed
+                    "mythicals_only": True,
+                    "max_restricted": 2
+                }
+            }
+            
+            # Get ban rules for the regulation
+            ban_rules = regulation_ban_lists.get(regulation, {})
+            
+            for pokemon in pokemon_team:
+                pokemon_name = pokemon.get("name", "").strip()
+                if not pokemon_name or pokemon_name == "Not specified in article":
+                    continue
+                
+                # Check specific ban conditions
+                is_banned = False
+                ban_reason = ""
+                
+                if "comprehensive_bans" in ban_rules:
+                    if any(banned.lower() in pokemon_name.lower() for banned in ban_rules["comprehensive_bans"]):
+                        is_banned = True
+                        ban_reason = f"Banned in Regulation {regulation} (Back to Basics format)"
+                
+                elif "restricted_legendaries" in ban_rules:
+                    if any(restricted.lower() in pokemon_name.lower() for restricted in ban_rules["restricted_legendaries"]):
+                        is_banned = True
+                        ban_reason = f"Restricted Legendary banned in Regulation {regulation}"
+                
+                elif ban_rules.get("all_legendaries") and self._is_legendary(pokemon_name):
+                    # Check for exceptions
+                    if "treasure_exceptions" in ban_rules:
+                        if not any(treasure.lower() in pokemon_name.lower() for treasure in ban_rules["treasure_exceptions"]):
+                            is_banned = True
+                            ban_reason = f"Legendary banned in Regulation {regulation}"
+                    else:
+                        is_banned = True
+                        ban_reason = f"Legendary banned in Regulation {regulation}"
+                
+                if is_banned:
+                    banned_pokemon.append({"name": pokemon_name, "reason": ban_reason})
             
             return banned_pokemon
         
@@ -3878,6 +4613,19 @@ def render_previous_articles_page():
 
         # Create article card
         with st.container():
+            # Build URL section HTML separately to avoid string interpolation issues
+            url_section = ""
+            if is_valid_url:
+                url_section = f"""
+                    <a href='{url_display}' target='_blank' style='color: #3b82f6; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px;'>
+                        <span>🔗</span>
+                        <span style='font-family: monospace; word-break: break-all;'>{url_display}</span>
+                    </a>
+                    <div style='color: #64748b; font-size: 12px; margin-top: 4px;'>📍 Domain: {url_domain}</div>
+                """
+            else:
+                url_section = f"<span style='color: #64748b; font-size: 14px; font-style: italic;'>🔗 {url_display}</span>"
+
             st.markdown(
                 f"""
             <div class="summary-container" style="margin-bottom: 20px;">
@@ -3888,8 +4636,7 @@ def render_previous_articles_page():
                     </div>
                 </div>
                 <div style="margin-bottom: 12px; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
-                    {"<a href='" + url_display + "' target='_blank' style='color: #3b82f6; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px;'><span>🔗</span><span style='font-family: monospace; word-break: break-all;'>" + url_display + "</span></a>" if is_valid_url else "<span style='color: #64748b; font-size: 14px; font-style: italic;'>🔗 " + url_display + "</span>"}
-                    {f"<div style='color: #64748b; font-size: 12px; margin-top: 4px;'>📍 Domain: {url_domain}</div>" if url_domain and is_valid_url else ""}
+                    {url_section}
                 </div>
                 <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px; padding: 8px 0; background: #f8fafc; border-radius: 8px; padding: 8px 12px;">
                     <span style="color: {regulation_color}; font-weight: 600; font-size: 14px;">{regulation_display}</span>
@@ -3904,12 +4651,20 @@ def render_previous_articles_page():
                 unsafe_allow_html=True,
             )
 
-            # Display regulation conflicts warning
+            # Display enhanced regulation conflicts warning
             if has_conflicts:
-                st.warning(
-                    f"⚠️ **Regulation Conflict Detected**: {len(regulation_conflicts)} Pokémon appear to be banned in Regulation {regulation}: "
-                    f"{', '.join(regulation_conflicts[:3])}{'...' if len(regulation_conflicts) > 3 else ''}"
-                )
+                conflict_names = [conflict["name"] for conflict in regulation_conflicts]
+                conflict_details = []
+                for conflict in regulation_conflicts[:2]:  # Show details for first 2
+                    conflict_details.append(f"**{conflict['name']}**: {conflict['reason']}")
+                
+                warning_text = f"⚠️ **Regulation Conflicts Detected** ({len(regulation_conflicts)} Pokémon):\n\n"
+                warning_text += "\n".join(conflict_details)
+                if len(regulation_conflicts) > 2:
+                    remaining = len(regulation_conflicts) - 2
+                    warning_text += f"\n\n*...and {remaining} more banned Pokémon*"
+                
+                st.warning(warning_text)
 
             # Enhanced Pokemon team preview with validation
             if pokemon_team:
@@ -3920,7 +4675,7 @@ def render_previous_articles_page():
                 for pokemon in pokemon_team[:8]:  # Show up to 8 Pokemon
                     pokemon_name = pokemon.get("name", "")
                     if pokemon_name and pokemon_name != "Not specified in article":
-                        is_banned = pokemon_name in regulation_conflicts
+                        is_banned = any(conflict["name"] == pokemon_name for conflict in regulation_conflicts)
                         
                         # Check for potential translation issues
                         potential_issues = []
