@@ -4031,6 +4031,85 @@ Respond only with the JSON, no additional text.
             "translated_content": "Translation unavailable due to system error"
         }
 
+
+def get_cached_articles() -> List[Dict[str, Any]]:
+    """Get list of all cached articles with metadata"""
+    try:
+        cache_dir = ensure_cache_directory()
+        cache_files = [f for f in os.listdir(cache_dir) if f.endswith(".json")]
+
+        articles = []
+        for file in cache_files:
+            file_path = os.path.join(cache_dir, file)
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    cache_data = json.load(f)
+                articles.append(cache_data)
+            except:
+                continue
+
+        # Sort by timestamp (newest first)
+        articles.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+        return articles
+    except:
+        return []
+
+
+def delete_cached_article(content_hash: str) -> bool:
+    """Delete a specific cached article"""
+    try:
+        cache_file = get_cache_file_path(content_hash)
+        if os.path.exists(cache_file):
+            os.remove(cache_file)
+            return True
+        return False
+    except:
+        return False
+
+
+def create_pokepaste(pokemon_team: List[Dict[str, Any]], team_name: str = "VGC Team") -> str:
+    """Generate clean pokepaste format for the team"""
+    pokepaste_content = ""
+
+    for pokemon in pokemon_team:
+        if not pokemon.get("name") or pokemon["name"] == "Not specified in article":
+            continue
+
+        # Pokemon name and held item
+        pokepaste_content += f"{pokemon['name']}"
+        if (
+            pokemon.get("held_item")
+            and pokemon["held_item"] != "Not specified in article"
+        ):
+            pokepaste_content += f" @ {pokemon['held_item']}"
+        pokepaste_content += "\n"
+
+        # Ability
+        if pokemon.get("ability") and pokemon["ability"] != "Not specified in article":
+            pokepaste_content += f"Ability: {pokemon['ability']}\n"
+
+        # Tera Type
+        if (
+            pokemon.get("tera_type")
+            and pokemon["tera_type"] != "Not specified in article"
+        ):
+            pokepaste_content += f"Tera Type: {pokemon['tera_type']}\n"
+
+        # Nature
+        if pokemon.get("nature") and pokemon["nature"] != "Not specified in article":
+            pokepaste_content += f"{pokemon['nature']} Nature\n"
+
+        # Moves
+        if pokemon.get("moves"):
+            for move in pokemon["moves"]:
+                if move and move != "Not specified in article":
+                    pokepaste_content += f"- {move}\n"
+
+        pokepaste_content += "\n"
+
+    return pokepaste_content
+
+
 def render_article_analysis_page():
     """Render the new analysis page (original functionality)"""
     # Header
