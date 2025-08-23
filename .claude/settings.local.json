@@ -28,7 +28,8 @@
       "WebFetch(domain:victoryroad.pro)",
       "WebFetch(domain:statcrusher.com)",
       "WebFetch(domain:munchstats.com)",
-      "WebFetch(domain:www.smogon.com)"
+      "WebFetch(domain:www.smogon.com)",
+      "Bash(mv:*)"
     ],
     "defaultMode": "acceptEdits"
   }
