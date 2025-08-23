@@ -24,7 +24,8 @@
       "WebSearch",
       "WebFetch(domain:cona5757.hatenablog.com)",
       "WebFetch(domain:tamii-poke.hateblo.jp)",
-      "WebFetch(domain:assets.st-note.com)"
+      "WebFetch(domain:assets.st-note.com)",
+      "WebFetch(domain:victoryroad.pro)"
     ],
     "defaultMode": "acceptEdits"
   }
