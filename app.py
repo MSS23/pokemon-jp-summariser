@@ -4592,7 +4592,7 @@ def render_previous_articles_page():
                         is_banned = True
                         ban_reason = f"Restricted Legendary banned in Regulation {regulation}"
                 
-                elif ban_rules.get("all_legendaries") and self._is_legendary(pokemon_name):
+                elif ban_rules.get("all_legendaries") and _is_legendary(pokemon_name):
                     # Check for exceptions
                     if "treasure_exceptions" in ban_rules:
                         if not any(treasure.lower() in pokemon_name.lower() for treasure in ban_rules["treasure_exceptions"]):
