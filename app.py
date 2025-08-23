@@ -2876,12 +2876,30 @@ ARTICLE CONTENT:
 - ドドゲザン = "Kingambit" (Dark/Steel, Generation IX) - NOT Glaceon!
 - If you see these Japanese names, translate them correctly to avoid major errors!
 
-**STEP 1: COMPREHENSIVE POKEMON DETECTION**
-- Scan ENTIRE article for Pokemon names (Japanese and English)
-- Check team lists, strategy sections, move descriptions, ability mentions
-- Look for Pokemon in battle reports, example scenarios, comparisons
-- Include Pokemon mentioned in passing or as counters/threats
-- Cross-reference with moves/abilities to confirm Pokemon identity
+**STEP 1: CORE TEAM COMPOSITION DETECTION (MAX 6 POKEMON)**
+🎯 **PRIMARY OBJECTIVE**: Identify the main 6-Pokemon competitive team, NOT all mentioned Pokemon
+
+**PRIORITY DETECTION HIERARCHY:**
+1. **Core Team Members** (TOP PRIORITY):
+   - Pokemon with complete data: EV spreads, movesets, items, abilities, natures
+   - Pokemon in structured team sections or numbered lists
+   - Pokemon with detailed individual analysis sections
+   
+2. **Team Structure Indicators**:
+   - Look for team composition sections, roster lists, "my team" descriptions
+   - Prioritize Pokemon with battle role explanations
+   - Focus on Pokemon with specific build details (not just names)
+
+3. **EXCLUDE from main team**:
+   - Pokemon mentioned only as examples ("like Garchomp...")  
+   - Pokemon mentioned as counters or threats ("watch out for Landorus")
+   - Pokemon in meta discussion or comparison contexts
+   - Pokemon mentioned without specific build details
+   
+4. **VALIDATION RULES**:
+   - **MAXIMUM 6 Pokemon per team** (VGC standard rule)
+   - If >6 Pokemon detected, prioritize those with most complete data
+   - Must have at least move/ability/item data to qualify as main team member
 
 **STEP 2: AGGRESSIVE EV DATA EXTRACTION**
 - Search ALL text sections for numerical patterns that could be EVs
@@ -3050,12 +3068,16 @@ ARTICLE CONTENT:
 - **Regulation Compliance**: Validate all Pokemon against detected regulation ban lists
 
 **STEP 7: SELF-VALIDATION & QUALITY CONTROL**
+- **Team Size Check**: CRITICAL - Ensure exactly ≤6 Pokemon in team (VGC rule)
+- **Core Team Validation**: Verify these are main team members, not example mentions
+- **Data Quality Scoring**: Prioritize Pokemon with complete movesets, EVs, items, abilities
 - **Internal Consistency Check**: Do Pokemon, moves, abilities, and items all align logically?
 - **Meta Reasonableness**: Does this team make sense for the identified regulation/format?
 - **Data Completeness**: Are all required fields filled? Any obvious gaps?
 - **Confidence Assessment**: Rate overall analysis confidence (1-10) with justification
 - **Error Detection**: Flag any potential issues, conflicts, or low-confidence identifications
 - **Final Review**: Re-examine any Pokemon with <80% confidence for possible corrections
+- **Team Composition Logic**: Does this look like a real competitive team or random Pokemon mentions?
 
 **STEP 8: STRUCTURED OUTPUT GENERATION**
 - Generate final JSON following exact schema below
@@ -3124,6 +3146,7 @@ ARTICLE CONTENT:
             "validation_notes": "Notes about data quality or potential issues",
             "regulation_legal": true
         }}
+        // CRITICAL: MAXIMUM 6 Pokemon (VGC standard). Focus on core team members with complete data, NOT example mentions
     ],
     "translated_content": "Full article translated to English, maintaining VGC terminology and strategic insights"
 }}
@@ -3765,7 +3788,7 @@ Respond only with the JSON, no additional text.
                     elif key == "translated_content":
                         result[key] = "Translation not available"
 
-            # Validate Pokemon team structure
+            # Validate Pokemon team structure with 6-Pokemon maximum rule
             if result.get("pokemon_team"):
                 validated_team = []
                 for pokemon in result["pokemon_team"]:
@@ -3788,6 +3811,36 @@ Respond only with the JSON, no additional text.
                             pokemon_defaults["moves"].append(f"Unknown Move {len(pokemon_defaults['moves']) + 1}")
                         
                         validated_team.append(pokemon_defaults)
+                
+                # Enforce 6-Pokemon maximum rule for VGC teams
+                if len(validated_team) > 6:
+                    st.warning(f"🚨 **Team Size Validation**: Detected {len(validated_team)} Pokemon, but VGC teams have maximum 6. Selecting top 6 with most complete data...")
+                    
+                    # Score Pokemon by data completeness for prioritization
+                    def score_pokemon_completeness(pokemon):
+                        score = 0
+                        # Higher score for non-default/unknown values
+                        if pokemon.get("ability") and pokemon["ability"] not in ["Unknown", "Not specified"]:
+                            score += 3
+                        if pokemon.get("held_item") and pokemon["held_item"] not in ["Unknown", "Not specified"]:
+                            score += 3
+                        if pokemon.get("ev_spread") and pokemon["ev_spread"] not in ["Not specified in article", "Unknown"]:
+                            score += 4  # EV data is very important
+                        if pokemon.get("nature") and pokemon["nature"] not in ["Unknown", "Not specified"]:
+                            score += 2
+                        if pokemon.get("moves"):
+                            non_unknown_moves = [m for m in pokemon["moves"] if "Unknown Move" not in m and m not in ["Unknown", "Not specified"]]
+                            score += len(non_unknown_moves)  # 1 point per real move
+                        if pokemon.get("ev_explanation") and len(pokemon["ev_explanation"]) > 50:
+                            score += 2  # Detailed explanation indicates core team member
+                        return score
+                    
+                    # Sort by completeness score (highest first) and take top 6
+                    validated_team.sort(key=score_pokemon_completeness, reverse=True)
+                    validated_team = validated_team[:6]
+                    
+                    removed_pokemon = [p["name"] for p in result["pokemon_team"][6:]]
+                    st.info(f"✂️ **Team Trimmed**: Removed {', '.join(removed_pokemon)} (likely examples/counters mentioned in article)")
                 
                 result["pokemon_team"] = validated_team
 
