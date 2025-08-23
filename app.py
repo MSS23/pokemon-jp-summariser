@@ -3383,8 +3383,17 @@ def render_new_analysis_page():
     col1, col2, col3 = st.columns([2, 2, 1])
 
     with col1:
+        # Check if we're re-testing an article
+        default_url = ""
+        if "retest_url" in st.session_state:
+            default_url = st.session_state["retest_url"]
+            st.info(f"🔄 Re-testing article: {default_url}")
+            # Clear the retest URL after displaying
+            del st.session_state["retest_url"]
+        
         url = st.text_input(
             "Japanese VGC Article URL",
+            value=default_url,
             placeholder="https://example.com/vgc-article",
             help="Enter the URL of a Japanese Pokemon VGC article",
         )
@@ -3811,16 +3820,81 @@ def render_previous_articles_page():
         except:
             formatted_time = timestamp
 
+        # Get article URL and clean it for display
+        article_url = article.get("url", "")
+        url_display = "No URL provided"
+        url_domain = ""
+        is_valid_url = False
+        
+        if article_url and article_url != "No URL":
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(article_url)
+                url_domain = parsed.netloc
+                url_display = article_url
+                is_valid_url = True
+            except:
+                url_display = article_url
+                url_domain = "Unknown"
+
+        # Get regulation information
+        regulation_info = analysis_result.get("regulation_info", {})
+        regulation = regulation_info.get("regulation", "Unknown")
+        regulation_format = regulation_info.get("format", "")
+        
+        # Create regulation display
+        regulation_color = "#10b981"  # Green for valid
+        regulation_display = f"🏆 Regulation {regulation}"
+        if regulation == "Unknown":
+            regulation_color = "#f59e0b"  # Yellow for unknown
+            regulation_display = "🤔 Regulation Unknown"
+        
+        # Get Pokemon count for summary
+        pokemon_count = len([p for p in pokemon_team if p.get("name") and p.get("name") != "Not specified in article"])
+        pokemon_count_display = f"{pokemon_count} Pokémon detected" if pokemon_count > 0 else "No Pokémon detected"
+        
+        # Check for regulation conflicts
+        def check_pokemon_regulation_conflicts(pokemon_team, regulation):
+            """Check for Pokemon that are banned in the specified regulation"""
+            banned_pokemon = []
+            regulation_h_banned = [
+                "Urshifu", "Flutter Mane", "Iron Bundle", "Iron Hands", "Chi-Yu", "Chien-Pao", 
+                "Ting-Lu", "Wo-Chien", "Ogerpon", "Raging Bolt", "Walking Wake", "Gouging Fire",
+                "Iron Leaves", "Iron Boulder", "Iron Crown", "Calyrex", "Miraidon", "Koraidon",
+                "Tornadus", "Landorus", "Thundurus", "Zamazenta", "Zacian", "Kyogre", "Groudon"
+            ]
+            
+            if regulation == "H":
+                for pokemon in pokemon_team:
+                    pokemon_name = pokemon.get("name", "")
+                    if any(banned_name.lower() in pokemon_name.lower() for banned_name in regulation_h_banned):
+                        banned_pokemon.append(pokemon_name)
+            
+            return banned_pokemon
+        
+        # Get regulation conflicts
+        regulation_conflicts = check_pokemon_regulation_conflicts(pokemon_team, regulation)
+        has_conflicts = len(regulation_conflicts) > 0
+
         # Create article card
         with st.container():
             st.markdown(
                 f"""
             <div class="summary-container" style="margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                     <h3 style="color: #1e293b; margin: 0; flex: 1;">{title}</h3>
                     <div style="color: #64748b; font-size: 14px; margin-left: 16px;">
-                        {formatted_time}
+                        📅 {formatted_time}
                     </div>
+                </div>
+                <div style="margin-bottom: 12px; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                    {"<a href='" + url_display + "' target='_blank' style='color: #3b82f6; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px;'><span>🔗</span><span style='font-family: monospace; word-break: break-all;'>" + url_display + "</span></a>" if is_valid_url else "<span style='color: #64748b; font-size: 14px; font-style: italic;'>🔗 " + url_display + "</span>"}
+                    {f"<div style='color: #64748b; font-size: 12px; margin-top: 4px;'>📍 Domain: {url_domain}</div>" if url_domain and is_valid_url else ""}
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px; padding: 8px 0; background: #f8fafc; border-radius: 8px; padding: 8px 12px;">
+                    <span style="color: {regulation_color}; font-weight: 600; font-size: 14px;">{regulation_display}</span>
+                    <span style="color: #64748b; font-size: 14px;">|</span>
+                    <span style="color: #6366f1; font-size: 14px; font-weight: 500;">👥 {pokemon_count_display}</span>
                 </div>
                 <div class="summary-content" style="margin-bottom: 16px;">
                     {summary[:200]}{"..." if len(summary) > 200 else ""}
@@ -3830,8 +3904,62 @@ def render_previous_articles_page():
                 unsafe_allow_html=True,
             )
 
-            # Pokemon team preview
+            # Display regulation conflicts warning
+            if has_conflicts:
+                st.warning(
+                    f"⚠️ **Regulation Conflict Detected**: {len(regulation_conflicts)} Pokémon appear to be banned in Regulation {regulation}: "
+                    f"{', '.join(regulation_conflicts[:3])}{'...' if len(regulation_conflicts) > 3 else ''}"
+                )
+
+            # Enhanced Pokemon team preview with validation
             if pokemon_team:
+                st.markdown("**Team Pokémon:**")
+                
+                # Create Pokemon badges with identification status
+                pokemon_badges = []
+                for pokemon in pokemon_team[:8]:  # Show up to 8 Pokemon
+                    pokemon_name = pokemon.get("name", "")
+                    if pokemon_name and pokemon_name != "Not specified in article":
+                        is_banned = pokemon_name in regulation_conflicts
+                        
+                        # Check for potential translation issues
+                        potential_issues = []
+                        if "Glaceon" in pokemon_name:
+                            potential_issues.append("Possible mistranslation (Baxcalibur/Kingambit?)")
+                        if pokemon_name == "Not specified in article":
+                            potential_issues.append("Unknown Pokemon")
+                        if len(pokemon_name) < 3:
+                            potential_issues.append("Short name - check translation")
+                        
+                        # Determine badge status
+                        if is_banned:
+                            badge_color = "#ef4444"
+                            badge_icon = "⚠️"
+                            status = "BANNED"
+                        elif potential_issues:
+                            badge_color = "#f59e0b" 
+                            badge_icon = "❓"
+                            status = "CHECK"
+                        else:
+                            badge_color = "#10b981"
+                            badge_icon = "✅"
+                            status = "OK"
+                        
+                        tooltip = f"Status: {status}"
+                        if potential_issues:
+                            tooltip += f" - {'; '.join(potential_issues)}"
+                        
+                        pokemon_badges.append(
+                            f'<span style="background: {badge_color}15; color: {badge_color}; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; margin: 2px; display: inline-block;" title="{tooltip}">{badge_icon} {pokemon_name}</span>'
+                        )
+                
+                if pokemon_badges:
+                    st.markdown(
+                        f'<div style="margin: 8px 0;">{"".join(pokemon_badges)}</div>',
+                        unsafe_allow_html=True
+                    )
+                
+                # Traditional sprite preview (condensed)
                 cols = st.columns(min(len(pokemon_team), 6))
                 for j, pokemon in enumerate(pokemon_team[:6]):
                     if j < len(cols):
@@ -3849,7 +3977,7 @@ def render_previous_articles_page():
                                     st.markdown(f"**{pokemon['name']}**")
 
             # Action buttons
-            col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+            col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 1])
 
             with col1:
                 if st.button(f"📖 View Analysis", key=f"view_{i}"):
@@ -3861,18 +3989,35 @@ def render_previous_articles_page():
                     st.session_state["current_page"] = "New Analysis"
                     st.rerun()
 
+            # Re-test button (insert before other buttons)
             with col2:
+                if is_valid_url:
+                    if st.button(
+                        "🔄 Re-test", 
+                        key=f"retest_{i}",
+                        help="Re-analyze this article with current Pokemon detection improvements"
+                    ):
+                        # Clear cache for this article and set URL for re-testing
+                        if delete_cached_article(article.get("hash", "")):
+                            st.session_state["retest_url"] = article_url
+                            st.session_state["current_page"] = "New Analysis" 
+                            st.success(f"🔄 Re-testing article! Switching to analysis page...")
+                            st.rerun()
+                        else:
+                            st.error("Failed to clear cache for re-testing")
+
+            with col3:
                 if analysis_result.get("translated_content"):
                     translated_text = f"Title: {title}\n\nSummary: {summary}\n\nFull Translation:\n{analysis_result['translated_content']}"
                     st.download_button(
-                        label="📄 Download Translation",
+                        label="📄 Translation",
                         data=translated_text,
                         file_name=f"translation_{i+1}.txt",
                         mime="text/plain",
                         key=f"download_trans_{i}",
                     )
 
-            with col3:
+            with col4:
                 if pokemon_team:
                     try:
                         pokepaste_content = create_pokepaste(pokemon_team, title)
@@ -3881,14 +4026,14 @@ def render_previous_articles_page():
                         pokepaste_content = f"// Error generating pokepaste: {str(e)}\n// Please try re-analyzing the article"
 
                     st.download_button(
-                        label="🎮 Download Pokepaste",
+                        label="🎮 Pokepaste",
                         data=pokepaste_content,
                         file_name=f"team_{i+1}.txt",
                         mime="text/plain",
                         key=f"download_paste_{i}",
                     )
 
-            with col4:
+            with col5:
                 if st.button("🗑️", key=f"delete_{i}", help="Delete this article"):
                     if delete_cached_article(article.get("hash", "")):
                         st.success("Article deleted!")
