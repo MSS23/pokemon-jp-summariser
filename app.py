@@ -13,6 +13,8 @@ from typing import Dict, List, Optional, Any, Tuple
 import os
 from urllib.parse import urlparse, urljoin
 import base64
+import time
+from datetime import datetime
 from io import BytesIO
 from PIL import Image
 import hashlib
@@ -32,20 +34,11 @@ try:
     from database.crud import (
         TeamCRUD,
         BookmarkCRUD,
-        SpeedTierCRUD,
-        DamageCalculationCRUD,
     )
-    from calculations.damage_calc import (
-        DamageCalculator,
-        PokemonStats,
-        Move,
-        DamageModifiers,
-    )
-    from calculations.speed_tiers import SpeedTierAnalyzer, SpeedTierEntry
 
     DATABASE_AVAILABLE = True
 except ImportError as e:
-    st.error(f"Database modules not available: {e}")
+    # Database modules not available, will use fallback functionality
     DATABASE_AVAILABLE = False
 
 # Item Translation Database
@@ -4150,6 +4143,278 @@ def create_pokepaste(
     return pokepaste_content
 
 
+# Pokemon Showdown Usage Statistics Functions
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def fetch_pokemon_usage_stats(pokemon_name: str, format_name: str = "gen9vgc2025") -> Optional[Dict]:
+    """
+    Fetch Pokemon usage statistics from Smogon API
+    
+    Args:
+        pokemon_name: Name of the Pokemon (e.g., 'incineroar', 'flutter-mane')
+        format_name: VGC format (e.g., 'gen9vgc2025', 'gen9vgc2024regh')
+    
+    Returns:
+        Dictionary with usage statistics or None if not found
+    """
+    try:
+        # Clean pokemon name for API
+        clean_name = pokemon_name.lower().replace(' ', '-').replace("'", "")
+        
+        # Map common names
+        name_mapping = {
+            'great-tusk': 'greattusk',
+            'scream-tail': 'screamtail',
+            'brute-bonnet': 'brutebonnet',
+            'flutter-mane': 'fluttermane',
+            'slither-wing': 'slitherwing',
+            'sandy-shocks': 'sandyshocks',
+            'iron-treads': 'irontreads',
+            'iron-bundle': 'ironbundle',
+            'iron-hands': 'ironhands',
+            'iron-jugulis': 'ironjugulis',
+            'iron-moth': 'ironmoth',
+            'iron-thorns': 'ironthorns',
+            'roaring-moon': 'roaringmoon',
+            'iron-valiant': 'ironvaliant',
+            'walking-wake': 'walkingwake',
+            'raging-bolt': 'ragingbolt',
+            'gouging-fire': 'gougingfire',
+            'iron-leaves': 'ironleaves',
+            'iron-boulder': 'ironboulder',
+            'iron-crown': 'ironcrown',
+            'chien-pao': 'chienpao',
+            'ting-lu': 'tinglu',
+            'chi-yu': 'chiyu',
+            'wo-chien': 'wochien'
+        }
+        
+        api_name = name_mapping.get(clean_name, clean_name)
+        
+        # Try the Heroku API first
+        url = f"https://smogon-usage-stats.herokuapp.com/{format_name}/{api_name}"
+        response = requests.get(url, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                'usage_percent': data.get('usage_percent', 0),
+                'rank': data.get('rank', None),
+                'abilities': data.get('abilities', {}),
+                'items': data.get('items', {}),
+                'moves': data.get('moves', {}),
+                'teammates': data.get('teammates', {}),
+                'checks_and_counters': data.get('checks_and_counters', {}),
+                'source': 'smogon_api'
+            }
+        else:
+            # Fallback: return default structure with no data
+            return {
+                'usage_percent': 0,
+                'rank': None,
+                'abilities': {},
+                'items': {},
+                'moves': {},
+                'teammates': {},
+                'checks_and_counters': {},
+                'source': 'no_data',
+                'error': f"No usage data found (HTTP {response.status_code})"
+            }
+            
+    except Exception as e:
+        st.warning(f"Could not fetch usage stats for {pokemon_name}: {str(e)}")
+        return None
+
+
+def calculate_pokemon_viability_score(pokemon_name: str, regulation: str) -> Tuple[float, Dict[str, Any]]:
+    """
+    Calculate viability score for a Pokemon in a given regulation
+    
+    Args:
+        pokemon_name: Name of the Pokemon
+        regulation: VGC regulation (e.g., "Regulation I", "Regulation H")
+    
+    Returns:
+        Tuple of (viability_score, analysis_details)
+    """
+    # Map regulation to format names
+    regulation_mapping = {
+        "Regulation I": "gen9vgc2025",
+        "Regulation H": "gen9vgc2024regh", 
+        "Regulation G": "gen9vgc2024regg",
+        "Regulation F": "gen9vgc2024regf",
+        "Regulation E": "gen9vgc2024rege",
+        "Regulation D": "gen9vgc2024regd"
+    }
+    
+    format_name = regulation_mapping.get(regulation, "gen9vgc2025")
+    
+    # Fetch usage statistics
+    usage_stats = fetch_pokemon_usage_stats(pokemon_name, format_name)
+    
+    if not usage_stats:
+        return 0.0, {"error": "Could not fetch usage statistics"}
+    
+    # Calculate viability score based on multiple factors
+    viability_score = 0.0
+    analysis_details = {
+        'usage_data': usage_stats,
+        'score_breakdown': {},
+        'viability_tier': '',
+        'recommendations': []
+    }
+    
+    # Factor 1: Usage percentage (0-40 points)
+    usage_percent = usage_stats.get('usage_percent', 0)
+    if usage_percent > 20:
+        usage_score = 40
+        tier = "S-Tier"
+    elif usage_percent > 10:
+        usage_score = 35
+        tier = "A-Tier"
+    elif usage_percent > 5:
+        usage_score = 30
+        tier = "B-Tier"
+    elif usage_percent > 2:
+        usage_score = 25
+        tier = "C-Tier"
+    elif usage_percent > 0.5:
+        usage_score = 15
+        tier = "D-Tier"
+    else:
+        usage_score = 5
+        tier = "F-Tier"
+    
+    analysis_details['score_breakdown']['usage_score'] = usage_score
+    analysis_details['viability_tier'] = tier
+    
+    # Factor 2: Ranking position (0-20 points)
+    rank = usage_stats.get('rank', 999)
+    if rank and rank <= 10:
+        rank_score = 20
+    elif rank and rank <= 25:
+        rank_score = 18
+    elif rank and rank <= 50:
+        rank_score = 15
+    elif rank and rank <= 100:
+        rank_score = 10
+    else:
+        rank_score = 5
+        
+    analysis_details['score_breakdown']['rank_score'] = rank_score
+    
+    # Factor 3: Move diversity (0-20 points)
+    moves = usage_stats.get('moves', {})
+    move_count = len(moves)
+    if move_count >= 8:
+        diversity_score = 20
+    elif move_count >= 6:
+        diversity_score = 15
+    elif move_count >= 4:
+        diversity_score = 10
+    else:
+        diversity_score = 5
+        
+    analysis_details['score_breakdown']['diversity_score'] = diversity_score
+    
+    # Factor 4: Item flexibility (0-10 points)
+    items = usage_stats.get('items', {})
+    item_count = len(items)
+    if item_count >= 5:
+        item_score = 10
+    elif item_count >= 3:
+        item_score = 8
+    elif item_count >= 2:
+        item_score = 5
+    else:
+        item_score = 2
+        
+    analysis_details['score_breakdown']['item_score'] = item_score
+    
+    # Factor 5: Teammate synergy (0-10 points)
+    teammates = usage_stats.get('teammates', {})
+    teammate_count = len(teammates)
+    if teammate_count >= 10:
+        synergy_score = 10
+    elif teammate_count >= 5:
+        synergy_score = 8
+    else:
+        synergy_score = 5
+        
+    analysis_details['score_breakdown']['synergy_score'] = synergy_score
+    
+    # Calculate total score
+    viability_score = usage_score + rank_score + diversity_score + item_score + synergy_score
+    
+    # Generate recommendations
+    recommendations = []
+    if usage_percent < 1:
+        recommendations.append("⚠️ Very low usage - consider meta alternatives")
+    if move_count < 4:
+        recommendations.append("🎯 Limited movepool - ensure team covers weaknesses")
+    if item_count < 2:
+        recommendations.append("🛡️ Limited item options - build around preferred set")
+    if teammate_count < 5:
+        recommendations.append("🤝 Few common teammates - may require specific team support")
+    
+    if viability_score >= 80:
+        recommendations.append("✅ Excellent meta pick - highly recommended")
+    elif viability_score >= 60:
+        recommendations.append("👍 Solid choice for competitive play")
+    elif viability_score >= 40:
+        recommendations.append("🤔 Niche pick - requires careful team building")
+    else:
+        recommendations.append("❌ Not recommended for competitive play")
+    
+    analysis_details['recommendations'] = recommendations
+    
+    return viability_score, analysis_details
+
+
+def get_pokemon_alternatives(pokemon_name: str, regulation: str, role: str = "unknown") -> List[Dict[str, Any]]:
+    """
+    Get alternative Pokemon suggestions based on role and regulation
+    
+    Args:
+        pokemon_name: Original Pokemon being considered
+        regulation: VGC regulation
+        role: Pokemon's role (e.g., "physical_attacker", "support", "tank")
+    
+    Returns:
+        List of alternative Pokemon with viability scores
+    """
+    # Common VGC Pokemon by role
+    alternatives_by_role = {
+        "physical_attacker": ["incineroar", "urshifu-rapid-strike", "great-tusk", "landorus-therian", "garchomp"],
+        "special_attacker": ["flutter-mane", "chi-yu", "charizard", "torkoal", "gastrodon"],
+        "support": ["amoonguss", "clefairy", "grimmsnarl", "whimsicott", "indeedee-female"],
+        "tank": ["cresselia", "ting-lu", "dondozo", "arcanine-hisui", "wo-chien"],
+        "speed_control": ["tailwind-user", "trick-room-user", "choice-scarf-user"],
+        "unknown": ["incineroar", "flutter-mane", "amoonguss", "great-tusk", "cresselia", "chi-yu"]
+    }
+    
+    candidates = alternatives_by_role.get(role, alternatives_by_role["unknown"])
+    
+    # Remove the original Pokemon if it's in the list
+    candidates = [p for p in candidates if p.lower() != pokemon_name.lower().replace(' ', '-')]
+    
+    # Calculate viability scores for alternatives
+    alternatives = []
+    for candidate in candidates[:5]:  # Limit to top 5 alternatives
+        score, details = calculate_pokemon_viability_score(candidate, regulation)
+        if score > 0:
+            alternatives.append({
+                'name': candidate.title().replace('-', ' '),
+                'viability_score': score,
+                'tier': details.get('viability_tier', 'Unknown'),
+                'usage_percent': details.get('usage_data', {}).get('usage_percent', 0)
+            })
+    
+    # Sort by viability score
+    alternatives.sort(key=lambda x: x['viability_score'], reverse=True)
+    
+    return alternatives
+
+
 def render_team_strategy_section(
     team_analysis: Dict[str, Any], result: Dict[str, Any] = None
 ) -> None:
@@ -5316,647 +5581,728 @@ def render_team_database_page():
         st.error(f"Failed to load teams: {e}")
 
 
-def render_team_comparison_page():
-    """Render the team comparison page"""
+def render_review_my_team_page():
+    """Render the Review My Team page with comprehensive VGC analysis"""
     st.markdown(
-        '<div class="team-header"><h1>⚔️ Team Comparison</h1><p>Compare teams side-by-side</p></div>',
+        '<div class="team-header"><h1>🔍 Review My Team</h1><p>Comprehensive VGC team analysis and optimization</p></div>',
         unsafe_allow_html=True,
     )
-
-    if not DATABASE_AVAILABLE:
-        st.error(
-            "Database functionality is not available. Please install required dependencies."
-        )
-        return
-
-    # Get comparison teams from session state
-    comparison_teams = st.session_state.get("comparison_teams", [])
-
-    if len(comparison_teams) < 2:
-        st.info(
-            "Add teams to comparison from the Team Database page to start comparing."
-        )
-
-        # Show available teams for quick selection
-        try:
-            teams = TeamCRUD.get_all_teams(limit=20)
-            if teams:
-                st.markdown("### Quick Team Selection")
-                cols = st.columns(2)
-                for i, team in enumerate(teams[:10]):
-                    with cols[i % 2]:
-                        if st.button(f"Add {team.name}", key=f"quick_add_{team.id}"):
-                            if "comparison_teams" not in st.session_state:
-                                st.session_state["comparison_teams"] = []
-                            if team.id not in st.session_state["comparison_teams"]:
-                                st.session_state["comparison_teams"].append(team.id)
-                                st.success(f"Added {team.name} to comparison!")
-                                st.rerun()
-        except Exception as e:
-            st.error(f"Failed to load teams: {e}")
-        return
-
-    # Load team details
-    teams_data = []
-    for team_id in comparison_teams:
-        try:
-            team = TeamCRUD.get_team_by_id(team_id)
-            if team:
-                teams_data.append(team)
-        except Exception as e:
-            st.error(f"Failed to load team {team_id}: {e}")
-
-    if not teams_data:
-        st.error("Failed to load comparison teams")
-        return
-
-    # Comparison controls
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.markdown(f"**Comparing {len(teams_data)} teams**")
-    with col2:
-        if st.button("🗑️ Clear Comparison"):
-            st.session_state["comparison_teams"] = []
-            st.rerun()
-
-    # Side-by-side comparison
-    cols = st.columns(len(teams_data))
-
-    for i, team in enumerate(teams_data):
-        with cols[i]:
-            st.markdown(f"### {team.name}")
-            st.markdown(
-                f"**Regulation:** {team.regulation if team.regulation else 'None'}"
-            )
-            st.markdown(
-                f"**Archetype:** {team.archetype if team.archetype else 'Not specified'}"
-            )
-
-            # Team overview
-            if team.strategy_summary:
-                with st.expander("Strategy Summary"):
-                    st.write(team.strategy_summary)
-
-            # Pokemon list
-            st.markdown("**Team Members:**")
-            for pokemon in team.pokemon:
-                with st.expander(f"{pokemon.name}"):
-                    st.write(
-                        f"Role: {pokemon.role if pokemon.role else 'Not specified'}"
-                    )
-                    st.write(
-                        f"Ability: {pokemon.ability if pokemon.ability else 'Not specified'}"
-                    )
-                    st.write(
-                        f"Item: {pokemon.held_item if pokemon.held_item else 'Not specified'}"
-                    )
-                    ev_spread = f"{pokemon.hp_ev}/{pokemon.atk_ev}/{pokemon.def_ev}/{pokemon.spa_ev}/{pokemon.spd_ev}/{pokemon.spe_ev}"
-                    st.write(f"EVs: {ev_spread}")
-                    if pokemon.moves:
-                        st.write(f"Moves: {', '.join(pokemon.moves)}")
-
-            # Remove from comparison
-            if st.button(f"Remove {team.name}", key=f"remove_{team.id}"):
-                st.session_state["comparison_teams"].remove(team.id)
-                st.rerun()
-
-    # Analysis section
-    st.markdown("## 📊 Comparison Analysis")
-
-    # Type coverage analysis
-    st.markdown("### Type Coverage")
-    type_coverage = {}
-    for team in teams_data:
-        team_types = set()
-        for pokemon in team.pokemon:
-            # This would need Pokemon type data - simplified for now
-            team_types.add(pokemon.name)  # Placeholder
-        type_coverage[team.name] = len(team_types)
-
-    # Speed tier analysis
-    if len(teams_data) >= 2:
-        st.markdown("### Speed Comparison")
-        try:
-            for team in teams_data:
-                team_speeds = []
-                for pokemon in team.pokemon:
-                    # Calculate speed stat (simplified)
-                    if pokemon.spe_ev is not None:
-                        base_speed = SpeedTierAnalyzer.VGC_POKEMON_BASE_SPEEDS.get(
-                            pokemon.name, 80
-                        )
-                        nature_mod = (
-                            1.1
-                            if pokemon.nature and "speed" in pokemon.nature.lower()
-                            else 1.0
-                        )
-                        speed_stat = SpeedTierAnalyzer.calculate_speed_stat(
-                            base_speed, ev=pokemon.spe_ev, nature_modifier=nature_mod
-                        )
-                        team_speeds.append((pokemon.name, speed_stat))
-
-                if team_speeds:
-                    analysis = SpeedTierAnalyzer.generate_team_speed_analysis(
-                        team_speeds
-                    )
-                    st.write(
-                        f"**{team.name}** - Average Speed Coverage: {analysis['average_outspeed']}%"
-                    )
-
-        except Exception as e:
-            st.error(f"Speed analysis failed: {e}")
-
-
-def render_damage_calculator_page():
-    """Render the damage calculator page"""
-    st.markdown(
-        '<div class="team-header"><h1>🧮 Damage Calculator</h1><p>Calculate damage for VGC scenarios</p></div>',
-        unsafe_allow_html=True,
+    
+    # Initialize session state
+    if "review_team" not in st.session_state:
+        st.session_state["review_team"] = [{"name": "", "ability": "", "item": "", "tera_type": "", "nature": ""} for _ in range(6)]
+    if "selected_regulation" not in st.session_state:
+        st.session_state["selected_regulation"] = "I"
+    
+    # Regulation Selection
+    st.markdown("## 🏆 Select VGC Regulation")
+    
+    regulation_options = {
+        "A": "Regulation A (Nov 2022 - Jan 2023) - Paldea Preview",
+        "B": "Regulation B (Feb - Mar 2023) - Paradox Unleashed", 
+        "C": "Regulation C (Apr - Jun 2023) - Treasures Emerge",
+        "D": "Regulation D (Jul - Sep 2023) - HOME Integration",
+        "E": "Regulation E (Oct - Dec 2023) - Teal Mask",
+        "F": "Regulation F (Jan - Mar 2024) - Indigo Disk",
+        "G": "Regulation G (Apr - Jun 2024) - Restricted Singles",
+        "H": "Regulation H (Jul - Sep 2024) - Back to Basics",
+        "I": "Regulation I (Oct 2024 - Jan 2025) - Double Restricted"
+    }
+    
+    selected_reg = st.selectbox(
+        "Choose Regulation:",
+        options=list(regulation_options.keys()),
+        index=list(regulation_options.keys()).index(st.session_state["selected_regulation"]),
+        format_func=lambda x: regulation_options[x]
     )
-
-    if not DATABASE_AVAILABLE:
-        st.error(
-            "Database functionality is not available. Please install required dependencies."
-        )
-        return
-
-    # Calculator interface
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown("### Attacker")
-        attacker_name = st.selectbox(
-            "Pokemon",
-            list(DamageCalculator.COMMON_POKEMON_STATS.keys()),
-            key="attacker_pokemon",
-        )
-
-        attacker_stats_dict = DamageCalculator.COMMON_POKEMON_STATS[attacker_name]
-
-        # EV inputs
-        st.markdown("**EV Spread:**")
-        att_col1, att_col2, att_col3 = st.columns(3)
-        with att_col1:
-            hp_ev = st.number_input("HP", 0, 252, 0, 4, key="att_hp_ev")
-            atk_ev = st.number_input("Atk", 0, 252, 252, 4, key="att_atk_ev")
-        with att_col2:
-            def_ev = st.number_input("Def", 0, 252, 0, 4, key="att_def_ev")
-            spa_ev = st.number_input("SpA", 0, 252, 0, 4, key="att_spa_ev")
-        with att_col3:
-            spd_ev = st.number_input("SpD", 0, 252, 0, 4, key="att_spd_ev")
-            spe_ev = st.number_input("Spe", 0, 252, 0, 4, key="att_spe_ev")
-
-        # Calculate actual stats
-        nature_modifier = st.selectbox(
-            "Nature (Attack modifier)",
-            [("Positive (+10%)", 1.1), ("Neutral", 1.0), ("Negative (-10%)", 0.9)],
-            index=1,
-            key="att_nature",
-        )[1]
-
-        attacker_stats = PokemonStats(
-            hp=DamageCalculator.calculate_stat(
-                attacker_stats_dict["hp"], 31, hp_ev, 50
-            ),
-            attack=DamageCalculator.calculate_stat(
-                attacker_stats_dict["attack"], 31, atk_ev, 50, nature_modifier
-            ),
-            defense=DamageCalculator.calculate_stat(
-                attacker_stats_dict["defense"], 31, def_ev, 50
-            ),
-            sp_attack=DamageCalculator.calculate_stat(
-                attacker_stats_dict["sp_attack"], 31, spa_ev, 50
-            ),
-            sp_defense=DamageCalculator.calculate_stat(
-                attacker_stats_dict["sp_defense"], 31, spd_ev, 50
-            ),
-            speed=DamageCalculator.calculate_stat(
-                attacker_stats_dict["speed"], 31, spe_ev, 50
-            ),
-        )
-
-        # Move selection
-        move_name = st.selectbox(
-            "Move", list(DamageCalculator.COMMON_MOVES.keys()), key="move_select"
-        )
-
-        move_data = DamageCalculator.COMMON_MOVES[move_name]
-        move = Move(
-            name=move_name,
-            power=move_data["power"],
-            type=move_data["type"],
-            category=move_data["category"],
-        )
-
-    with col2:
-        st.markdown("### Defender")
-        defender_name = st.selectbox(
-            "Pokemon",
-            list(DamageCalculator.COMMON_POKEMON_STATS.keys()),
-            key="defender_pokemon",
-        )
-
-        defender_stats_dict = DamageCalculator.COMMON_POKEMON_STATS[defender_name]
-
-        # EV inputs
-        st.markdown("**EV Spread:**")
-        def_col1, def_col2, def_col3 = st.columns(3)
-        with def_col1:
-            def_hp_ev = st.number_input("HP", 0, 252, 252, 4, key="def_hp_ev")
-            def_atk_ev = st.number_input("Atk", 0, 252, 0, 4, key="def_atk_ev")
-        with def_col2:
-            def_def_ev = st.number_input("Def", 0, 252, 252, 4, key="def_def_ev")
-            def_spa_ev = st.number_input("SpA", 0, 252, 0, 4, key="def_spa_ev")
-        with def_col3:
-            def_spd_ev = st.number_input("SpD", 0, 252, 0, 4, key="def_spd_ev")
-            def_spe_ev = st.number_input("Spe", 0, 252, 0, 4, key="def_spe_ev")
-
-        def_nature_modifier = st.selectbox(
-            "Nature (Defense modifier)",
-            [("Positive (+10%)", 1.1), ("Neutral", 1.0), ("Negative (-10%)", 0.9)],
-            index=1,
-            key="def_nature",
-        )[1]
-
-        defender_stats = PokemonStats(
-            hp=DamageCalculator.calculate_stat(
-                defender_stats_dict["hp"], 31, def_hp_ev, 50
-            ),
-            attack=DamageCalculator.calculate_stat(
-                defender_stats_dict["attack"], 31, def_atk_ev, 50
-            ),
-            defense=DamageCalculator.calculate_stat(
-                defender_stats_dict["defense"],
-                31,
-                def_def_ev,
-                50,
-                def_nature_modifier if move.category == "Physical" else 1.0,
-            ),
-            sp_attack=DamageCalculator.calculate_stat(
-                defender_stats_dict["sp_attack"], 31, def_spa_ev, 50
-            ),
-            sp_defense=DamageCalculator.calculate_stat(
-                defender_stats_dict["sp_defense"],
-                31,
-                def_spd_ev,
-                50,
-                def_nature_modifier if move.category == "Special" else 1.0,
-            ),
-            speed=DamageCalculator.calculate_stat(
-                defender_stats_dict["speed"], 31, def_spe_ev, 50
-            ),
-        )
-
-    # Modifiers
-    st.markdown("### Battle Conditions")
-    mod_col1, mod_col2, mod_col3 = st.columns(3)
-
-    with mod_col1:
-        crit = st.checkbox("Critical Hit")
-        burn = st.checkbox("Burn (Physical moves)")
-        screens = st.checkbox("Light Screen/Reflect")
-
-    with mod_col2:
-        weather_mod = st.selectbox(
-            "Weather",
-            [
-                ("None", 1.0),
-                ("Rain (Water +50%)", 1.5),
-                ("Sun (Fire +50%)", 1.5),
-                ("Sun (Water -50%)", 0.5),
-            ],
-            key="weather",
-        )[1]
-
-        terrain_mod = st.selectbox(
-            "Terrain",
-            [
-                ("None", 1.0),
-                ("Electric (+30%)", 1.3),
-                ("Psychic (+30%)", 1.3),
-                ("Grassy (+30%)", 1.3),
-            ],
-            key="terrain",
-        )[1]
-
-    with mod_col3:
-        item_mod = st.selectbox(
-            "Attacker Item",
-            [
-                ("None", 1.0),
-                ("Life Orb (+30%)", 1.3),
-                ("Choice Band/Specs (+50%)", 1.5),
-            ],
-            key="item",
-        )[1]
-
-        multi_target = st.checkbox("Multi-target (Doubles)")
-        friend_guard = st.checkbox("Friend Guard")
-
-    # Calculate damage
-    modifiers = DamageModifiers(
-        weather=weather_mod,
-        terrain=terrain_mod,
-        item_attacker=item_mod,
-        crit=crit,
-        burn=burn,
-        screens=screens,
-        multi_target=multi_target,
-        friend_guard=friend_guard,
-    )
-
-    # Results
-    st.markdown("## 🎯 Damage Results")
-
-    try:
-        # Simplified type lists for demo
-        attacker_types = ["Normal"]  # Would need Pokemon type data
-        defender_types = ["Normal"]  # Would need Pokemon type data
-
-        min_dmg, max_dmg, ko_chance = DamageCalculator.calculate_damage_range(
-            attacker_stats,
-            defender_stats,
-            move,
-            attacker_types,
-            defender_types,
-            modifiers,
-        )
-
-        min_pct = DamageCalculator.calculate_damage_percentage(
-            min_dmg, defender_stats.hp
-        )
-        max_pct = DamageCalculator.calculate_damage_percentage(
-            max_dmg, defender_stats.hp
-        )
-
-        # Display results
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            st.metric("Damage Range", f"{min_dmg} - {max_dmg}")
-
-        with col2:
-            st.metric("Percentage", f"{min_pct:.1f}% - {max_pct:.1f}%")
-
-        with col3:
-            st.metric("KO Chance", f"{ko_chance * 100:.1f}%")
-
-        # Detailed breakdown
-        with st.expander("Calculation Details"):
-            st.write(f"**Attacker:** {attacker_name}")
-            st.write(
-                f"- {move.category} Attack Stat: {attacker_stats.attack if move.category == 'Physical' else attacker_stats.sp_attack}"
+    
+    st.session_state["selected_regulation"] = selected_reg
+    
+    # Team Input Section
+    st.markdown("## 📝 Enter Your Team")
+    st.markdown("Input your 6 Pokemon team for analysis (leave blank for incomplete teams)")
+    
+    # Team input grid
+    cols = st.columns(2)
+    for i in range(6):
+        with cols[i % 2]:
+            st.markdown(f"### Pokemon {i+1}")
+            
+            # Pokemon name input
+            pokemon_name = st.text_input(
+                f"Pokemon Name {i+1}:",
+                value=st.session_state["review_team"][i]["name"],
+                key=f"pokemon_name_{i}",
+                help="Type Pokemon name (e.g., Incineroar, Urshifu-Rapid-Strike)"
             )
-            st.write(f"**Defender:** {defender_name}")
-            st.write(f"- HP: {defender_stats.hp}")
-            st.write(
-                f"- {move.category} Defense Stat: {defender_stats.defense if move.category == 'Physical' else defender_stats.sp_defense}"
-            )
-            st.write(f"**Move:** {move.name} ({move.power} BP, {move.type} type)")
-
-    except Exception as e:
-        st.error(f"Calculation failed: {e}")
-
-
-def render_speed_tiers_page():
-    """Render the speed tiers page"""
-    st.markdown(
-        '<div class="team-header"><h1>⚡ Speed Tier Analysis</h1><p>Analyze speed benchmarks and tier positioning</p></div>',
-        unsafe_allow_html=True,
-    )
-
-    # Speed benchmark calculator
-    st.markdown("## 🎯 Speed Benchmark Analysis")
-
-    col1, col2 = st.columns([2, 1])
-
-    with col1:
-        target_speed = st.number_input(
-            "Target Speed Stat",
-            min_value=1,
-            max_value=300,
-            value=150,
-            help="Enter a speed stat to see what it outspeeds",
-        )
-
-    with col2:
-        regulation = st.selectbox("Regulation", ["A", "B", "C", "D", "E"])
-
-    if st.button("🔍 Analyze Speed Benchmark"):
-        try:
-            analysis = SpeedTierAnalyzer.analyze_speed_benchmark(
-                target_speed, regulation
-            )
-
-            # Results
-            col1, col2, col3 = st.columns(3)
-
+            
+            # Basic details
+            col1, col2 = st.columns(2)
             with col1:
-                st.metric("Speed Tier", analysis["speed_tier"])
-
+                ability = st.text_input(
+                    "Ability:",
+                    value=st.session_state["review_team"][i]["ability"],
+                    key=f"ability_{i}"
+                )
+                item = st.text_input(
+                    "Held Item:",
+                    value=st.session_state["review_team"][i]["item"],
+                    key=f"item_{i}"
+                )
+            
             with col2:
-                st.metric("Position", analysis["tier_position"])
-
-            with col3:
-                st.metric("Outspeed %", f"{analysis['outspeed_percentage']}%")
-
-            # What it outspeeds
-            if analysis["outspeeds"]:
-                st.markdown("### 🏃‍♂️ Outspeeds:")
-                for benchmark in analysis["outspeeds"][:10]:
-                    st.write(f"• {benchmark}")
-
-            # Recommendations
-            if analysis["recommendations"]:
-                st.markdown("### 💡 Recommendations:")
-                for rec in analysis["recommendations"]:
-                    st.write(f"• {rec}")
-
-        except Exception as e:
-            st.error(f"Analysis failed: {e}")
-
-    # Speed tier table
-    st.markdown("## 📊 Common Speed Benchmarks")
-
-    # Show common benchmarks in a nice table
-    import pandas as pd
-
-    benchmark_data = []
-    for name, speed in list(SpeedTierAnalyzer.COMMON_SPEED_BENCHMARKS.items())[:15]:
-        benchmark_data.append(
-            {
-                "Pokemon": name.replace(" Max", ""),
-                "Speed": speed,
-                "Tier": SpeedTierAnalyzer._analyze_tier_cutoffs(speed, regulation)[
-                    "tier"
-                ],
+                tera_type = st.selectbox(
+                    "Tera Type:",
+                    ["", "Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", 
+                     "Poison", "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", 
+                     "Dragon", "Dark", "Steel", "Fairy"],
+                    index=0 if not st.session_state["review_team"][i]["tera_type"] else 
+                    ["", "Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", 
+                     "Poison", "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", 
+                     "Dragon", "Dark", "Steel", "Fairy"].index(st.session_state["review_team"][i]["tera_type"]),
+                    key=f"tera_type_{i}"
+                )
+                
+                nature = st.selectbox(
+                    "Nature:",
+                    ["", "Hardy", "Lonely", "Brave", "Adamant", "Naughty", "Bold", "Docile", 
+                     "Relaxed", "Impish", "Lax", "Timid", "Hasty", "Serious", "Jolly", 
+                     "Naive", "Modest", "Mild", "Quiet", "Bashful", "Rash", "Calm", 
+                     "Gentle", "Sassy", "Careful", "Quirky"],
+                    index=0 if not st.session_state["review_team"][i]["nature"] else
+                    ["", "Hardy", "Lonely", "Brave", "Adamant", "Naughty", "Bold", "Docile", 
+                     "Relaxed", "Impish", "Lax", "Timid", "Hasty", "Serious", "Jolly", 
+                     "Naive", "Modest", "Mild", "Quiet", "Bashful", "Rash", "Calm", 
+                     "Gentle", "Sassy", "Careful", "Quirky"].index(st.session_state["review_team"][i]["nature"]),
+                    key=f"nature_{i}"
+                )
+            
+            # Update session state
+            st.session_state["review_team"][i] = {
+                "name": pokemon_name,
+                "ability": ability,
+                "item": item,
+                "tera_type": tera_type,
+                "nature": nature
             }
-        )
-
-    df = pd.DataFrame(benchmark_data)
-    st.dataframe(df, use_container_width=True)
-
-    # Pokemon speed calculator
-    st.markdown("## 🧮 Pokemon Speed Calculator")
-
-    col1, col2 = st.columns(2)
-
+    
+    # Pokemon Viability Checker Section
+    st.markdown("---")
+    st.markdown("## 🎯 Pokemon Viability Checker")
+    st.markdown("Check if any Pokemon is viable in your selected regulation with real usage statistics")
+    
+    col1, col2 = st.columns([2, 1])
     with col1:
-        pokemon_name = st.selectbox(
-            "Pokemon",
-            list(SpeedTierAnalyzer.VGC_POKEMON_BASE_SPEEDS.keys()),
-            key="speed_calc_pokemon",
+        pokemon_to_check = st.text_input(
+            "Pokemon Name:", 
+            placeholder="e.g., Gligar, Incineroar, Flutter Mane",
+            help="Enter any Pokemon name to check its viability in the selected regulation"
         )
-
-        base_speed = SpeedTierAnalyzer.VGC_POKEMON_BASE_SPEEDS[pokemon_name]
-        st.write(f"Base Speed: {base_speed}")
-
     with col2:
-        speed_evs = st.number_input("Speed EVs", 0, 252, 252, 4)
-        nature_mod = st.selectbox(
-            "Nature",
-            [("Positive (+10%)", 1.1), ("Neutral", 1.0), ("Negative (-10%)", 0.9)],
-            index=0,
-        )[1]
+        check_viability = st.button("Check Viability", type="secondary")
+    
+    if check_viability and pokemon_to_check.strip():
+        with st.spinner(f"Analyzing {pokemon_to_check} viability in Regulation {selected_reg}..."):
+            regulation_name = f"Regulation {selected_reg}"
+            score, details = calculate_pokemon_viability_score(pokemon_to_check.strip(), regulation_name)
+            
+            if "error" in details:
+                st.error(f"❌ Could not analyze {pokemon_to_check}: {details['error']}")
+            else:
+                # Display viability results
+                st.markdown(f"### 📈 {pokemon_to_check.title()} Analysis")
+                
+                # Viability metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Viability Score", f"{score:.1f}/100")
+                with col2:
+                    st.metric("Tier", details['viability_tier'])
+                with col3:
+                    usage_percent = details['usage_data']['usage_percent']
+                    st.metric("Usage Rate", f"{usage_percent:.2f}%")
+                with col4:
+                    rank = details['usage_data']['rank']
+                    rank_display = f"#{rank}" if rank else "Unranked"
+                    st.metric("Ranking", rank_display)
+                
+                # Score breakdown
+                with st.expander("📊 Score Breakdown"):
+                    breakdown = details['score_breakdown']
+                    st.write(f"**Usage Score:** {breakdown['usage_score']}/40")
+                    st.write(f"**Rank Score:** {breakdown['rank_score']}/20")
+                    st.write(f"**Move Diversity:** {breakdown['diversity_score']}/20")
+                    st.write(f"**Item Flexibility:** {breakdown['item_score']}/10")
+                    st.write(f"**Team Synergy:** {breakdown['synergy_score']}/10")
+                
+                # Recommendations
+                st.markdown("**🎯 Recommendations:**")
+                for recommendation in details['recommendations']:
+                    st.write(f"• {recommendation}")
+                
+                # Usage data details
+                if details['usage_data']['source'] == 'smogon_api':
+                    with st.expander("📋 Detailed Usage Statistics"):
+                        usage_data = details['usage_data']
+                        
+                        # Most common moves
+                        if usage_data['moves']:
+                            st.write("**Most Common Moves:**")
+                            for move, percentage in list(usage_data['moves'].items())[:6]:
+                                st.write(f"• {move}: {percentage}%")
+                        
+                        # Most common items
+                        if usage_data['items']:
+                            st.write("**Most Common Items:**")
+                            for item, percentage in list(usage_data['items'].items())[:4]:
+                                st.write(f"• {item}: {percentage}%")
+                        
+                        # Common teammates
+                        if usage_data['teammates']:
+                            st.write("**Common Teammates:**")
+                            for teammate, percentage in list(usage_data['teammates'].items())[:5]:
+                                st.write(f"• {teammate}: {percentage}%")
+                
+                # Alternative Pokemon suggestions
+                alternatives = get_pokemon_alternatives(pokemon_to_check.strip(), regulation_name)
+                if alternatives:
+                    st.markdown("### 🔄 Alternative Pokemon")
+                    st.markdown("Consider these alternatives with higher viability scores:")
+                    
+                    for alt in alternatives[:3]:  # Show top 3 alternatives
+                        col1, col2, col3 = st.columns([2, 1, 1])
+                        with col1:
+                            st.write(f"**{alt['name']}**")
+                        with col2:
+                            st.write(f"Score: {alt['viability_score']:.1f}")
+                        with col3:
+                            st.write(f"Usage: {alt['usage_percent']:.2f}%")
 
-    calculated_speed = SpeedTierAnalyzer.calculate_speed_stat(
-        base_speed, ev=speed_evs, nature_modifier=nature_mod
-    )
+    # Analysis Button
+    st.markdown("---")
+    if st.button("🔍 Analyze My Team", type="primary", use_container_width=True):
+        analyze_team(st.session_state["review_team"], st.session_state["selected_regulation"])
 
-    st.metric("Calculated Speed", calculated_speed)
 
-    # EV suggestions
-    if st.button("💡 Get Speed EV Suggestions"):
-        try:
-            suggestions = SpeedTierAnalyzer.suggest_speed_evs(
-                pokemon_name, regulation=regulation
-            )
+def analyze_team(team_data, regulation):
+    """Analyze the input team and provide comprehensive feedback"""
+    
+    # Filter out empty Pokemon
+    filled_pokemon = [p for p in team_data if p["name"].strip()]
+    
+    if not filled_pokemon:
+        st.warning("Please enter at least one Pokemon to analyze.")
+        return
+    
+    st.markdown("## 📊 Team Analysis Results")
+    
+    # Basic team info
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Team Size", f"{len(filled_pokemon)}/6")
+    with col2:
+        st.metric("Regulation", regulation)
+    with col3:
+        completion_percentage = (len(filled_pokemon) / 6) * 100
+        st.metric("Completion", f"{completion_percentage:.1f}%")
+    
+    # Team Summary
+    st.markdown("### 🎯 Team Overview")
+    team_names = [p["name"] for p in filled_pokemon]
+    st.write(f"**Current Team:** {', '.join(team_names)}")
+    
+    # Regulation Compliance Check
+    check_regulation_compliance(filled_pokemon, regulation)
+    
+    # Type Coverage Analysis
+    analyze_type_coverage(filled_pokemon)
+    
+    # Team Viability Analysis
+    analyze_team_viability(filled_pokemon, regulation)
+    
+    # Team Recommendations (if incomplete)
+    if len(filled_pokemon) < 6:
+        recommend_pokemon_for_team(filled_pokemon, regulation)
 
-            st.markdown("### 📋 EV Suggestions:")
-            for suggestion in suggestions["suggestions"]:
-                with st.expander(
-                    f"{suggestion['description']} - {suggestion['resulting_speed']} Speed"
-                ):
-                    st.write(f"**EVs:** {suggestion['evs']}")
-                    st.write(f"**Nature:** {suggestion['nature']}")
-                    st.write(f"**Justification:** {suggestion['justification']}")
 
-        except Exception as e:
-            st.error(f"Failed to generate suggestions: {e}")
+def check_regulation_compliance(team, regulation):
+    """Check if team is legal for the selected regulation"""
+    st.markdown("### ⚖️ Regulation Compliance")
+    
+    # Use existing regulation validation logic
+    banned_pokemon = []
+    
+    # Regulation ban lists (simplified version of existing logic)
+    regulation_ban_lists = {
+        "A": {"all_legendaries": True, "all_paradox": True, "all_treasures": True},
+        "B": {"all_legendaries": True, "all_treasures": True},
+        "C": {"all_legendaries": True, "treasure_exceptions": ["Chi-Yu", "Chien-Pao", "Ting-Lu", "Wo-Chien"]},
+        "D": {"restricted_legendaries": ["Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem", "Xerneas", "Yveltal", "Zygarde", "Cosmog", "Cosmoem", "Solgaleo", "Lunala", "Necrozma", "Zacian", "Zamazenta", "Eternatus", "Calyrex", "Koraidon", "Miraidon"]},
+        "H": {"comprehensive_bans": ["Articuno", "Zapdos", "Moltres", "Mewtwo", "Mew", "Urshifu", "Calyrex", "Koraidon", "Miraidon"]},
+    }
+    
+    # Check each Pokemon
+    for pokemon in team:
+        pokemon_name = pokemon.get("name", "").strip()
+        if not pokemon_name:
+            continue
+            
+        is_banned = False
+        ban_reason = ""
+        
+        # Simplified ban check
+        if regulation == "H" and any(banned.lower() in pokemon_name.lower() for banned in regulation_ban_lists.get("H", {}).get("comprehensive_bans", [])):
+            is_banned = True
+            ban_reason = f"Banned in Regulation {regulation} (Back to Basics format)"
+            
+        if is_banned:
+            banned_pokemon.append({"name": pokemon_name, "reason": ban_reason})
+    
+    if banned_pokemon:
+        st.error(f"❌ **Regulation Violations Found**: {len(banned_pokemon)} Pokemon are not legal in Regulation {regulation}")
+        for conflict in banned_pokemon:
+            st.error(f"• {conflict['name']}: {conflict['reason']}")
+    else:
+        st.success(f"✅ **Team is Legal**: All Pokemon are allowed in Regulation {regulation}")
+
+
+def analyze_type_coverage(team):
+    """Analyze offensive and defensive type coverage"""
+    st.markdown("### 🎨 Type Coverage Analysis")
+    
+    if not team:
+        st.info("Add Pokemon to see type coverage analysis")
+        return
+    
+    # Pokemon type database (simplified)
+    pokemon_types = {
+        "Incineroar": ["Fire", "Dark"],
+        "Rillaboom": ["Grass"],
+        "Amoonguss": ["Grass", "Poison"], 
+        "Urshifu-Rapid-Strike": ["Fighting", "Water"],
+        "Urshifu-Single-Strike": ["Fighting", "Dark"],
+        "Calyrex-Shadow": ["Psychic", "Ghost"],
+        "Calyrex-Ice": ["Psychic", "Ice"],
+        "Miraidon": ["Electric", "Dragon"],
+        "Koraidon": ["Fighting", "Dragon"],
+        "Garchomp": ["Dragon", "Ground"],
+        "Landorus-Therian": ["Ground", "Flying"],
+        "Tornadus-Therian": ["Flying"],
+        "Thundurus-Therian": ["Electric", "Flying"],
+        "Gastrodon": ["Water", "Ground"],
+        "Hisuian Arcanine": ["Fire", "Rock"],
+        "Arcanine": ["Fire"],
+        "Zapdos": ["Electric", "Flying"],
+        "Articuno": ["Ice", "Flying"],
+        "Moltres": ["Fire", "Flying"],
+        "Chi-Yu": ["Dark", "Fire"],
+        "Chien-Pao": ["Dark", "Ice"],
+        "Ting-Lu": ["Dark", "Ground"],
+        "Wo-Chien": ["Dark", "Grass"],
+        "Flutter Mane": ["Ghost", "Fairy"],
+        "Iron Hands": ["Fighting", "Electric"],
+        "Great Tusk": ["Ground", "Fighting"],
+        "Dragapult": ["Dragon", "Ghost"],
+        "Sylveon": ["Fairy"],
+        "Regieleki": ["Electric"],
+        "Grimmsnarl": ["Dark", "Fairy"],
+        "Gligar": ["Ground", "Flying"]
+    }
+    
+    # Get types for team Pokemon
+    team_types = []
+    team_pokemon_names = []
+    
+    for pokemon in team:
+        name = pokemon.get("name", "").strip()
+        if name:
+            team_pokemon_names.append(name)
+            if name in pokemon_types:
+                team_types.extend(pokemon_types[name])
+            else:
+                # Default to Normal type for unknown Pokemon
+                team_types.append("Normal")
+    
+    # Remove duplicates and count occurrences
+    unique_types = list(set(team_types))
+    type_counts = {t: team_types.count(t) for t in unique_types}
+    
+    # Display team types
+    st.markdown("#### 📊 Team Type Distribution")
+    
+    cols = st.columns(min(len(unique_types), 6))
+    for i, poke_type in enumerate(sorted(unique_types)):
+        with cols[i % 6]:
+            count = type_counts[poke_type]
+            type_emoji = get_type_emoji(poke_type)
+            st.metric(f"{type_emoji} {poke_type}", f"{count}x")
+    
+    # Type effectiveness analysis
+    st.markdown("#### ⚔️ Offensive Coverage")
+    
+    # All Pokemon types
+    all_types = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", 
+                 "Poison", "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", 
+                 "Dragon", "Dark", "Steel", "Fairy"]
+    
+    # Calculate offensive coverage
+    covered_types = []
+    for defending_type in all_types:
+        for attacking_type in unique_types:
+            effectiveness = get_type_effectiveness(attacking_type, defending_type)
+            if effectiveness > 1.0:  # Super effective
+                covered_types.append(defending_type)
+                break
+    
+    coverage_percentage = (len(set(covered_types)) / len(all_types)) * 100
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Types Hit Super Effectively", f"{len(set(covered_types))}/{len(all_types)}")
+    with col2:
+        st.metric("Coverage Percentage", f"{coverage_percentage:.1f}%")
+    
+    # Show uncovered types
+    uncovered_types = [t for t in all_types if t not in covered_types]
+    if uncovered_types:
+        st.warning(f"**Weak Coverage Against**: {', '.join(uncovered_types)}")
+    else:
+        st.success("✅ **Excellent Coverage**: Can hit all types super effectively!")
+    
+    # Defensive analysis
+    st.markdown("#### 🛡️ Defensive Weaknesses")
+    
+    # Calculate common weaknesses
+    all_weaknesses = []
+    for pokemon in team:
+        name = pokemon.get("name", "").strip()
+        if name in pokemon_types:
+            for poke_type in pokemon_types[name]:
+                weaknesses = get_type_weaknesses(poke_type)
+                all_weaknesses.extend(weaknesses)
+    
+    # Count weakness frequencies
+    weakness_counts = {}
+    for weakness in all_weaknesses:
+        weakness_counts[weakness] = weakness_counts.get(weakness, 0) + 1
+    
+    # Sort by frequency
+    sorted_weaknesses = sorted(weakness_counts.items(), key=lambda x: x[1], reverse=True)
+    
+    if sorted_weaknesses:
+        st.markdown("**Most Common Weaknesses:**")
+        for weakness, count in sorted_weaknesses[:5]:
+            type_emoji = get_type_emoji(weakness)
+            percentage = (count / len(team_pokemon_names)) * 100
+            st.write(f"{type_emoji} **{weakness}**: {count}/{len(team_pokemon_names)} Pokemon ({percentage:.1f}%)")
+    
+    # Team synergy insights
+    if len(team_pokemon_names) >= 2:
+        st.markdown("#### 🤝 Team Synergy Insights")
+        analyze_team_synergy(team_pokemon_names, pokemon_types)
+
+
+def analyze_team_viability(team, regulation):
+    """Analyze the viability of each team member using usage statistics"""
+    st.markdown("### 📊 Team Viability Analysis")
+    st.markdown("Individual Pokemon viability scores based on current meta usage:")
+    
+    regulation_name = f"Regulation {regulation}"
+    team_scores = []
+    
+    for pokemon in team:
+        pokemon_name = pokemon.get("name", "").strip()
+        if not pokemon_name:
+            continue
+            
+        score, details = calculate_pokemon_viability_score(pokemon_name, regulation_name)
+        team_scores.append((pokemon_name, score, details))
+    
+    if not team_scores:
+        st.info("No valid Pokemon to analyze")
+        return
+    
+    # Calculate team average
+    avg_score = sum(score for _, score, _ in team_scores) / len(team_scores)
+    
+    # Display team viability overview
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Team Average Score", f"{avg_score:.1f}/100")
+    with col2:
+        top_score = max(score for _, score, _ in team_scores)
+        st.metric("Highest Individual Score", f"{top_score:.1f}")
+    with col3:
+        low_viability_count = sum(1 for _, score, _ in team_scores if score < 40)
+        st.metric("Low Viability Pokemon", f"{low_viability_count}/{len(team_scores)}")
+    
+    # Individual Pokemon analysis
+    st.markdown("#### Individual Pokemon Viability:")
+    
+    for pokemon_name, score, details in sorted(team_scores, key=lambda x: x[1], reverse=True):
+        tier = details.get('viability_tier', 'Unknown')
+        usage_percent = details.get('usage_data', {}).get('usage_percent', 0)
+        
+        # Color code based on score
+        if score >= 80:
+            color = "🟢"
+        elif score >= 60:
+            color = "🟡"
+        elif score >= 40:
+            color = "🟠"
+        else:
+            color = "🔴"
+        
+        col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+        with col1:
+            st.write(f"{color} **{pokemon_name}**")
+        with col2:
+            st.write(f"Score: {score:.1f}")
+        with col3:
+            st.write(f"Tier: {tier}")
+        with col4:
+            st.write(f"Usage: {usage_percent:.2f}%")
+    
+    # Team viability recommendations
+    st.markdown("#### 🎯 Team Viability Recommendations:")
+    
+    if avg_score >= 70:
+        st.success("✅ **Strong Meta Team** - Your team has excellent viability scores!")
+    elif avg_score >= 50:
+        st.info("👍 **Solid Team** - Good mix of viable Pokemon with room for optimization.")
+    else:
+        st.warning("⚠️ **Needs Improvement** - Consider replacing low-viability Pokemon.")
+    
+    # Specific recommendations for low-viability Pokemon
+    low_viability_pokemon = [(name, score, details) for name, score, details in team_scores if score < 40]
+    if low_viability_pokemon:
+        st.markdown("**Pokemon to Consider Replacing:**")
+        for pokemon_name, score, details in low_viability_pokemon:
+            with st.expander(f"🔄 Alternatives to {pokemon_name} (Score: {score:.1f})"):
+                alternatives = get_pokemon_alternatives(pokemon_name, regulation_name)
+                if alternatives:
+                    for alt in alternatives[:3]:
+                        st.write(f"• **{alt['name']}** - Score: {alt['viability_score']:.1f} (Tier: {alt['tier']}, Usage: {alt['usage_percent']:.2f}%)")
+                else:
+                    st.write("No specific alternatives found - consider meta Pokemon like Incineroar, Flutter Mane, or Amoonguss")
+
+
+def recommend_pokemon_for_team(current_team, regulation):
+    """Recommend Pokemon to complete the team"""
+    st.markdown("### 💡 Team Completion Recommendations")
+    
+    missing_slots = 6 - len(current_team)
+    
+    if missing_slots > 0:
+        st.info(f"You have {missing_slots} empty slot(s). Here are some recommendations based on current meta:")
+        
+        # Meta-relevant recommendations by regulation
+        recommendations_by_reg = {
+            "I": [
+                {"name": "Incineroar", "role": "Support", "reason": "Intimidate + Fake Out support, excellent utility"},
+                {"name": "Amoonguss", "role": "Redirection", "reason": "Rage Powder + Spore, fantastic defensive utility"},
+                {"name": "Rillaboom", "role": "Physical Attacker", "reason": "Grassy Surge + Grassy Glide priority"},
+                {"name": "Calyrex-Shadow", "role": "Special Sweeper", "reason": "Dominant restricted legendary with huge damage output"},
+                {"name": "Miraidon", "role": "Special Attacker", "reason": "Electric Terrain setter with excellent coverage"}
+            ],
+            "H": [
+                {"name": "Gligar", "role": "Defensive Pivot", "reason": "Eviolite tank with excellent defensive typing"},
+                {"name": "Incineroar", "role": "Support", "reason": "Still top-tier support despite restrictions"},
+                {"name": "Garchomp", "role": "Physical Attacker", "reason": "Reliable physical presence with good speed"},
+                {"name": "Dragapult", "role": "Fast Attacker", "reason": "Excellent speed tier and coverage options"}
+            ]
+        }
+        
+        default_recs = [
+            {"name": "Incineroar", "role": "Support", "reason": "Most versatile support Pokemon in VGC"},
+            {"name": "Amoonguss", "role": "Redirection", "reason": "Premier redirection and sleep support"},
+            {"name": "Landorus-Therian", "role": "Physical Attacker", "reason": "Intimidate + strong physical attacks"}
+        ]
+        
+        recs = recommendations_by_reg.get(regulation, default_recs)
+        
+        for i, rec in enumerate(recs[:missing_slots]):
+            with st.expander(f"🎯 Recommendation {i+1}: {rec['name']} ({rec['role']})"):
+                st.write(f"**Why {rec['name']}?** {rec['reason']}")
+                
+                if rec["name"] == "Gligar" and regulation == "H":
+                    st.write("**Gligar in Regulation H:**")
+                    st.write("• ✅ **Viability**: High - Excellent defensive presence")
+                    st.write("• ⚡ **Role**: Eviolite tank, pivot, support")
+                    st.write("• 🎯 **Common Set**: Eviolite + Earthquake + U-turn + Roost/Toxic")
+                    st.write("• 🏆 **Tournament Success**: Featured in several top-cut teams")
+    else:
+        st.success("✅ Team is complete with 6 Pokemon!")
+        
+        # Provide optimization suggestions for complete teams
+        st.markdown("### 🔧 Team Optimization Suggestions")
+        st.info("**Consider these aspects for team improvement:**")
+        st.write("• **Speed Control**: Do you have Tailwind, Trick Room, or priority moves?")
+        st.write("• **Redirection**: Rage Powder, Follow Me, or Lightning Rod support?") 
+        st.write("• **Weather/Terrain**: Any weather or terrain synergies?")
+        st.write("• **Win Conditions**: Clear paths to victory identified?")
+
+
+def get_type_emoji(poke_type):
+    """Get emoji for Pokemon type"""
+    type_emojis = {
+        "Normal": "⚪", "Fire": "🔥", "Water": "💧", "Electric": "⚡",
+        "Grass": "🌿", "Ice": "❄️", "Fighting": "👊", "Poison": "☠️",
+        "Ground": "🌍", "Flying": "🕊️", "Psychic": "🧠", "Bug": "🐛",
+        "Rock": "🗿", "Ghost": "👻", "Dragon": "🐲", "Dark": "🌚",
+        "Steel": "⚔️", "Fairy": "🧚"
+    }
+    return type_emojis.get(poke_type, "❔")
+
+
+def get_type_effectiveness(attacking_type, defending_type):
+    """Get type effectiveness multiplier"""
+    # Simplified type chart (key matchups for VGC)
+    effectiveness_chart = {
+        "Fire": {"Grass": 2.0, "Ice": 2.0, "Bug": 2.0, "Steel": 2.0, "Water": 0.5, "Fire": 0.5, "Rock": 0.5, "Dragon": 0.5},
+        "Water": {"Fire": 2.0, "Ground": 2.0, "Rock": 2.0, "Water": 0.5, "Grass": 0.5, "Dragon": 0.5},
+        "Electric": {"Water": 2.0, "Flying": 2.0, "Electric": 0.5, "Grass": 0.5, "Dragon": 0.5, "Ground": 0.0},
+        "Grass": {"Water": 2.0, "Ground": 2.0, "Rock": 2.0, "Fire": 0.5, "Grass": 0.5, "Poison": 0.5, "Flying": 0.5, "Bug": 0.5, "Dragon": 0.5, "Steel": 0.5},
+        "Fighting": {"Normal": 2.0, "Ice": 2.0, "Rock": 2.0, "Dark": 2.0, "Steel": 2.0, "Poison": 0.5, "Flying": 0.5, "Psychic": 0.5, "Bug": 0.5, "Fairy": 0.5, "Ghost": 0.0},
+        "Flying": {"Electric": 0.5, "Rock": 0.5, "Steel": 0.5, "Fighting": 2.0, "Bug": 2.0, "Grass": 2.0},
+        "Ground": {"Fire": 2.0, "Electric": 2.0, "Poison": 2.0, "Rock": 2.0, "Steel": 2.0, "Grass": 0.5, "Bug": 0.5, "Flying": 0.0},
+        "Dark": {"Psychic": 2.0, "Ghost": 2.0, "Fighting": 0.5, "Dark": 0.5, "Fairy": 0.5},
+        "Ice": {"Grass": 2.0, "Ground": 2.0, "Flying": 2.0, "Dragon": 2.0, "Fire": 0.5, "Water": 0.5, "Ice": 0.5, "Steel": 0.5},
+        "Fairy": {"Fighting": 2.0, "Dragon": 2.0, "Dark": 2.0, "Fire": 0.5, "Poison": 0.5, "Steel": 0.5}
+    }
+    
+    if attacking_type in effectiveness_chart and defending_type in effectiveness_chart[attacking_type]:
+        return effectiveness_chart[attacking_type][defending_type]
+    return 1.0  # Neutral effectiveness
+
+
+def get_type_weaknesses(poke_type):
+    """Get list of types that are super effective against this type"""
+    weaknesses = {
+        "Normal": ["Fighting"],
+        "Fire": ["Water", "Ground", "Rock"],
+        "Water": ["Electric", "Grass"], 
+        "Electric": ["Ground"],
+        "Grass": ["Fire", "Ice", "Poison", "Flying", "Bug"],
+        "Ice": ["Fire", "Fighting", "Rock", "Steel"],
+        "Fighting": ["Flying", "Psychic", "Fairy"],
+        "Poison": ["Ground", "Psychic"],
+        "Ground": ["Water", "Grass", "Ice"],
+        "Flying": ["Electric", "Ice", "Rock"],
+        "Psychic": ["Bug", "Ghost", "Dark"],
+        "Bug": ["Fire", "Flying", "Rock"],
+        "Rock": ["Water", "Grass", "Fighting", "Ground", "Steel"],
+        "Ghost": ["Ghost", "Dark"],
+        "Dragon": ["Ice", "Dragon", "Fairy"],
+        "Dark": ["Fighting", "Bug", "Fairy"],
+        "Steel": ["Fire", "Fighting", "Ground"],
+        "Fairy": ["Poison", "Steel"]
+    }
+    return weaknesses.get(poke_type, [])
+
+
+def analyze_team_synergy(team_names, pokemon_types):
+    """Analyze team synergy based on known cores and patterns"""
+    detected_synergies = []
+    
+    # Get team type sets
+    team_type_sets = []
+    for name in team_names:
+        if name in pokemon_types:
+            team_type_sets.append(pokemon_types[name])
+    
+    # Check Fire-Water-Grass core
+    has_fire = any("Fire" in types for types in team_type_sets)
+    has_water = any("Water" in types for types in team_type_sets) 
+    has_grass = any("Grass" in types for types in team_type_sets)
+    
+    if has_fire and has_water and has_grass:
+        detected_synergies.append("🔥💧🌿 **Fire-Water-Grass Core** - Excellent offensive and defensive type synergy")
+    
+    # Check for Intimidate users
+    intimidate_users = [name for name in team_names if name in ["Incineroar", "Landorus-Therian", "Hisuian Arcanine", "Garchomp"]]
+    if len(intimidate_users) >= 2:
+        detected_synergies.append(f"👁️ **Multiple Intimidate** - {', '.join(intimidate_users)} provide attack control")
+    
+    # Check for speed control
+    speed_control = []
+    tailwind_users = [name for name in team_names if name in ["Tornadus-Therian", "Thundurus-Therian", "Zapdos"]]
+    trick_room_users = [name for name in team_names if name in ["Calyrex-Ice", "Amoonguss"]]
+    
+    if tailwind_users:
+        speed_control.append(f"Tailwind ({', '.join(tailwind_users)})")
+    if trick_room_users:
+        speed_control.append(f"Trick Room ({', '.join(trick_room_users)})")
+        
+    if speed_control:
+        detected_synergies.append(f"⚡ **Speed Control** - {', '.join(speed_control)}")
+    
+    # Check for redirection
+    redirection_users = [name for name in team_names if name in ["Amoonguss", "Clefairy", "Togekiss"]]
+    if redirection_users:
+        detected_synergies.append(f"🎯 **Redirection Support** - {', '.join(redirection_users)} can redirect attacks")
+    
+    # Display synergies
+    if detected_synergies:
+        st.success("✅ **Detected Synergies:**")
+        for synergy in detected_synergies:
+            st.write(f"• {synergy}")
+    else:
+        st.info("💡 **Synergy Opportunities**: Consider adding Pokemon that complement your current team's strengths")
 
 
 def main():
-    """Main application with navigation"""
+    """Main application function"""
+    st.set_page_config(
+        page_title="Pokemon VGC Analysis",
+        page_icon="⚔️",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    
+    # Custom CSS
+    st.markdown("""
+    <style>
+    .main {
+        padding: 1rem;
+    }
+    .stButton > button {
+        width: 100%;
+    }
+    .pokemon-card {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .pokemon-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+    }
+    .team-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Sidebar navigation
-    with st.sidebar:
-        st.markdown("## 🧭 Navigation")
-
-        # Initialize current page in session state
-        if "current_page" not in st.session_state:
-            st.session_state["current_page"] = "New Analysis"
-
-        # Navigation buttons
-        if st.button(
-            "📝 New Analysis",
-            use_container_width=True,
-            type=(
-                "primary"
-                if st.session_state["current_page"] == "New Analysis"
-                else "secondary"
-            ),
-        ):
-            st.session_state["current_page"] = "New Analysis"
-            st.rerun()
-
-        if st.button(
-            "📚 Previous Articles",
-            use_container_width=True,
-            type=(
-                "primary"
-                if st.session_state["current_page"] == "Previous Articles"
-                else "secondary"
-            ),
-        ):
-            st.session_state["current_page"] = "Previous Articles"
-            st.rerun()
-
-        if st.button(
-            "🏆 Team Database",
-            use_container_width=True,
-            type=(
-                "primary"
-                if st.session_state["current_page"] == "Team Database"
-                else "secondary"
-            ),
-        ):
-            st.session_state["current_page"] = "Team Database"
-            st.rerun()
-
-        if st.button(
-            "⚔️ Team Comparison",
-            use_container_width=True,
-            type=(
-                "primary"
-                if st.session_state["current_page"] == "Team Comparison"
-                else "secondary"
-            ),
-        ):
-            st.session_state["current_page"] = "Team Comparison"
-            st.rerun()
-
-        if st.button(
-            "🧮 Damage Calculator",
-            use_container_width=True,
-            type=(
-                "primary"
-                if st.session_state["current_page"] == "Damage Calculator"
-                else "secondary"
-            ),
-        ):
-            st.session_state["current_page"] = "Damage Calculator"
-            st.rerun()
-
-        if st.button(
-            "⚡ Speed Tiers",
-            use_container_width=True,
-            type=(
-                "primary"
-                if st.session_state["current_page"] == "Speed Tiers"
-                else "secondary"
-            ),
-        ):
-            st.session_state["current_page"] = "Speed Tiers"
-            st.rerun()
-
-        st.divider()
-
-        # Cache stats
-        cache_stats = get_cache_stats()
-        st.metric("Cached Articles", cache_stats["cached_articles"])
-        st.metric("Cache Size", f"{cache_stats['total_size_mb']} MB")
-
-        if st.button(
-            "🗑️ Clear All Cache",
-            use_container_width=True,
-            disabled=cache_stats["cached_articles"] == 0,
-        ):
-            if clear_cache():
-                st.success("Cache cleared!")
-                st.rerun()
-
-    # Render the appropriate page
-    if st.session_state["current_page"] == "New Analysis":
-        render_new_analysis_page()
-    elif st.session_state["current_page"] == "Previous Articles":
-        render_previous_articles_page()
-    elif st.session_state["current_page"] == "Team Database":
-        render_team_database_page()
-    elif st.session_state["current_page"] == "Team Comparison":
-        render_team_comparison_page()
-    elif st.session_state["current_page"] == "Damage Calculator":
-        render_damage_calculator_page()
-    elif st.session_state["current_page"] == "Speed Tiers":
-        render_speed_tiers_page()
+    st.sidebar.title("🏆 Pokemon VGC Analysis")
+    
+    page = st.sidebar.selectbox(
+        "Navigate to:",
+        ["🏠 Article Analysis", "🔍 Review My Team"]
+    )
+    
+    if page == "🏠 Article Analysis":
+        render_article_analysis_page()
+    elif page == "🔍 Review My Team":
+        render_review_my_team_page()
 
 
 if __name__ == "__main__":

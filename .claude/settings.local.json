@@ -25,7 +25,10 @@
       "WebFetch(domain:cona5757.hatenablog.com)",
       "WebFetch(domain:tamii-poke.hateblo.jp)",
       "WebFetch(domain:assets.st-note.com)",
-      "WebFetch(domain:victoryroad.pro)"
+      "WebFetch(domain:victoryroad.pro)",
+      "WebFetch(domain:statcrusher.com)",
+      "WebFetch(domain:munchstats.com)",
+      "WebFetch(domain:www.smogon.com)"
     ],
     "defaultMode": "acceptEdits"
   }
