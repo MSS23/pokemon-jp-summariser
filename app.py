@@ -4555,15 +4555,15 @@ def render_individual_pokemon_checker():
     
     # Regulation selection for individual checker
     regulation_options = {
-        "A": "Regulation A (Nov 2022 - Jan 2023) - Paldea Preview",
-        "B": "Regulation B (Feb - Mar 2023) - Paradox Unleashed", 
-        "C": "Regulation C (Apr - Jun 2023) - Treasures Emerge",
-        "D": "Regulation D (Jul - Sep 2023) - HOME Integration",
-        "E": "Regulation E (Oct - Dec 2023) - Teal Mask",
-        "F": "Regulation F (Jan - Mar 2024) - Indigo Disk",
-        "G": "Regulation G (Apr - Jun 2024) - Restricted Singles",
-        "H": "Regulation H (Jul - Sep 2024) - Back to Basics",
-        "I": "Regulation I (Oct 2024 - Jan 2025) - Double Restricted"
+        "A": "Regulation A",
+        "B": "Regulation B", 
+        "C": "Regulation C",
+        "D": "Regulation D",
+        "E": "Regulation E",
+        "F": "Regulation F",
+        "G": "Regulation G",
+        "H": "Regulation H",
+        "I": "Regulation I"
     }
     
     col1, col2 = st.columns(2)
@@ -6223,15 +6223,15 @@ def render_review_my_team_page():
         st.markdown("## 🏆 Select VGC Regulation")
         
         regulation_options = {
-            "A": "Regulation A (Nov 2022 - Jan 2023) - Paldea Preview",
-            "B": "Regulation B (Feb - Mar 2023) - Paradox Unleashed", 
-            "C": "Regulation C (Apr - Jun 2023) - Treasures Emerge",
-            "D": "Regulation D (Jul - Sep 2023) - HOME Integration",
-            "E": "Regulation E (Oct - Dec 2023) - Teal Mask",
-            "F": "Regulation F (Jan - Mar 2024) - Indigo Disk",
-            "G": "Regulation G (Apr - Jun 2024) - Restricted Singles",
-            "H": "Regulation H (Jul - Sep 2024) - Back to Basics",
-            "I": "Regulation I (Oct 2024 - Jan 2025) - Double Restricted"
+            "A": "Regulation A",
+            "B": "Regulation B", 
+            "C": "Regulation C",
+            "D": "Regulation D",
+            "E": "Regulation E",
+            "F": "Regulation F",
+            "G": "Regulation G",
+            "H": "Regulation H",
+            "I": "Regulation I"
         }
         
         selected_reg = st.selectbox(
@@ -6243,75 +6243,6 @@ def render_review_my_team_page():
         )
         
         st.session_state["selected_regulation"] = selected_reg
-        
-        # PokePaste Input Section
-        st.markdown("## 📝 Import Your Team")
-        st.markdown("Paste your team in PokePaste format (from Pokemon Showdown, PokePaste.es, etc.)")
-    
-    # Team input grid
-    cols = st.columns(2)
-    for i in range(6):
-        with cols[i % 2]:
-            st.markdown(f"### Pokemon {i+1}")
-            
-            # Pokemon name input
-            pokemon_name = st.text_input(
-                f"Pokemon Name {i+1}:",
-                value=st.session_state["review_team"][i]["name"],
-                key=f"pokemon_name_{i}",
-                help="Type Pokemon name (e.g., Incineroar, Urshifu-Rapid-Strike)"
-            )
-            
-            # Basic details
-            col1, col2 = st.columns(2)
-            with col1:
-                ability = st.text_input(
-                    "Ability:",
-                    value=st.session_state["review_team"][i]["ability"],
-                    key=f"ability_{i}"
-                )
-                item = st.text_input(
-                    "Held Item:",
-                    value=st.session_state["review_team"][i]["item"],
-                    key=f"item_{i}"
-                )
-            
-            with col2:
-                tera_type = st.selectbox(
-                    "Tera Type:",
-                    ["", "Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", 
-                     "Poison", "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", 
-                     "Dragon", "Dark", "Steel", "Fairy"],
-                    index=0 if not st.session_state["review_team"][i]["tera_type"] else 
-                    ["", "Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", 
-                     "Poison", "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", 
-                     "Dragon", "Dark", "Steel", "Fairy"].index(st.session_state["review_team"][i]["tera_type"]),
-                    key=f"tera_type_{i}"
-                )
-                
-                nature = st.selectbox(
-                    "Nature:",
-                    ["", "Hardy", "Lonely", "Brave", "Adamant", "Naughty", "Bold", "Docile", 
-                     "Relaxed", "Impish", "Lax", "Timid", "Hasty", "Serious", "Jolly", 
-                     "Naive", "Modest", "Mild", "Quiet", "Bashful", "Rash", "Calm", 
-                     "Gentle", "Sassy", "Careful", "Quirky"],
-                    index=0 if not st.session_state["review_team"][i]["nature"] else
-                    ["", "Hardy", "Lonely", "Brave", "Adamant", "Naughty", "Bold", "Docile", 
-                     "Relaxed", "Impish", "Lax", "Timid", "Hasty", "Serious", "Jolly", 
-                     "Naive", "Modest", "Mild", "Quiet", "Bashful", "Rash", "Calm", 
-                     "Gentle", "Sassy", "Careful", "Quirky"].index(st.session_state["review_team"][i]["nature"]),
-                    key=f"nature_{i}"
-                )
-            
-            # Update session state
-            st.session_state["review_team"][i] = {
-                "name": pokemon_name,
-                "ability": ability,
-                "item": item,
-                "tera_type": tera_type,
-                "nature": nature
-            }
-    
         
         # PokePaste Input Section
         st.markdown("## 📝 Import Your Team")
@@ -6911,11 +6842,13 @@ def main():
     
     page = st.sidebar.selectbox(
         "Navigate to:",
-        ["🏠 Article Analysis", "🔍 Review My Team"]
+        ["🏠 Article Analysis", "📚 Previous Articles", "🔍 Review My Team"]
     )
     
     if page == "🏠 Article Analysis":
         render_article_analysis_page()
+    elif page == "📚 Previous Articles":
+        render_previous_articles_page()
     elif page == "🔍 Review My Team":
         render_review_my_team_page()
 
