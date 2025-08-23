@@ -778,19 +778,61 @@ st.markdown(
        COMPREHENSIVE RESPONSIVE DESIGN
        ======================================== */
     
-    /* Large Desktop (1200px+) - Enhanced layouts for wide screens */
-    @media (min-width: 1200px) {
+    /* Ultra-Wide Desktop (1400px+) - Maximum layout for full-screen */
+    @media (min-width: 1400px) {
         .pokemon-info-grid {
             grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .ev-stats-grid {
+            grid-template-columns: repeat(6, 1fr);
+            gap: 16px;
+        }
+        
+        .pokemon-card {
+            max-width: 1200px;
+            margin: 16px auto;
+            padding: 28px;
+        }
+        
+        .team-header h1 {
+            font-size: clamp(2.8rem, 4vw, 4rem);
+        }
+        
+        .ev-stat {
+            flex-direction: column;
+            text-align: center;
+            padding: 12px 8px;
+        }
+        
+        .ev-stat-name {
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+        
+        .ev-stat-value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+    }
+
+    /* Large Desktop (1101px - 1399px) - Enhanced layouts for wide screens */
+    @media (max-width: 1399px) and (min-width: 1101px) {
+        .pokemon-info-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
         }
         
         .ev-stats-grid {
             grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
         }
         
         .pokemon-card {
             max-width: 1000px;
             margin: 12px auto;
+            padding: 24px;
         }
         
         .team-header h1 {
@@ -798,8 +840,106 @@ st.markdown(
         }
     }
     
-    /* Desktop/Tablet Landscape (900px - 1199px) - Optimal for half-screen */
-    @media (max-width: 1199px) and (min-width: 900px) {
+    /* Half-Screen Chrome Optimization (950px - 1100px) - Perfect for split-screen */
+    @media (max-width: 1100px) and (min-width: 950px) {
+        .ev-stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(14px, 2vw, 18px);
+        }
+        
+        .pokemon-info-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: clamp(16px, 2.5vw, 20px);
+        }
+        
+        .pokemon-card {
+            padding: clamp(20px, 3vw, 24px);
+            margin: clamp(10px, 1.5vw, 14px) 0;
+        }
+        
+        .ev-stat {
+            padding: clamp(10px, 1.5vw, 12px) clamp(8px, 1.2vw, 10px);
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .ev-stat-name {
+            font-size: clamp(10px, 1.2vw, 11px);
+            font-weight: 600;
+            min-width: unset;
+        }
+        
+        .ev-stat-value {
+            font-size: clamp(13px, 1.5vw, 15px);
+            font-weight: 700;
+            min-width: unset;
+        }
+        
+        .move-item {
+            padding: clamp(10px, 1.5vw, 12px) clamp(14px, 2vw, 16px);
+            font-size: clamp(13px, 1.3vw, 14px);
+            margin: clamp(4px, 0.8vw, 6px) 0;
+        }
+        
+        .info-item {
+            padding: clamp(12px, 1.8vw, 14px) clamp(14px, 2vw, 16px);
+            min-height: 60px;
+        }
+        
+        .info-label {
+            font-size: clamp(11px, 1.2vw, 12px);
+        }
+        
+        .info-value {
+            font-size: clamp(13px, 1.4vw, 14px);
+        }
+        
+        .team-header {
+            padding: clamp(24px, 3vw, 30px);
+        }
+        
+        .team-header h1 {
+            font-size: clamp(2rem, 3.5vw, 2.3rem);
+        }
+        
+        .pokemon-name {
+            font-size: clamp(22px, 3vw, 26px);
+        }
+        
+        .ev-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: clamp(12px, 1.8vw, 16px);
+            flex-wrap: wrap;
+            gap: clamp(8px, 1.2vw, 12px);
+        }
+        
+        .ev-title {
+            font-size: clamp(15px, 1.6vw, 18px);
+            font-weight: 700;
+        }
+        
+        .ev-total {
+            font-size: clamp(12px, 1.3vw, 14px);
+            padding: clamp(4px, 0.8vw, 6px) clamp(10px, 1.5vw, 14px);
+        }
+        
+        /* Enhanced moves container for half-screen */
+        .moves-container {
+            margin-top: clamp(16px, 2vw, 20px);
+        }
+        
+        .moves-title {
+            font-size: clamp(15px, 1.6vw, 18px);
+            font-weight: 700;
+            margin-bottom: clamp(10px, 1.5vw, 14px);
+            color: var(--type-color, #1e293b);
+        }
+    }
+
+    /* Desktop/Tablet Landscape (900px - 949px) - Standard responsive */
+    @media (max-width: 949px) and (min-width: 900px) {
         .ev-stats-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 16px;
@@ -4616,13 +4756,7 @@ def render_previous_articles_page():
             # Build URL section HTML separately to avoid string interpolation issues
             url_section = ""
             if is_valid_url:
-                url_section = f"""
-                    <a href='{url_display}' target='_blank' style='color: #3b82f6; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px;'>
-                        <span>🔗</span>
-                        <span style='font-family: monospace; word-break: break-all;'>{url_display}</span>
-                    </a>
-                    <div style='color: #64748b; font-size: 12px; margin-top: 4px;'>📍 Domain: {url_domain}</div>
-                """
+                url_section = f"<a href='{url_display}' target='_blank' style='color: #3b82f6; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px;'><span>🔗</span><span style='font-family: monospace; word-break: break-all;'>{url_display}</span></a><div style='color: #64748b; font-size: 12px; margin-top: 4px;'>📍 Domain: {url_domain}</div>"
             else:
                 url_section = f"<span style='color: #64748b; font-size: 14px; font-style: italic;'>🔗 {url_display}</span>"
 
