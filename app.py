@@ -2812,6 +2812,78 @@ class GeminiVGCAnalyzer:
 
         return ev_data
 
+    def detect_regulation_from_date(self, url: Optional[str] = None, content: str = "") -> Optional[str]:
+        """Detect VGC regulation based on article date or URL"""
+        try:
+            from datetime import datetime, date
+            import re
+            
+            # Regulation date ranges for SV VGC
+            regulation_dates = {
+                "A": (date(2022, 11, 18), date(2023, 1, 31)),  # Series 1
+                "B": (date(2023, 2, 1), date(2023, 3, 31)),    # Series 2  
+                "C": (date(2023, 4, 1), date(2023, 6, 30)),    # Series 3 - Treasures allowed
+                "D": (date(2023, 7, 1), date(2023, 9, 30)),    # Series 4 - HOME integration
+                "E": (date(2023, 10, 1), date(2023, 12, 31)),  # Series 5 - Teal Mask
+                "F": (date(2024, 1, 1), date(2024, 3, 31)),    # Series 6 - Indigo Disk
+                "G": (date(2024, 4, 1), date(2024, 6, 30)),    # Series 7 - Restricted Singles
+                "H": (date(2024, 7, 1), date(2024, 9, 30)),    # Series 8 - Back to Basics
+                "I": (date(2024, 10, 1), date(2025, 1, 31)),   # Series 9 - Double Restricted
+            }
+            
+            article_date = None
+            
+            # Try to extract date from URL first
+            if url:
+                # Common date patterns in URLs: /2023/09/16/, /2023-09-16, etc.
+                date_patterns = [
+                    r'/(\d{4})/(\d{1,2})/(\d{1,2})/',
+                    r'/(\d{4})-(\d{1,2})-(\d{1,2})/',
+                    r'(\d{4})-(\d{2})-(\d{2})',
+                ]
+                
+                for pattern in date_patterns:
+                    match = re.search(pattern, url)
+                    if match:
+                        year, month, day = map(int, match.groups())
+                        article_date = date(year, month, day)
+                        break
+            
+            # If no date in URL, try to find it in content
+            if not article_date and content:
+                # Look for date patterns in content
+                date_patterns = [
+                    r'(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})',
+                    r'(\d{1,2})[月/-](\d{1,2})[日/-](\d{4})',
+                    r'(\d{4})-(\d{2})-(\d{2})',
+                ]
+                
+                for pattern in date_patterns:
+                    matches = re.findall(pattern, content[:1000])  # Check first 1000 chars
+                    if matches:
+                        try:
+                            if len(matches[0]) == 3:
+                                if len(matches[0][0]) == 4:  # Year first
+                                    year, month, day = map(int, matches[0])
+                                else:  # Day first
+                                    month, day, year = map(int, matches[0])
+                                article_date = date(year, month, day)
+                                break
+                        except:
+                            continue
+            
+            # Map date to regulation
+            if article_date:
+                for regulation, (start_date, end_date) in regulation_dates.items():
+                    if start_date <= article_date <= end_date:
+                        st.info(f"📅 **Date-based Detection**: Article date {article_date} → Regulation {regulation}")
+                        return regulation
+            
+            return None
+        except Exception as e:
+            st.warning(f"Date-based regulation detection failed: {str(e)}")
+            return None
+
     def analyze_article(
         self,
         content: str,
@@ -3681,11 +3753,14 @@ Respond only with the JSON, no additional text.
                                 except:
                                     continue
 
+                # Validate and enhance the result
+                validated_result = self._validate_analysis_result(result, content, url)
+                
                 # Save to cache for future use
-                save_to_cache(content, result, url)
+                save_to_cache(content, validated_result, url)
                 st.success("🆕 Analysis complete and cached!")
 
-                return result
+                return validated_result
             else:
                 st.error("No response from Gemini AI")
                 return None
@@ -3710,7 +3785,7 @@ Respond only with the JSON, no additional text.
                         result = json.loads(attempt)
                         st.success(f"✅ JSON recovered using method {i+1}")
                         # Validate the recovered result
-                        validated_result = self._validate_analysis_result(result)
+                        validated_result = self._validate_analysis_result(result, content, url)
                         return validated_result
                     except:
                         continue
@@ -3782,9 +3857,12 @@ Respond only with the JSON, no additional text.
         except:
             return None
 
-    def _validate_analysis_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate and repair analysis result structure"""
+    def _validate_analysis_result(self, result: Dict[str, Any], content: str = "", url: Optional[str] = None) -> Dict[str, Any]:
+        """Validate and repair analysis result structure with regulation cross-validation"""
         try:
+            # Detect regulation from date/URL first
+            date_based_regulation = self.detect_regulation_from_date(url, content)
+            
             # Ensure required top-level keys exist
             required_keys = ["title", "summary", "regulation_info", "team_analysis", "pokemon_team", "translated_content"]
             for key in required_keys:
@@ -3801,6 +3879,21 @@ Respond only with the JSON, no additional text.
                         result[key] = []
                     elif key == "translated_content":
                         result[key] = "Translation not available"
+            
+            # Cross-validate regulation detection
+            ai_detected_regulation = result.get("regulation_info", {}).get("regulation", "Unknown")
+            
+            if date_based_regulation and ai_detected_regulation != "Unknown":
+                if date_based_regulation != ai_detected_regulation:
+                    st.warning(f"⚠️ **Regulation Mismatch**: AI detected '{ai_detected_regulation}' but article date suggests '{date_based_regulation}'. Using date-based detection.")
+                    result["regulation_info"]["regulation"] = date_based_regulation
+                    result["regulation_info"]["detection_method"] = "Date-based override"
+                else:
+                    st.success(f"✅ **Regulation Confirmed**: Both AI and date detection agree on Regulation {date_based_regulation}")
+            elif date_based_regulation and ai_detected_regulation == "Unknown":
+                st.info(f"🔧 **Regulation Corrected**: Using date-based detection (Regulation {date_based_regulation}) since AI detection failed")
+                result["regulation_info"]["regulation"] = date_based_regulation  
+                result["regulation_info"]["detection_method"] = "Date-based only"
 
             # Validate Pokemon team structure with 6-Pokemon maximum rule
             if result.get("pokemon_team"):
@@ -4825,7 +4918,34 @@ def render_previous_articles_page():
                         ban_reason = f"Legendary banned in Regulation {regulation}"
                 
                 if is_banned:
-                    banned_pokemon.append({"name": pokemon_name, "reason": ban_reason})
+                    # Find which regulations this Pokemon would be legal in
+                    legal_regulations = []
+                    for reg, rules in regulation_ban_lists.items():
+                        if reg == regulation:
+                            continue  # Skip current regulation
+                        
+                        is_legal = True
+                        if "comprehensive_bans" in rules:
+                            if any(banned.lower() in pokemon_name.lower() for banned in rules["comprehensive_bans"]):
+                                is_legal = False
+                        elif "restricted_legendaries" in rules:
+                            if any(restricted.lower() in pokemon_name.lower() for restricted in rules["restricted_legendaries"]):
+                                is_legal = False
+                        elif rules.get("all_legendaries") and _is_legendary(pokemon_name):
+                            if "treasure_exceptions" in rules:
+                                if not any(treasure.lower() in pokemon_name.lower() for treasure in rules["treasure_exceptions"]):
+                                    is_legal = False
+                            else:
+                                is_legal = False
+                        
+                        if is_legal:
+                            legal_regulations.append(reg)
+                    
+                    suggestion = ""
+                    if legal_regulations:
+                        suggestion = f" (Legal in Regulations: {', '.join(sorted(legal_regulations))})"
+                    
+                    banned_pokemon.append({"name": pokemon_name, "reason": ban_reason + suggestion})
             
             return banned_pokemon
         
