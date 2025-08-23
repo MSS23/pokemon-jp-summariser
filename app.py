@@ -338,14 +338,16 @@ st.markdown(
     .pokemon-card {
         background: var(--type-bg, linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%));
         border: 2px solid var(--type-color, #cbd5e1);
-        border-radius: 20px;
-        padding: 24px;
-        margin: 12px 0;
+        border-radius: clamp(16px, 4vw, 20px);
+        padding: clamp(16px, 4vw, 24px);
+        margin: clamp(8px, 2vw, 12px) 0;
         color: #1e293b;
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
         transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         position: relative;
         overflow: hidden;
+        width: 100%;
+        box-sizing: border-box;
     }
     
     .pokemon-card::before {
@@ -372,17 +374,21 @@ st.markdown(
     .pokemon-info-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 12px;
+        gap: clamp(8px, 2vw, 12px);
         margin-top: 16px;
     }
     .info-item {
         background: rgba(255, 255, 255, 0.9);
-        padding: 12px 16px;
+        padding: clamp(10px, 2vw, 16px);
         border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.3);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         backdrop-filter: blur(10px);
         transition: all 0.3s ease;
+        min-height: 60px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
     .info-item:hover {
         background: rgba(255, 255, 255, 0.95);
@@ -390,7 +396,7 @@ st.markdown(
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
     .info-label {
-        font-size: 11px;
+        font-size: clamp(10px, 2.5vw, 11px);
         font-weight: 700;
         color: #64748b;
         text-transform: uppercase;
@@ -399,11 +405,17 @@ st.markdown(
         display: flex;
         align-items: center;
         gap: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .info-value {
-        font-size: 14px;
+        font-size: clamp(12px, 3vw, 14px);
         font-weight: 600;
         color: #1e293b;
+        word-break: break-word;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
     }
     
     /* EV Spread Visualization */
@@ -472,20 +484,24 @@ st.markdown(
     }
     
     .ev-stat-name {
-        font-size: 12px;
+        font-size: clamp(10px, 2vw, 12px);
         font-weight: 600;
         color: #64748b;
         min-width: 32px;
         text-transform: uppercase;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .ev-stat-bar-container {
         flex: 1;
-        height: 8px;
+        height: clamp(6px, 1.5vw, 8px);
         background: #e2e8f0;
         border-radius: 4px;
         overflow: hidden;
         position: relative;
+        min-width: 60px;
     }
     
     .ev-stat-bar {
@@ -512,11 +528,12 @@ st.markdown(
     }
     
     .ev-stat-value {
-        font-size: 12px;
+        font-size: clamp(11px, 2.5vw, 12px);
         font-weight: 700;
         color: #1e293b;
         min-width: 28px;
         text-align: right;
+        white-space: nowrap;
     }
     
     /* Stat-specific colors */
@@ -653,7 +670,7 @@ st.markdown(
     }
     
     .moves-title {
-        font-size: 16px;
+        font-size: clamp(14px, 3vw, 16px);
         font-weight: 700;
         color: #374151;
         margin-bottom: 12px;
@@ -666,16 +683,17 @@ st.markdown(
     
     .move-item {
         background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-        padding: 10px 16px;
-        border-radius: 10px;
-        margin: 8px 0;
-        font-size: 14px;
+        padding: clamp(8px, 2vw, 16px) clamp(12px, 3vw, 16px);
+        border-radius: clamp(8px, 2vw, 10px);
+        margin: clamp(6px, 1.5vw, 8px) 0;
+        font-size: clamp(12px, 3vw, 14px);
         font-weight: 600;
         color: #475569;
         border-left: 4px solid var(--type-color, #3b82f6);
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
+        word-break: break-word;
     }
     
     .move-item::before {
@@ -701,7 +719,7 @@ st.markdown(
     
     /* Enhanced scrollbar for translation */
     .summary-container::-webkit-scrollbar {
-        width: 8px;
+        width: clamp(6px, 1vw, 8px);
     }
     
     .summary-container::-webkit-scrollbar-track {
@@ -718,51 +736,389 @@ st.markdown(
         background: var(--role-accent, var(--type-color, #2563eb));
     }
     
+    /* Touch-friendly improvements */
+    @media (hover: none) and (pointer: coarse) {
+        .pokemon-card:hover {
+            transform: none;
+        }
+        
+        .ev-stat:hover {
+            transform: none;
+        }
+        
+        .info-item:hover {
+            transform: none;
+        }
+        
+        .move-item:hover {
+            transform: none;
+        }
+        
+        /* Increase touch targets */
+        .pokemon-card {
+            padding: clamp(20px, 5vw, 28px);
+        }
+        
+        .info-item {
+            min-height: 70px;
+            padding: clamp(14px, 3vw, 18px);
+        }
+        
+        .ev-stat {
+            padding: clamp(12px, 3vw, 16px) clamp(8px, 2vw, 12px);
+        }
+    }
+    
     /* Floating action effects */
     .pokemon-card {
         will-change: transform;
     }
     
-    @media (max-width: 768px) {
+    /* ========================================
+       COMPREHENSIVE RESPONSIVE DESIGN
+       ======================================== */
+    
+    /* Large Desktop (1200px+) - Enhanced layouts for wide screens */
+    @media (min-width: 1200px) {
+        .pokemon-info-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .ev-stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .pokemon-card {
+            max-width: 1000px;
+            margin: 12px auto;
+        }
+        
+        .team-header h1 {
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+        }
+    }
+    
+    /* Desktop/Tablet Landscape (900px - 1199px) - Optimal for half-screen */
+    @media (max-width: 1199px) and (min-width: 900px) {
+        .ev-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .pokemon-info-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .pokemon-card {
+            padding: 20px;
+        }
+        
+        .team-header {
+            padding: 28px;
+        }
+        
+        .team-header h1 {
+            font-size: clamp(2rem, 3.5vw, 2.5rem);
+        }
+    }
+    
+    /* Tablet Portrait / Small Desktop (600px - 899px) */
+    @media (max-width: 899px) and (min-width: 600px) {
+        .ev-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .pokemon-info-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .ev-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        
+        .ev-total {
+            align-self: flex-end;
+        }
+        
+        .pokemon-card {
+            padding: 18px;
+        }
+        
+        .pokemon-name {
+            font-size: clamp(20px, 4vw, 24px);
+        }
+        
+        .team-header {
+            padding: 24px;
+        }
+        
+        .team-header h1 {
+            font-size: clamp(1.8rem, 5vw, 2.2rem);
+        }
+        
+        .info-item {
+            padding: 10px 14px;
+        }
+    }
+    
+    /* Large Mobile (480px - 599px) */
+    @media (max-width: 599px) and (min-width: 480px) {
         .ev-stats-grid {
             grid-template-columns: 1fr;
+            gap: 10px;
         }
         
         .pokemon-info-grid {
             grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .ev-header {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+        
+        .ev-stat {
+            padding: 12px 8px;
+        }
+        
+        .ev-stat-name {
+            min-width: 40px;
+            font-size: 11px;
+        }
+        
+        .ev-stat-value {
+            min-width: 32px;
+            font-size: 13px;
+        }
+        
+        .pokemon-card {
+            padding: 16px;
+            margin: 8px 0;
         }
         
         .pokemon-card:hover {
             transform: translateY(-4px) scale(1.01);
         }
+        
+        .pokemon-name {
+            font-size: clamp(18px, 5vw, 22px);
+        }
+        
+        .team-header {
+            padding: 20px;
+        }
+        
+        .team-header h1 {
+            font-size: clamp(1.5rem, 6vw, 2rem);
+        }
+        
+        .info-item {
+            padding: 12px;
+        }
+        
+        .info-label {
+            font-size: 11px;
+        }
+        
+        .info-value {
+            font-size: 13px;
+        }
+    }
+    
+    /* Small Mobile (< 480px) */
+    @media (max-width: 479px) {
+        .ev-stats-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        
+        .pokemon-info-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        
+        .ev-header {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+            gap: 12px;
+        }
+        
+        .ev-title {
+            font-size: 14px;
+        }
+        
+        .ev-total {
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+        
+        .ev-stat {
+            padding: 10px 6px;
+            gap: 8px;
+        }
+        
+        .ev-stat-icon {
+            font-size: 16px;
+            width: 20px;
+        }
+        
+        .ev-stat-name {
+            min-width: 35px;
+            font-size: 10px;
+        }
+        
+        .ev-stat-bar-container {
+            height: 6px;
+        }
+        
+        .ev-stat-value {
+            min-width: 30px;
+            font-size: 12px;
+        }
+        
+        .pokemon-card {
+            padding: 14px;
+            margin: 6px 0;
+            border-radius: 16px;
+        }
+        
+        .pokemon-card:hover {
+            transform: translateY(-2px) scale(1.005);
+        }
+        
+        .pokemon-name {
+            font-size: clamp(16px, 6vw, 20px);
+            margin-bottom: 8px;
+        }
+        
+        .team-header {
+            padding: 18px;
+            margin: 16px 0 24px 0;
+        }
+        
+        .team-header h1 {
+            font-size: clamp(1.3rem, 7vw, 1.8rem);
+        }
+        
+        .team-header p {
+            font-size: clamp(0.9rem, 4vw, 1rem);
+        }
+        
+        .info-item {
+            padding: 10px;
+        }
+        
+        .info-label {
+            font-size: 10px;
+            font-weight: 700;
+        }
+        
+        .info-value {
+            font-size: 12px;
+            line-height: 1.3;
+        }
+        
+        .moves-container {
+            padding: 12px;
+        }
+        
+        .moves-title {
+            font-size: 14px;
+        }
+        
+        .move-item {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+    }
+    
+    /* Landscape orientation optimizations for mobile */
+    @media (max-width: 899px) and (orientation: landscape) {
+        .team-header {
+            padding: clamp(16px, 3vw, 20px);
+            margin: clamp(12px, 2vw, 16px) 0 clamp(16px, 3vw, 20px) 0;
+        }
+        
+        .team-header h1 {
+            font-size: clamp(1.5rem, 4vw, 1.8rem);
+        }
+        
+        .pokemon-card {
+            padding: clamp(14px, 3vw, 18px);
+            margin: clamp(6px, 1vw, 8px) 0;
+        }
+        
+        .pokemon-info-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(8px, 1.5vw, 10px);
+        }
+        
+        .ev-stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(8px, 1.5vw, 10px);
+        }
+        
+        .info-item {
+            padding: clamp(8px, 2vw, 12px);
+            min-height: 50px;
+        }
+        
+        .ev-stat {
+            padding: clamp(8px, 2vw, 10px) clamp(6px, 1vw, 8px);
+            gap: clamp(6px, 1vw, 8px);
+        }
+    }
+    
+    /* Improved container flow */
+    .stApp > div {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+    
+    /* Better margin handling for small screens */
+    @media (max-width: 480px) {
+        .stApp {
+            padding: 0 8px;
+        }
     }
     .pokemon-name {
-        font-size: 24px;
+        font-size: clamp(20px, 5vw, 24px);
         font-weight: bold;
         margin-bottom: 10px;
+        line-height: 1.2;
     }
     .pokemon-info {
-        font-size: 14px;
+        font-size: clamp(13px, 3vw, 14px);
         line-height: 1.6;
     }
     .team-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 32px;
-        border-radius: 16px;
+        padding: clamp(20px, 5vw, 32px);
+        border-radius: clamp(12px, 3vw, 16px);
         text-align: center;
-        margin: 24px 0 32px 0;
+        margin: clamp(16px, 4vw, 24px) 0 clamp(24px, 6vw, 32px) 0;
         box-shadow: 0 8px 32px rgba(102, 126, 234, 0.2);
     }
     .team-header h1 {
         margin: 0 0 8px 0;
-        font-size: 2.5rem;
+        font-size: clamp(2rem, 6vw, 2.5rem);
         font-weight: 700;
+        line-height: 1.1;
     }
     .team-header p {
         margin: 0;
-        font-size: 1.1rem;
+        font-size: clamp(1rem, 3vw, 1.1rem);
         opacity: 0.9;
+        line-height: 1.4;
     }
     .ev-explanation {
         background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
