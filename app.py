@@ -4370,6 +4370,622 @@ def calculate_pokemon_viability_score(pokemon_name: str, regulation: str) -> Tup
     return viability_score, analysis_details
 
 
+def parse_pokepaste(paste_text: str) -> List[Dict[str, Any]]:
+    """
+    Parse PokePaste format text into team data structure
+    
+    Args:
+        paste_text: PokePaste formatted text
+    
+    Returns:
+        List of Pokemon dictionaries with parsed data
+    """
+    if not paste_text.strip():
+        return []
+    
+    team = []
+    pokemon_blocks = paste_text.strip().split('\n\n')
+    
+    for block in pokemon_blocks:
+        if not block.strip():
+            continue
+            
+        pokemon = {
+            "name": "",
+            "nickname": "",
+            "item": "",
+            "ability": "",
+            "level": 50,
+            "gender": "",
+            "shiny": False,
+            "tera_type": "",
+            "nature": "",
+            "evs": {"HP": 0, "Atk": 0, "Def": 0, "SpA": 0, "SpD": 0, "Spe": 0},
+            "ivs": {"HP": 31, "Atk": 31, "Def": 31, "SpA": 31, "SpD": 31, "Spe": 31},
+            "moves": []
+        }
+        
+        lines = [line.strip() for line in block.strip().split('\n') if line.strip()]
+        
+        for i, line in enumerate(lines):
+            if i == 0:
+                # First line: Pokemon name, nickname, item, gender
+                parts = line.split('@', 1)
+                name_part = parts[0].strip()
+                
+                # Check for nickname and gender
+                if '(' in name_part and ')' in name_part:
+                    # Format: "Nickname (Pokemon Name) (Gender)"
+                    if name_part.count('(') == 2:
+                        nickname = name_part.split('(')[0].strip()
+                        pokemon_name = name_part.split('(')[1].split(')')[0].strip()
+                        gender = name_part.split('(')[2].split(')')[0].strip()
+                        pokemon["nickname"] = nickname
+                        pokemon["name"] = pokemon_name
+                        pokemon["gender"] = gender
+                    else:
+                        # Format: "Pokemon Name (Gender)" or "(Nickname)"
+                        inner = name_part[name_part.find('(')+1:name_part.find(')')]
+                        if inner in ['M', 'F']:
+                            pokemon["name"] = name_part.split('(')[0].strip()
+                            pokemon["gender"] = inner
+                        else:
+                            pokemon["nickname"] = inner
+                            pokemon["name"] = name_part.split('(')[0].strip()
+                else:
+                    pokemon["name"] = name_part
+                
+                # Item
+                if len(parts) > 1:
+                    pokemon["item"] = parts[1].strip()
+                    
+            elif line.lower().startswith('ability:'):
+                pokemon["ability"] = line.split(':', 1)[1].strip()
+            elif line.lower().startswith('level:'):
+                try:
+                    pokemon["level"] = int(line.split(':', 1)[1].strip())
+                except ValueError:
+                    pass
+            elif line.lower().startswith('shiny:'):
+                pokemon["shiny"] = line.split(':', 1)[1].strip().lower() in ['yes', 'true']
+            elif line.lower().startswith('tera type:') or line.lower().startswith('tera-type:'):
+                pokemon["tera_type"] = line.split(':', 1)[1].strip()
+            elif line.lower().startswith('evs:'):
+                # Parse EVs: "HP / Atk / Def / SpA / SpD / Spe" format
+                ev_text = line.split(':', 1)[1].strip()
+                ev_parts = [part.strip() for part in ev_text.split('/')]
+                
+                for part in ev_parts:
+                    if not part:
+                        continue
+                    try:
+                        value_stat = part.strip().split(' ', 1)
+                        if len(value_stat) == 2:
+                            value, stat = value_stat
+                            value = int(value)
+                            if stat in pokemon["evs"]:
+                                pokemon["evs"][stat] = value
+                    except (ValueError, IndexError):
+                        continue
+                        
+            elif line.lower().startswith('ivs:'):
+                # Parse IVs: same format as EVs
+                iv_text = line.split(':', 1)[1].strip()
+                iv_parts = [part.strip() for part in iv_text.split('/')]
+                
+                for part in iv_parts:
+                    if not part:
+                        continue
+                    try:
+                        value_stat = part.strip().split(' ', 1)
+                        if len(value_stat) == 2:
+                            value, stat = value_stat
+                            value = int(value)
+                            if stat in pokemon["ivs"]:
+                                pokemon["ivs"][stat] = value
+                    except (ValueError, IndexError):
+                        continue
+                        
+            elif line.endswith(' Nature'):
+                pokemon["nature"] = line.replace(' Nature', '').strip()
+            elif line.startswith('-') or line.startswith('•'):
+                # Move
+                move = line[1:].strip()
+                if move and len(pokemon["moves"]) < 4:
+                    pokemon["moves"].append(move)
+        
+        # Only add Pokemon with a name
+        if pokemon["name"]:
+            team.append(pokemon)
+    
+    return team
+
+
+def validate_pokepaste_format(paste_text: str) -> Tuple[bool, List[str]]:
+    """
+    Validate PokePaste format and return any errors
+    
+    Args:
+        paste_text: PokePaste formatted text
+        
+    Returns:
+        Tuple of (is_valid, list_of_errors)
+    """
+    if not paste_text.strip():
+        return False, ["Paste is empty"]
+    
+    errors = []
+    pokemon_blocks = paste_text.strip().split('\n\n')
+    
+    if len(pokemon_blocks) > 6:
+        errors.append("Too many Pokemon (maximum 6 allowed)")
+    
+    for i, block in enumerate(pokemon_blocks):
+        if not block.strip():
+            continue
+            
+        lines = [line.strip() for line in block.strip().split('\n') if line.strip()]
+        
+        if not lines:
+            errors.append(f"Pokemon {i+1}: Empty block")
+            continue
+            
+        # Check first line has Pokemon name
+        first_line = lines[0]
+        if '@' in first_line:
+            name_part = first_line.split('@')[0].strip()
+        else:
+            name_part = first_line.strip()
+            
+        if not name_part:
+            errors.append(f"Pokemon {i+1}: Missing Pokemon name")
+        
+        # Check for at least one move
+        has_moves = any(line.startswith('-') or line.startswith('•') for line in lines)
+        if not has_moves:
+            errors.append(f"Pokemon {i+1}: No moves specified")
+    
+    return len(errors) == 0, errors
+
+
+def render_individual_pokemon_checker():
+    """Render the individual Pokemon viability checker"""
+    st.markdown("## 🎯 Individual Pokemon Viability Checker")
+    st.markdown("Check if any Pokemon is viable in a specific regulation with real usage statistics")
+    
+    # Regulation selection for individual checker
+    regulation_options = {
+        "A": "Regulation A (Nov 2022 - Jan 2023) - Paldea Preview",
+        "B": "Regulation B (Feb - Mar 2023) - Paradox Unleashed", 
+        "C": "Regulation C (Apr - Jun 2023) - Treasures Emerge",
+        "D": "Regulation D (Jul - Sep 2023) - HOME Integration",
+        "E": "Regulation E (Oct - Dec 2023) - Teal Mask",
+        "F": "Regulation F (Jan - Mar 2024) - Indigo Disk",
+        "G": "Regulation G (Apr - Jun 2024) - Restricted Singles",
+        "H": "Regulation H (Jul - Sep 2024) - Back to Basics",
+        "I": "Regulation I (Oct 2024 - Jan 2025) - Double Restricted"
+    }
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        selected_reg = st.selectbox(
+            "Choose Regulation:",
+            options=list(regulation_options.keys()),
+            index=8,  # Default to Regulation I
+            format_func=lambda x: regulation_options[x],
+            key="individual_regulation_select"
+        )
+    
+    with col2:
+        pokemon_to_check = st.text_input(
+            "Pokemon Name:", 
+            placeholder="e.g., Gligar, Incineroar, Flutter Mane",
+            help="Enter any Pokemon name to check its viability in the selected regulation",
+            key="individual_pokemon_input"
+        )
+    
+    check_viability = st.button("Check Viability", type="primary", key="individual_check_btn")
+    
+    if check_viability and pokemon_to_check.strip():
+        with st.spinner(f"Analyzing {pokemon_to_check} viability in Regulation {selected_reg}..."):
+            regulation_name = f"Regulation {selected_reg}"
+            
+            # First check if Pokemon is banned
+            is_banned, ban_reason = check_pokemon_ban_status(pokemon_to_check.strip(), selected_reg)
+            
+            if is_banned:
+                st.error(f"❌ **{pokemon_to_check.title()} is BANNED in {regulation_name}**")
+                st.write(f"**Reason:** {ban_reason}")
+                
+                # Suggest legal regulations
+                legal_regs = get_legal_regulations_for_pokemon(pokemon_to_check.strip())
+                if legal_regs:
+                    st.info(f"**This Pokemon is legal in:** {', '.join(legal_regs)}")
+                
+                # Still show alternatives
+                alternatives = get_pokemon_alternatives(pokemon_to_check.strip(), regulation_name)
+                if alternatives:
+                    st.markdown("### 🔄 Alternative Pokemon")
+                    st.markdown("Consider these alternatives that are legal in this regulation:")
+                    
+                    for alt in alternatives[:3]:
+                        col1, col2, col3 = st.columns([2, 1, 1])
+                        with col1:
+                            st.write(f"**{alt['name']}**")
+                        with col2:
+                            st.write(f"Score: {alt['viability_score']:.1f}")
+                        with col3:
+                            st.write(f"Usage: {alt['usage_percent']:.2f}%")
+                            
+            else:
+                # Pokemon is legal, show viability analysis
+                score, details = calculate_pokemon_viability_score(pokemon_to_check.strip(), regulation_name)
+                
+                if "error" in details:
+                    st.error(f"❌ Could not analyze {pokemon_to_check}: {details['error']}")
+                else:
+                    # Display viability results
+                    st.markdown(f"### 📈 {pokemon_to_check.title()} Analysis")
+                    st.success(f"✅ **{pokemon_to_check.title()} is LEGAL in {regulation_name}**")
+                    
+                    # Viability metrics
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Viability Score", f"{score:.1f}/100")
+                    with col2:
+                        st.metric("Tier", details['viability_tier'])
+                    with col3:
+                        usage_percent = details['usage_data']['usage_percent']
+                        st.metric("Usage Rate", f"{usage_percent:.2f}%")
+                    with col4:
+                        rank = details['usage_data']['rank']
+                        rank_display = f"#{rank}" if rank else "Unranked"
+                        st.metric("Ranking", rank_display)
+                    
+                    # Score breakdown
+                    with st.expander("📊 Score Breakdown"):
+                        breakdown = details['score_breakdown']
+                        st.write(f"**Usage Score:** {breakdown['usage_score']}/40")
+                        st.write(f"**Rank Score:** {breakdown['rank_score']}/20")
+                        st.write(f"**Move Diversity:** {breakdown['diversity_score']}/20")
+                        st.write(f"**Item Flexibility:** {breakdown['item_score']}/10")
+                        st.write(f"**Team Synergy:** {breakdown['synergy_score']}/10")
+                    
+                    # Recommendations
+                    st.markdown("**🎯 Recommendations:**")
+                    for recommendation in details['recommendations']:
+                        st.write(f"• {recommendation}")
+                    
+                    # Usage data details
+                    if details['usage_data']['source'] == 'smogon_api':
+                        with st.expander("📋 Detailed Usage Statistics"):
+                            usage_data = details['usage_data']
+                            
+                            # Most common moves
+                            if usage_data['moves']:
+                                st.write("**Most Common Moves:**")
+                                for move, percentage in list(usage_data['moves'].items())[:6]:
+                                    st.write(f"• {move}: {percentage}%")
+                            
+                            # Most common items
+                            if usage_data['items']:
+                                st.write("**Most Common Items:**")
+                                for item, percentage in list(usage_data['items'].items())[:4]:
+                                    st.write(f"• {item}: {percentage}%")
+                            
+                            # Common teammates
+                            if usage_data['teammates']:
+                                st.write("**Common Teammates:**")
+                                for teammate, percentage in list(usage_data['teammates'].items())[:5]:
+                                    st.write(f"• {teammate}: {percentage}%")
+                    
+                    # Alternative Pokemon suggestions
+                    alternatives = get_pokemon_alternatives(pokemon_to_check.strip(), regulation_name)
+                    if alternatives:
+                        st.markdown("### 🔄 Alternative Pokemon")
+                        st.markdown("Consider these alternatives with higher viability scores:")
+                        
+                        for alt in alternatives[:3]:  # Show top 3 alternatives
+                            col1, col2, col3 = st.columns([2, 1, 1])
+                            with col1:
+                                st.write(f"**{alt['name']}**")
+                            with col2:
+                                st.write(f"Score: {alt['viability_score']:.1f}")
+                            with col3:
+                                st.write(f"Usage: {alt['usage_percent']:.2f}%")
+
+
+def get_comprehensive_ban_list(regulation: str) -> Dict[str, Any]:
+    """
+    Get comprehensive ban list for a specific regulation
+    
+    Args:
+        regulation: VGC regulation (A-I)
+    
+    Returns:
+        Dictionary with ban rules and lists
+    """
+    ban_lists = {
+        "A": {
+            "description": "Paldea Preview - Only native Paldea Pokemon allowed",
+            "banned_categories": ["all_legendaries", "all_paradox", "all_mythicals"],
+            "specific_bans": [],
+            "notes": "Only Paldean Pokemon available at launch"
+        },
+        "B": {
+            "description": "Paradox Unleashed - Paradox Pokemon introduced",
+            "banned_categories": ["all_legendaries", "all_mythicals"],
+            "specific_bans": ["Chi-Yu", "Chien-Pao", "Ting-Lu", "Wo-Chien"],
+            "notes": "Paradox Pokemon allowed, Treasures still banned"
+        },
+        "C": {
+            "description": "Treasures Emerge - Some Treasures of Ruin allowed",
+            "banned_categories": ["all_legendaries", "all_mythicals"],
+            "specific_bans": [],
+            "exceptions": ["Chi-Yu", "Chien-Pao", "Ting-Lu", "Wo-Chien"],
+            "notes": "Treasures of Ruin now legal"
+        },
+        "D": {
+            "description": "HOME Integration - Past generation Pokemon introduced",
+            "banned_categories": ["restricted_legendaries"],
+            "specific_bans": [
+                "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem", 
+                "Xerneas", "Yveltal", "Zygarde", "Cosmog", "Cosmoem", "Solgaleo", 
+                "Lunala", "Necrozma", "Zacian", "Zamazenta", "Eternatus", 
+                "Calyrex", "Koraidon", "Miraidon"
+            ],
+            "notes": "HOME integration, restricted legendaries banned"
+        },
+        "E": {
+            "description": "Teal Mask - DLC Pokemon introduced",
+            "banned_categories": ["restricted_legendaries"],
+            "specific_bans": [
+                "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem",
+                "Xerneas", "Yveltal", "Zygarde", "Cosmog", "Cosmoem", "Solgaleo",
+                "Lunala", "Necrozma", "Zacian", "Zamazenta", "Eternatus",
+                "Calyrex", "Koraidon", "Miraidon"
+            ],
+            "notes": "Teal Mask DLC Pokemon added"
+        },
+        "F": {
+            "description": "Indigo Disk - More DLC Pokemon",
+            "banned_categories": ["restricted_legendaries"],
+            "specific_bans": [
+                "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem",
+                "Xerneas", "Yveltal", "Zygarde", "Cosmog", "Cosmoem", "Solgaleo",
+                "Lunala", "Necrozma", "Zacian", "Zamazenta", "Eternatus",
+                "Calyrex", "Koraidon", "Miraidon"
+            ],
+            "notes": "Indigo Disk DLC Pokemon added"
+        },
+        "G": {
+            "description": "Restricted Singles - One restricted legendary allowed",
+            "banned_categories": [],
+            "max_restricted": 1,
+            "restricted_pokemon": [
+                "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem",
+                "Xerneas", "Yveltal", "Zygarde", "Solgaleo", "Lunala", "Necrozma",
+                "Zacian", "Zamazenta", "Eternatus", "Calyrex", "Koraidon", "Miraidon"
+            ],
+            "notes": "Exactly 1 restricted legendary allowed per team"
+        },
+        "H": {
+            "description": "Back to Basics - Many Pokemon banned",
+            "banned_categories": ["comprehensive_bans"],
+            "specific_bans": [
+                "Annihilape", "Amoonguss", "Arcanine", "Arcanine-Hisui", "Basculegion",
+                "Baxcalibur", "Calyrex", "Calyrex-Ice", "Calyrex-Shadow", "Chi-Yu",
+                "Chien-Pao", "Cresselia", "Dragapult", "Dondozo", "Flutter Mane",
+                "Gholdengo", "Great Tusk", "Grimmsnarl", "Incineroar", "Iron Bundle",
+                "Iron Hands", "Koraidon", "Landorus", "Landorus-Therian", "Miraidon",
+                "Ogerpon", "Ogerpon-Wellspring", "Ogerpon-Hearthflame", "Ogerpon-Cornerstone",
+                "Raging Bolt", "Roaring Moon", "Tatsugiri", "Ting-Lu", "Tornadus",
+                "Urshifu", "Urshifu-Rapid-Strike", "Walking Wake", "Wo-Chien"
+            ],
+            "notes": "Back to Basics format - many meta Pokemon banned"
+        },
+        "I": {
+            "description": "Double Restricted - Two restricted legendaries allowed",
+            "banned_categories": [],
+            "max_restricted": 2,
+            "restricted_pokemon": [
+                "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem",
+                "Xerneas", "Yveltal", "Zygarde", "Solgaleo", "Lunala", "Necrozma",
+                "Zacian", "Zamazenta", "Eternatus", "Calyrex", "Koraidon", "Miraidon"
+            ],
+            "notes": "Up to 2 restricted legendaries allowed per team"
+        }
+    }
+    
+    return ban_lists.get(regulation, {})
+
+
+def check_pokemon_ban_status(pokemon_name: str, regulation: str) -> Tuple[bool, str]:
+    """
+    Check if a Pokemon is banned in a specific regulation
+    
+    Args:
+        pokemon_name: Name of the Pokemon
+        regulation: VGC regulation (A-I)
+    
+    Returns:
+        Tuple of (is_banned, ban_reason)
+    """
+    ban_data = get_comprehensive_ban_list(regulation)
+    
+    if not ban_data:
+        return False, ""
+    
+    pokemon_clean = pokemon_name.lower().replace(' ', '').replace('-', '').replace("'", "")
+    
+    # Check specific bans
+    if "specific_bans" in ban_data:
+        for banned_pokemon in ban_data["specific_bans"]:
+            banned_clean = banned_pokemon.lower().replace(' ', '').replace('-', '').replace("'", "")
+            if pokemon_clean == banned_clean or pokemon_clean in banned_clean or banned_clean in pokemon_clean:
+                return True, f"Specifically banned in {ban_data['description']}"
+    
+    # Check category bans (simplified version for now)
+    banned_categories = ban_data.get("banned_categories", [])
+    
+    if "all_legendaries" in banned_categories:
+        legendary_pokemon = [
+            "articuno", "zapdos", "moltres", "mewtwo", "mew", "lugia", "ho-oh",
+            "celebi", "kyogre", "groudon", "rayquaza", "jirachi", "deoxys",
+            "dialga", "palkia", "giratina", "phione", "manaphy", "darkrai",
+            "shaymin", "arceus", "reshiram", "zekrom", "kyurem", "keldeo",
+            "meloetta", "genesect", "xerneas", "yveltal", "zygarde", "diancie",
+            "hoopa", "volcanion", "solgaleo", "lunala", "necrozma", "marshadow",
+            "zeraora", "zacian", "zamazenta", "eternatus", "kubfu", "urshifu",
+            "calyrex", "koraidon", "miraidon"
+        ]
+        if any(leg in pokemon_clean for leg in legendary_pokemon):
+            return True, f"Legendary Pokemon banned in {ban_data['description']}"
+    
+    if "all_paradox" in banned_categories:
+        paradox_pokemon = [
+            "greattusk", "screamtail", "brutebonnet", "fluttermane", "slitherwing",
+            "sandyshocks", "irontreads", "ironbundle", "ironhands", "ironjugulis",
+            "ironmoth", "ironthorns", "roaringmoon", "ironvaliant", "walkingwake",
+            "ragingbolt", "gougingfire", "ironleaves", "ironboulder", "ironcrown"
+        ]
+        if any(par in pokemon_clean for par in paradox_pokemon):
+            return True, f"Paradox Pokemon banned in {ban_data['description']}"
+    
+    return False, ""
+
+
+def get_legal_regulations_for_pokemon(pokemon_name: str) -> List[str]:
+    """
+    Get list of regulations where a Pokemon is legal
+    
+    Args:
+        pokemon_name: Name of the Pokemon
+    
+    Returns:
+        List of regulation names where Pokemon is legal
+    """
+    legal_regulations = []
+    regulations = ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
+    
+    for reg in regulations:
+        is_banned, _ = check_pokemon_ban_status(pokemon_name, reg)
+        if not is_banned:
+            legal_regulations.append(f"Regulation {reg}")
+    
+    return legal_regulations
+
+
+def analyze_team_from_pokepaste(parsed_team: List[Dict[str, Any]], regulation: str):
+    """
+    Analyze a team parsed from PokePaste format
+    
+    Args:
+        parsed_team: List of Pokemon dictionaries from PokePaste parser
+        regulation: Selected VGC regulation
+    """
+    st.markdown("## 📊 Team Analysis Results")
+    
+    # Basic team info
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Team Size", f"{len(parsed_team)}/6")
+    with col2:
+        st.metric("Regulation", regulation)
+    with col3:
+        completion_percentage = (len(parsed_team) / 6) * 100
+        st.metric("Completion", f"{completion_percentage:.1f}%")
+    
+    # Team Summary
+    st.markdown("### 🎯 Team Overview")
+    team_names = [p["name"] for p in parsed_team]
+    st.write(f"**Current Team:** {', '.join(team_names)}")
+    
+    # Convert parsed team to the format expected by existing analysis functions
+    converted_team = []
+    for pokemon in parsed_team:
+        converted_pokemon = {
+            "name": pokemon.get("name", ""),
+            "ability": pokemon.get("ability", ""),
+            "item": pokemon.get("item", ""),
+            "tera_type": pokemon.get("tera_type", ""),
+            "nature": pokemon.get("nature", ""),
+            "moves": pokemon.get("moves", []),
+            "evs": pokemon.get("evs", {}),
+            "ivs": pokemon.get("ivs", {})
+        }
+        converted_team.append(converted_pokemon)
+    
+    # Ban compliance check with detailed feedback
+    check_team_ban_compliance(converted_team, regulation)
+    
+    # Type Coverage Analysis
+    analyze_type_coverage(converted_team)
+    
+    # Team Viability Analysis
+    analyze_team_viability(converted_team, regulation)
+    
+    # Team Recommendations (if incomplete)
+    if len(converted_team) < 6:
+        recommend_pokemon_for_team(converted_team, regulation)
+
+
+def check_team_ban_compliance(team: List[Dict[str, Any]], regulation: str):
+    """
+    Check team compliance with ban list and provide detailed feedback
+    """
+    st.markdown("### ⚖️ Regulation Compliance Check")
+    
+    banned_pokemon = []
+    legal_pokemon = []
+    restricted_count = 0
+    
+    ban_data = get_comprehensive_ban_list(regulation)
+    
+    for pokemon in team:
+        pokemon_name = pokemon.get("name", "").strip()
+        if not pokemon_name:
+            continue
+            
+        is_banned, ban_reason = check_pokemon_ban_status(pokemon_name, regulation)
+        
+        if is_banned:
+            banned_pokemon.append((pokemon_name, ban_reason))
+        else:
+            legal_pokemon.append(pokemon_name)
+            
+            # Count restricted Pokemon for formats that allow them
+            if regulation in ["G", "I"] and "restricted_pokemon" in ban_data:
+                restricted_pokemon = ban_data["restricted_pokemon"]
+                pokemon_clean = pokemon_name.lower().replace(' ', '').replace('-', '')
+                if any(rest.lower().replace(' ', '').replace('-', '') in pokemon_clean for rest in restricted_pokemon):
+                    restricted_count += 1
+    
+    # Display results
+    if banned_pokemon:
+        st.error(f"❌ **{len(banned_pokemon)} Pokemon BANNED in Regulation {regulation}:**")
+        for pokemon_name, reason in banned_pokemon:
+            st.write(f"• **{pokemon_name}**: {reason}")
+            
+            # Show legal alternatives
+            legal_regs = get_legal_regulations_for_pokemon(pokemon_name)
+            if legal_regs:
+                st.info(f"  → Legal in: {', '.join(legal_regs)}")
+    
+    if legal_pokemon:
+        st.success(f"✅ **{len(legal_pokemon)} Pokemon LEGAL in Regulation {regulation}:**")
+        for pokemon_name in legal_pokemon:
+            st.write(f"• {pokemon_name}")
+    
+    # Check restricted Pokemon count for specific regulations
+    if regulation in ["G", "I"]:
+        max_restricted = ban_data.get("max_restricted", 0)
+        if restricted_count > max_restricted:
+            st.error(f"❌ **Too many restricted Pokemon:** {restricted_count}/{max_restricted} allowed")
+        elif restricted_count > 0:
+            st.info(f"ℹ️ **Restricted Pokemon count:** {restricted_count}/{max_restricted}")
+
+
 def get_pokemon_alternatives(pokemon_name: str, regulation: str, role: str = "unknown") -> List[Dict[str, Any]]:
     """
     Get alternative Pokemon suggestions based on role and regulation
@@ -4562,7 +5178,7 @@ def delete_cached_article(content_hash: str) -> bool:
         return False
 
 
-def render_new_analysis_page():
+def render_article_analysis_page():
     """Render the new analysis page (original functionality)"""
     # Header
     st.markdown(
@@ -5589,38 +6205,48 @@ def render_review_my_team_page():
     )
     
     # Initialize session state
-    if "review_team" not in st.session_state:
-        st.session_state["review_team"] = [{"name": "", "ability": "", "item": "", "tera_type": "", "nature": ""} for _ in range(6)]
+    if "pokepaste_text" not in st.session_state:
+        st.session_state["pokepaste_text"] = ""
+    if "parsed_team" not in st.session_state:
+        st.session_state["parsed_team"] = []
     if "selected_regulation" not in st.session_state:
         st.session_state["selected_regulation"] = "I"
     
-    # Regulation Selection
-    st.markdown("## 🏆 Select VGC Regulation")
+    # Create tabs for different sections
+    tab1, tab2 = st.tabs(["🔍 Individual Pokemon Checker", "👥 Team Analysis"])
     
-    regulation_options = {
-        "A": "Regulation A (Nov 2022 - Jan 2023) - Paldea Preview",
-        "B": "Regulation B (Feb - Mar 2023) - Paradox Unleashed", 
-        "C": "Regulation C (Apr - Jun 2023) - Treasures Emerge",
-        "D": "Regulation D (Jul - Sep 2023) - HOME Integration",
-        "E": "Regulation E (Oct - Dec 2023) - Teal Mask",
-        "F": "Regulation F (Jan - Mar 2024) - Indigo Disk",
-        "G": "Regulation G (Apr - Jun 2024) - Restricted Singles",
-        "H": "Regulation H (Jul - Sep 2024) - Back to Basics",
-        "I": "Regulation I (Oct 2024 - Jan 2025) - Double Restricted"
-    }
+    with tab1:
+        render_individual_pokemon_checker()
     
-    selected_reg = st.selectbox(
-        "Choose Regulation:",
-        options=list(regulation_options.keys()),
-        index=list(regulation_options.keys()).index(st.session_state["selected_regulation"]),
-        format_func=lambda x: regulation_options[x]
-    )
-    
-    st.session_state["selected_regulation"] = selected_reg
-    
-    # Team Input Section
-    st.markdown("## 📝 Enter Your Team")
-    st.markdown("Input your 6 Pokemon team for analysis (leave blank for incomplete teams)")
+    with tab2:
+        # Regulation Selection
+        st.markdown("## 🏆 Select VGC Regulation")
+        
+        regulation_options = {
+            "A": "Regulation A (Nov 2022 - Jan 2023) - Paldea Preview",
+            "B": "Regulation B (Feb - Mar 2023) - Paradox Unleashed", 
+            "C": "Regulation C (Apr - Jun 2023) - Treasures Emerge",
+            "D": "Regulation D (Jul - Sep 2023) - HOME Integration",
+            "E": "Regulation E (Oct - Dec 2023) - Teal Mask",
+            "F": "Regulation F (Jan - Mar 2024) - Indigo Disk",
+            "G": "Regulation G (Apr - Jun 2024) - Restricted Singles",
+            "H": "Regulation H (Jul - Sep 2024) - Back to Basics",
+            "I": "Regulation I (Oct 2024 - Jan 2025) - Double Restricted"
+        }
+        
+        selected_reg = st.selectbox(
+            "Choose Regulation:",
+            options=list(regulation_options.keys()),
+            index=list(regulation_options.keys()).index(st.session_state["selected_regulation"]),
+            format_func=lambda x: regulation_options[x],
+            key="team_regulation_select"
+        )
+        
+        st.session_state["selected_regulation"] = selected_reg
+        
+        # PokePaste Input Section
+        st.markdown("## 📝 Import Your Team")
+        st.markdown("Paste your team in PokePaste format (from Pokemon Showdown, PokePaste.es, etc.)")
     
     # Team input grid
     cols = st.columns(2)
@@ -5686,102 +6312,91 @@ def render_review_my_team_page():
                 "nature": nature
             }
     
-    # Pokemon Viability Checker Section
-    st.markdown("---")
-    st.markdown("## 🎯 Pokemon Viability Checker")
-    st.markdown("Check if any Pokemon is viable in your selected regulation with real usage statistics")
-    
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        pokemon_to_check = st.text_input(
-            "Pokemon Name:", 
-            placeholder="e.g., Gligar, Incineroar, Flutter Mane",
-            help="Enter any Pokemon name to check its viability in the selected regulation"
-        )
-    with col2:
-        check_viability = st.button("Check Viability", type="secondary")
-    
-    if check_viability and pokemon_to_check.strip():
-        with st.spinner(f"Analyzing {pokemon_to_check} viability in Regulation {selected_reg}..."):
-            regulation_name = f"Regulation {selected_reg}"
-            score, details = calculate_pokemon_viability_score(pokemon_to_check.strip(), regulation_name)
-            
-            if "error" in details:
-                st.error(f"❌ Could not analyze {pokemon_to_check}: {details['error']}")
-            else:
-                # Display viability results
-                st.markdown(f"### 📈 {pokemon_to_check.title()} Analysis")
-                
-                # Viability metrics
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.metric("Viability Score", f"{score:.1f}/100")
-                with col2:
-                    st.metric("Tier", details['viability_tier'])
-                with col3:
-                    usage_percent = details['usage_data']['usage_percent']
-                    st.metric("Usage Rate", f"{usage_percent:.2f}%")
-                with col4:
-                    rank = details['usage_data']['rank']
-                    rank_display = f"#{rank}" if rank else "Unranked"
-                    st.metric("Ranking", rank_display)
-                
-                # Score breakdown
-                with st.expander("📊 Score Breakdown"):
-                    breakdown = details['score_breakdown']
-                    st.write(f"**Usage Score:** {breakdown['usage_score']}/40")
-                    st.write(f"**Rank Score:** {breakdown['rank_score']}/20")
-                    st.write(f"**Move Diversity:** {breakdown['diversity_score']}/20")
-                    st.write(f"**Item Flexibility:** {breakdown['item_score']}/10")
-                    st.write(f"**Team Synergy:** {breakdown['synergy_score']}/10")
-                
-                # Recommendations
-                st.markdown("**🎯 Recommendations:**")
-                for recommendation in details['recommendations']:
-                    st.write(f"• {recommendation}")
-                
-                # Usage data details
-                if details['usage_data']['source'] == 'smogon_api':
-                    with st.expander("📋 Detailed Usage Statistics"):
-                        usage_data = details['usage_data']
-                        
-                        # Most common moves
-                        if usage_data['moves']:
-                            st.write("**Most Common Moves:**")
-                            for move, percentage in list(usage_data['moves'].items())[:6]:
-                                st.write(f"• {move}: {percentage}%")
-                        
-                        # Most common items
-                        if usage_data['items']:
-                            st.write("**Most Common Items:**")
-                            for item, percentage in list(usage_data['items'].items())[:4]:
-                                st.write(f"• {item}: {percentage}%")
-                        
-                        # Common teammates
-                        if usage_data['teammates']:
-                            st.write("**Common Teammates:**")
-                            for teammate, percentage in list(usage_data['teammates'].items())[:5]:
-                                st.write(f"• {teammate}: {percentage}%")
-                
-                # Alternative Pokemon suggestions
-                alternatives = get_pokemon_alternatives(pokemon_to_check.strip(), regulation_name)
-                if alternatives:
-                    st.markdown("### 🔄 Alternative Pokemon")
-                    st.markdown("Consider these alternatives with higher viability scores:")
-                    
-                    for alt in alternatives[:3]:  # Show top 3 alternatives
-                        col1, col2, col3 = st.columns([2, 1, 1])
-                        with col1:
-                            st.write(f"**{alt['name']}**")
-                        with col2:
-                            st.write(f"Score: {alt['viability_score']:.1f}")
-                        with col3:
-                            st.write(f"Usage: {alt['usage_percent']:.2f}%")
+        
+        # PokePaste Input Section
+        st.markdown("## 📝 Import Your Team")
+        st.markdown("Paste your team in PokePaste format (from Pokemon Showdown, PokePaste.es, etc.)")
+        
+        # Example PokePaste
+        with st.expander("📋 PokePaste Format Example"):
+            st.code("""Incineroar @ Safety Goggles
+Ability: Intimidate
+Tera Type: Fire
+EVs: 244 HP / 4 Atk / 4 Def / 244 SpD / 12 Spe
+Careful Nature
+- Fake Out
+- Flare Blitz
+- Parting Shot
+- Knock Off
 
-    # Analysis Button
-    st.markdown("---")
-    if st.button("🔍 Analyze My Team", type="primary", use_container_width=True):
-        analyze_team(st.session_state["review_team"], st.session_state["selected_regulation"])
+Flutter Mane @ Life Orb
+Ability: Protosynthesis  
+Tera Type: Fairy
+EVs: 4 HP / 252 SpA / 252 Spe
+Timid Nature
+- Moonblast
+- Shadow Ball
+- Protect
+- Icy Wind""", language="text")
+        
+        # PokePaste text area
+        pokepaste_input = st.text_area(
+            "Paste your team here:",
+            value=st.session_state["pokepaste_text"],
+            height=300,
+            placeholder="Paste your PokePaste team format here...",
+            help="Copy your team from Pokemon Showdown or any PokePaste format"
+        )
+        
+        st.session_state["pokepaste_text"] = pokepaste_input
+        
+        # Parse and validate
+        col1, col2, col3 = st.columns([1, 1, 2])
+        
+        with col1:
+            parse_team = st.button("🔍 Parse Team", type="primary")
+        
+        with col2:
+            clear_team = st.button("🗑️ Clear", type="secondary")
+            
+        if clear_team:
+            st.session_state["pokepaste_text"] = ""
+            st.session_state["parsed_team"] = []
+            st.rerun()
+        
+        if parse_team and pokepaste_input.strip():
+            with st.spinner("Parsing PokePaste..."):
+                # Validate format
+                is_valid, errors = validate_pokepaste_format(pokepaste_input)
+                
+                if not is_valid:
+                    st.error("❌ **PokePaste Format Errors:**")
+                    for error in errors:
+                        st.write(f"• {error}")
+                else:
+                    # Parse the team
+                    parsed_team = parse_pokepaste(pokepaste_input)
+                    st.session_state["parsed_team"] = parsed_team
+                    
+                    if parsed_team:
+                        st.success(f"✅ Successfully parsed {len(parsed_team)} Pokemon!")
+                        
+                        # Display parsed team summary
+                        st.markdown("### 👥 Parsed Team:")
+                        cols = st.columns(min(len(parsed_team), 3))
+                        for i, pokemon in enumerate(parsed_team):
+                            with cols[i % 3]:
+                                st.write(f"**{pokemon['name']}** @ {pokemon.get('item', 'No item')}")
+                                st.write(f"Ability: {pokemon.get('ability', 'Not specified')}")
+                                st.write(f"Nature: {pokemon.get('nature', 'Not specified')}")
+                    else:
+                        st.warning("No valid Pokemon found in the paste.")
+        
+        # Team Analysis Section
+        if st.session_state["parsed_team"]:
+            st.markdown("---")
+            if st.button("🔍 Analyze My Team", type="primary", use_container_width=True):
+                analyze_team_from_pokepaste(st.session_state["parsed_team"], st.session_state["selected_regulation"])
 
 
 def analyze_team(team_data, regulation):
