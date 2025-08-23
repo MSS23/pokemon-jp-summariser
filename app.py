@@ -2248,6 +2248,12 @@ def get_pokemon_sprite_url(pokemon_name: str) -> str:
             "jangmo-o": "jangmo-o",
             "hakamo-o": "hakamo-o",
             "kommo-o": "kommo-o",
+            # WCS2023 Team specific mappings
+            "hisuian-arcanine": "arcanine-hisui",
+            "urshifu-dark": "urshifu-single-strike",
+            "urshifu-water": "urshifu-rapid-strike",
+            "urshifu-single-strike": "urshifu-single-strike",
+            "urshifu-rapid-strike": "urshifu-rapid-strike",
             "tapu-koko": "tapu-koko",
             "tapu-lele": "tapu-lele",
             "tapu-bulu": "tapu-bulu",
@@ -2874,6 +2880,12 @@ ARTICLE CONTENT:
 🚨 CRITICAL POKEMON NAME TRANSLATION ALERT 🚨
 - セグレイブ = "Baxcalibur" (Dragon/Ice, Generation IX) - NOT Glaceon!
 - ドドゲザン = "Kingambit" (Dark/Steel, Generation IX) - NOT Glaceon!
+- トリトドン = "Gastrodon" (Water/Ground) - NOT Tatsugiri!
+- シャリタツ = "Tatsugiri" (Dragon/Water) - NOT Gastrodon!
+- ヒスイウインディ = "Hisuian Arcanine" (Fire/Rock) - NOT regular Arcanine!
+- 悪ウーラオス = "Urshifu-Dark" or "Urshifu (Single Strike)" - NOT regular Urshifu!
+- 水ウーラオス = "Urshifu-Water" or "Urshifu (Rapid Strike)" - NOT regular Urshifu!
+- NEVER output duplicate Pokemon names (e.g., "3x Tornadus") - this indicates analysis failure!
 - If you see these Japanese names, translate them correctly to avoid major errors!
 
 **STEP 1: CORE TEAM COMPOSITION DETECTION (MAX 6 POKEMON)**
@@ -2898,8 +2910,10 @@ ARTICLE CONTENT:
    
 4. **VALIDATION RULES**:
    - **MAXIMUM 6 Pokemon per team** (VGC standard rule)
+   - **NO DUPLICATE POKEMON** - Each Pokemon name must be unique (e.g., never "3x Tornadus")
    - If >6 Pokemon detected, prioritize those with most complete data
    - Must have at least move/ability/item data to qualify as main team member
+   - **FINAL CHECK**: Count unique Pokemon names - must equal exactly 6 different Pokemon
 
 **STEP 2: AGGRESSIVE EV DATA EXTRACTION**
 - Search ALL text sections for numerical patterns that could be EVs
@@ -3812,6 +3826,18 @@ Respond only with the JSON, no additional text.
                         
                         validated_team.append(pokemon_defaults)
                 
+                # Check for duplicate Pokemon (major error indicator)
+                pokemon_names_only = [p.get("name", "").strip() for p in validated_team if p.get("name")]
+                name_counts = {}
+                for name in pokemon_names_only:
+                    if name and name not in ["Unknown", "Not specified", "Not specified in article"]:
+                        name_counts[name] = name_counts.get(name, 0) + 1
+                
+                duplicates_found = [(name, count) for name, count in name_counts.items() if count > 1]
+                if duplicates_found:
+                    st.error(f"🚨 **CRITICAL ERROR**: Detected duplicate Pokemon - {', '.join([f'{count}x {name}' for name, count in duplicates_found])}. This indicates AI analysis failure. Using fallback analysis.")
+                    return self._create_fallback_analysis(content, url)
+                
                 # Enforce 6-Pokemon maximum rule for VGC teams
                 if len(validated_team) > 6:
                     st.warning(f"🚨 **Team Size Validation**: Detected {len(validated_team)} Pokemon, but VGC teams have maximum 6. Selecting top 6 with most complete data...")
@@ -3861,9 +3887,12 @@ Respond only with the JSON, no additional text.
             pokemon_names = []
             common_pokemon = [
                 ("ガブリアス", "Garchomp"), ("ガオガエン", "Incineroar"), ("ウインディ", "Arcanine"), 
-                ("モロバレル", "Amoonguss"), ("エルフーン", "Whimsicott"), ("ランドロス", "Landorus"),
-                ("カイリュー", "Dragonite"), ("ハリテヤマ", "Hariyama"), ("クレッフィ", "Klefki"), 
-                ("トリトドン", "Gastrodon")
+                ("ヒスイウインディ", "Hisuian Arcanine"), ("モロバレル", "Amoonguss"), ("エルフーン", "Whimsicott"), 
+                ("ランドロス", "Landorus"), ("カイリュー", "Dragonite"), ("ハリテヤマ", "Hariyama"), 
+                ("クレッフィ", "Klefki"), ("トリトドン", "Gastrodon"), ("ゴリランダー", "Rillaboom"),
+                ("ニンフィア", "Sylveon"), ("サンダー", "Zapdos"), ("悪ウーラオス", "Urshifu-Dark"),
+                ("ウーラオス", "Urshifu"), ("シャリタツ", "Tatsugiri"), ("トルネロス", "Tornadus"),
+                ("ドヒドイデ", "Toxapex"), ("カイオーガ", "Kyogre"), ("白馬バドレックス", "Calyrex-Ice")
             ]
             
             for jp_name, eng_name in common_pokemon:
