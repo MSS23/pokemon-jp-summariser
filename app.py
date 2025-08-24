@@ -3215,7 +3215,7 @@ ARTICLE CONTENT:
             "japanese_name_found": "Original Japanese name if detected or null",
             "ability": "Ability name in English",
             "held_item": "Item name in English", 
-            "tera_type": "Tera type in English",
+            "tera_type": "Tera type in English - MUST be one of: Normal, Fire, Water, Electric, Grass, Ice, Fighting, Poison, Ground, Flying, Psychic, Bug, Rock, Ghost, Dragon, Dark, Steel, Fairy. Use 'Not specified in article' if unknown.",
             "moves": ["Move 1", "Move 2", "Move 3", "Move 4"],
             "ev_spread": "HP/Atk/Def/SpA/SpD/Spe format (e.g., 252/0/4/252/0/0) - Use 'Not specified in article' if missing",
             "ev_source": "article/image/calculated/default",
@@ -3894,11 +3894,29 @@ Respond only with the JSON, no additional text.
                 for pokemon in result["pokemon_team"]:
                     if isinstance(pokemon, dict) and pokemon.get("name"):
                         # Ensure required Pokemon fields
+                        # Validate tera type against official Pokemon types
+                        valid_types = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison", "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy"]
+                        raw_tera_type = pokemon.get("tera_type", "Unknown")
+                        
+                        # Validate and sanitize tera type
+                        if raw_tera_type in valid_types:
+                            validated_tera_type = raw_tera_type
+                        elif raw_tera_type.capitalize() in valid_types:
+                            validated_tera_type = raw_tera_type.capitalize()
+                        elif raw_tera_type.lower() in [t.lower() for t in valid_types]:
+                            # Find the correctly capitalized version
+                            validated_tera_type = next(t for t in valid_types if t.lower() == raw_tera_type.lower())
+                        else:
+                            # Invalid tera type, use "Not specified in article"
+                            validated_tera_type = "Not specified in article"
+                            if raw_tera_type not in ["Unknown", "Not specified", "Not specified in article", ""]:
+                                st.warning(f"⚠️ Invalid tera type '{raw_tera_type}' for {pokemon.get('name', 'Unknown Pokemon')}. Using 'Not specified in article'.")
+                        
                         pokemon_defaults = {
                             "name": pokemon.get("name", "Unknown Pokemon"),
                             "ability": pokemon.get("ability", "Unknown"),
                             "held_item": pokemon.get("held_item", "Unknown"),
-                            "tera_type": pokemon.get("tera_type", "Unknown"),
+                            "tera_type": validated_tera_type,
                             "moves": pokemon.get("moves", ["Unknown Move 1", "Unknown Move 2", "Unknown Move 3", "Unknown Move 4"])[:4],
                             "ev_spread": pokemon.get("ev_spread", "Not specified in article"),
                             "nature": pokemon.get("nature", "Unknown"),
@@ -5053,22 +5071,23 @@ def main():
     # Sidebar navigation
     st.sidebar.title("🏆 Pokemon VGC Analysis")
     
-    # Check if there's a programmatic page change request
+    # Determine default page based on session state
+    default_page = "🏠 Article Analysis"
     if "current_page" in st.session_state:
         if st.session_state["current_page"] == "New Analysis":
-            page = "🏠 Article Analysis"
+            default_page = "🏠 Article Analysis"
             # Clear the override after using it
             del st.session_state["current_page"]
-        else:
-            page = st.sidebar.selectbox(
-                "Navigate to:",
-                ["🏠 Article Analysis", "📚 Previous Articles"]
-            )
-    else:
-        page = st.sidebar.selectbox(
-            "Navigate to:",
-            ["🏠 Article Analysis", "📚 Previous Articles"]
-        )
+    
+    # Always show the selectbox with appropriate default
+    options = ["🏠 Article Analysis", "📚 Previous Articles"]
+    default_index = options.index(default_page)
+    
+    page = st.sidebar.selectbox(
+        "Navigate to:",
+        options,
+        index=default_index
+    )
     
     if page == "🏠 Article Analysis":
         render_article_analysis_page()
