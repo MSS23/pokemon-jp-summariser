@@ -4110,6 +4110,68 @@ def create_pokepaste(pokemon_team: List[Dict[str, Any]], team_name: str = "VGC T
     return pokepaste_content
 
 
+def render_team_strategy_section(team_analysis: dict, result: dict):
+    """Render the team strategy analysis section"""
+    st.markdown("## 🎯 Team Strategy Analysis")
+    
+    # Strategy overview
+    strategy = team_analysis.get("strategy", "Strategy not specified")
+    if strategy and strategy != "Strategy not specified":
+        st.markdown("### 📋 Overall Strategy")
+        st.markdown(f"""
+        <div class="summary-container">
+            <div class="summary-content">
+                {strategy}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Create columns for strengths and weaknesses
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 💪 Team Strengths")
+        strengths = team_analysis.get("strengths", [])
+        if strengths and len(strengths) > 0:
+            strengths_html = format_strategy_list(strengths, "strength")
+            st.markdown(strengths_html, unsafe_allow_html=True)
+        else:
+            st.markdown("*No specific strengths analyzed*")
+    
+    with col2:
+        st.markdown("### ⚠️ Potential Weaknesses")
+        weaknesses = team_analysis.get("weaknesses", [])
+        if weaknesses and len(weaknesses) > 0:
+            weaknesses_html = format_strategy_list(weaknesses, "weakness") 
+            st.markdown(weaknesses_html, unsafe_allow_html=True)
+        else:
+            st.markdown("*No specific weaknesses identified*")
+    
+    # Meta relevance
+    meta_relevance = team_analysis.get("meta_relevance", "")
+    if meta_relevance and meta_relevance.strip():
+        st.markdown("### 🌟 Meta Relevance")
+        st.markdown(f"""
+        <div class="summary-container">
+            <div class="summary-content">
+                {meta_relevance}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Regulation compliance if available
+    regulation_compliance = team_analysis.get("regulation_compliance", "")
+    if regulation_compliance and regulation_compliance.strip():
+        st.markdown("### ⚖️ Regulation Compliance")
+        st.markdown(f"""
+        <div class="summary-container">
+            <div class="summary-content">
+                {regulation_compliance}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
 def render_article_analysis_page():
     """Render the new analysis page (original functionality)"""
     # Header
@@ -4991,10 +5053,22 @@ def main():
     # Sidebar navigation
     st.sidebar.title("🏆 Pokemon VGC Analysis")
     
-    page = st.sidebar.selectbox(
-        "Navigate to:",
-        ["🏠 Article Analysis", "📚 Previous Articles"]
-    )
+    # Check if there's a programmatic page change request
+    if "current_page" in st.session_state:
+        if st.session_state["current_page"] == "New Analysis":
+            page = "🏠 Article Analysis"
+            # Clear the override after using it
+            del st.session_state["current_page"]
+        else:
+            page = st.sidebar.selectbox(
+                "Navigate to:",
+                ["🏠 Article Analysis", "📚 Previous Articles"]
+            )
+    else:
+        page = st.sidebar.selectbox(
+            "Navigate to:",
+            ["🏠 Article Analysis", "📚 Previous Articles"]
+        )
     
     if page == "🏠 Article Analysis":
         render_article_analysis_page()
