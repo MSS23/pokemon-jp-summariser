@@ -3345,6 +3345,34 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 - しんちょう → "Careful" (+Special Defense, -Special Attack)
 - れいせい → "Quiet" (+Special Attack, -Speed)
 - ゆうかん → "Brave" (+Attack, -Speed)
+- おだやか → "Calm" (+Special Defense, -Attack)
+
+**TYPE TRANSLATIONS (Critical for Tera Types - NEVER confuse with natures or descriptions):**
+- ノーマル → "Normal"
+- ほのお → "Fire"
+- みず → "Water"
+- でんき → "Electric"
+- くさ → "Grass"
+- こおり → "Ice"
+- かくとう → "Fighting"
+- どく → "Poison"
+- じめん → "Ground"
+- ひこう → "Flying"
+- エスパー → "Psychic"
+- むし → "Bug"
+- いわ → "Rock"
+- ゴースト → "Ghost"
+- ドラゴン → "Dragon"
+- あく → "Dark"
+- はがね → "Steel"
+- フェアリー → "Fairy"
+
+⚠️ **CRITICAL TERA TYPE DETECTION RULES:**
+- ONLY use the 18 official Pokemon types above for tera_type field
+- NEVER use natures (Jolly, Adamant, Calm, etc.) as tera types
+- NEVER use descriptive words (bulky, frail, fast, etc.) as tera types
+- Look for "テラ[type]" or "テラスタル[type]" patterns in Japanese text
+- If uncertain about tera type, use "Not specified in article"
 
 **ANCIENT PARADOX POKEMON IDENTIFICATION (CRITICAL - DLC Forms):**
 - タケルライコ/Raging Bolt: Electric/Dragon, Protosynthesis ability, based on Raikou
