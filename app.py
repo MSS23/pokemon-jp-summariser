@@ -19,6 +19,8 @@ from io import BytesIO
 from PIL import Image
 import hashlib
 from datetime import datetime, timedelta
+import asyncio
+import aiohttp
 
 try:
     from langchain_community.document_loaders import WebBaseLoader
@@ -27,6 +29,25 @@ try:
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
+
+# Import Task function for agent interaction
+def Task(description: str, prompt: str, subagent_type: str):
+    """Placeholder Task function that would normally interface with Claude Code agents"""
+    import subprocess
+    import json
+    
+    try:
+        # This simulates calling the Claude Code agent system
+        # In the actual implementation, this would use the Task tool
+        result = {
+            "description": description,
+            "prompt": prompt,
+            "subagent_type": subagent_type,
+            "result": f"Analysis complete for {description}. This is a placeholder result."
+        }
+        return result
+    except Exception as e:
+        return {"error": f"Task execution failed: {str(e)}", "description": description}
 
 # Import new modules
 try:
@@ -419,6 +440,9 @@ st.markdown(
         margin-top: 16px;
         border: 2px solid var(--type-color, #e2e8f0);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        max-width: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
     }
     
     .ev-header {
@@ -781,6 +805,12 @@ st.markdown(
         .ev-stats-grid {
             grid-template-columns: repeat(6, 1fr);
             gap: 16px;
+            max-width: 100%;
+        }
+        
+        .ev-container {
+            max-width: 100%;
+            overflow: hidden;
         }
         
         .pokemon-card {
@@ -820,6 +850,12 @@ st.markdown(
         .ev-stats-grid {
             grid-template-columns: repeat(3, 1fr);
             gap: 16px;
+            max-width: 100%;
+        }
+        
+        .ev-container {
+            max-width: 100%;
+            overflow: hidden;
         }
         
         .pokemon-card {
@@ -2290,14 +2326,14 @@ def get_pokemon_sprite_url(pokemon_name: str) -> str:
             "korraidon": "koraidon",  # Common misspelling
             "miraidon": "miraidon",
             "ogerpon": "ogerpon",
-            "ogerpon-teal": "ogerpon-teal",
-            "ogerpon-wellspring": "ogerpon-wellspring",
-            "ogerpon-hearthflame": "ogerpon-hearthflame",
-            "ogerpon-cornerstone": "ogerpon-cornerstone",
-            "ogerpon-teal-mask": "ogerpon-teal",
-            "ogerpon-wellspring-mask": "ogerpon-wellspring",
-            "ogerpon-hearthflame-mask": "ogerpon-hearthflame",
-            "ogerpon-cornerstone-mask": "ogerpon-cornerstone",
+            "ogerpon-teal": "ogerpon",
+            "ogerpon-wellspring": "ogerpon", 
+            "ogerpon-hearthflame": "ogerpon",
+            "ogerpon-cornerstone": "ogerpon",
+            "ogerpon-teal-mask": "ogerpon",
+            "ogerpon-wellspring-mask": "ogerpon",
+            "ogerpon-hearthflame-mask": "ogerpon",
+            "ogerpon-cornerstone-mask": "ogerpon",
             "fezandipiti": "fezandipiti",
             "munkidori": "munkidori",
             "okidogi": "okidogi",
@@ -2811,7 +2847,7 @@ class GeminiVGCAnalyzer:
             from datetime import datetime, date
             import re
             
-            # Regulation date ranges for SV VGC
+            # Regulation date ranges for SV VGC (Updated for 2025)
             regulation_dates = {
                 "A": (date(2022, 11, 18), date(2023, 1, 31)),  # Series 1
                 "B": (date(2023, 2, 1), date(2023, 3, 31)),    # Series 2  
@@ -2821,7 +2857,7 @@ class GeminiVGCAnalyzer:
                 "F": (date(2024, 1, 1), date(2024, 3, 31)),    # Series 6 - Indigo Disk
                 "G": (date(2024, 4, 1), date(2024, 6, 30)),    # Series 7 - Restricted Singles
                 "H": (date(2024, 7, 1), date(2024, 9, 30)),    # Series 8 - Back to Basics
-                "I": (date(2024, 10, 1), date(2025, 1, 31)),   # Series 9 - Double Restricted
+                "I": (date(2025, 1, 1), date(2025, 12, 31)),   # Series 9 - Double Restricted (2025)
             }
             
             article_date = None
@@ -3086,12 +3122,14 @@ ARTICLE CONTENT:
 - **ALLOWED**: Only regular Pokemon (base forms, regional variants, regular evolutions)
 - **Meta Context**: Most balanced format, focus on traditional VGC Pokemon
 
-**🗓️ Regulation I (Sep 1, 2025 - Dec 31, 2025) - "DOUBLE RESTRICTED":**
+**🗓️ Regulation I (Jan 1, 2025 - Dec 31, 2025) - "DOUBLE RESTRICTED":**
 - **Context**: Two restricted legendaries allowed per team
-- **Date Range**: 2025-09-01 to 2025-12-31
-- **BANNED**: Only Mythical Pokemon
-- **ALLOWED**: UP TO TWO Restricted Legendaries per team + all other Pokemon
-- **Meta Context**: Ultra-powerful teams, dual legendary cores, maximum diversity
+- **Date Range**: 2025-01-01 to 2025-12-31
+- **BANNED**: Only Mythical Pokemon (Mew, Celebi, Jirachi, etc.)
+- **ALLOWED**: EXACTLY TWO Restricted Legendaries per team + all other Pokemon
+- **Restricted Legendaries**: Calyrex (all forms), Zacian, Zamazenta, Eternatus, Koraidon, Miraidon, Dialga, Palkia, Giratina, etc.
+- **Meta Context**: Ultra-powerful teams, dual legendary cores like Calyrex-Shadow + Zacian
+- **KEY INDICATORS**: Teams with exactly 2 restricted legendaries are almost certainly Regulation I
 
 **🗓️ Regulation J (Jan 1, 2026 - Apr 30, 2026) - "FUTURE FORMAT":**
 - **Context**: Next generation format (projected)
@@ -3111,6 +3149,8 @@ ARTICLE CONTENT:
 **Comprehensive Validation Checks:**
 1. **Ban List Validation**: Check every Pokemon against regulation-specific ban lists
 2. **Restricted Count**: Verify legendary count (0 for A-F,H vs 1 for G vs 2 for I)
+   - **CRITICAL**: If team has exactly 2 restricted legendaries (e.g., Calyrex-Shadow + Zacian), it's almost certainly Regulation I
+   - **Examples of Double Restricted**: Calyrex-Shadow + Zacian, Koraidon + Miraidon, Dialga + Palkia
 3. **DLC Availability**: Validate Pokemon availability based on regulation timeline
 4. **Form Legality**: Check regional forms, alternate forms, and evolution availability
 5. **Move Pool Validation**: Ensure moves are learnable in the regulation period
@@ -3329,6 +3369,9 @@ CRITICAL POKEMON NAME TRANSLATION RULES:
 
 **Common Move Translations:**
 - バークアウト/Bark Out → "Snarl" (NOT Bark Out)
+- ゴールドラッシュ/Gold Rush → "Make It Rain" (Gholdengo signature move)
+- ウッドホーン/Wood Horn → "Horn Leech" (Grass-type draining move)
+- ドレインパンチ/Drain Punch → "Drain Punch" (Fighting-type draining move)
 - いばる → "Swagger"  
 - あまえる → "Baby-Doll Eyes"
 - みがわり → "Substitute"
@@ -4156,6 +4199,151 @@ def create_pokepaste(pokemon_team: List[Dict[str, Any]], team_name: str = "VGC T
     return pokepaste_content
 
 
+def parse_pokepaste(pokepaste_text: str) -> List[Dict[str, Any]]:
+    """Parse pokepaste format text into structured team data"""
+    try:
+        pokemon_team = []
+        pokemon_blocks = pokepaste_text.strip().split('\n\n')
+        
+        for block in pokemon_blocks:
+            if not block.strip():
+                continue
+                
+            pokemon = {
+                "name": "Not specified",
+                "held_item": "Not specified",
+                "ability": "Not specified",
+                "tera_type": "Not specified", 
+                "nature": "Not specified",
+                "moves": [],
+                "ev_spread": "Not specified"
+            }
+            
+            lines = [line.strip() for line in block.strip().split('\n') if line.strip()]
+            
+            for i, line in enumerate(lines):
+                if i == 0:  # First line: Pokemon name and item
+                    if '@' in line:
+                        name_part, item_part = line.split('@', 1)
+                        pokemon["name"] = name_part.strip()
+                        pokemon["held_item"] = item_part.strip()
+                    else:
+                        pokemon["name"] = line.strip()
+                        
+                elif line.startswith('Ability:'):
+                    pokemon["ability"] = line.replace('Ability:', '').strip()
+                    
+                elif line.startswith('Tera Type:'):
+                    pokemon["tera_type"] = line.replace('Tera Type:', '').strip()
+                    
+                elif line.startswith('EVs:'):
+                    pokemon["ev_spread"] = line.replace('EVs:', '').strip()
+                    
+                elif 'Nature' in line and line.endswith('Nature'):
+                    pokemon["nature"] = line.replace('Nature', '').strip()
+                    
+                elif line.startswith('-'):
+                    move = line.replace('-', '').strip()
+                    if move:
+                        pokemon["moves"].append(move)
+            
+            if pokemon["name"] != "Not specified":
+                pokemon_team.append(pokemon)
+                
+        return pokemon_team
+        
+    except Exception as e:
+        st.error(f"Error parsing pokepaste: {str(e)}")
+        return []
+
+
+def validate_pokepaste_team(team: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Validate pokepaste team format and return validation results"""
+    validation = {
+        "valid": True,
+        "errors": [],
+        "warnings": [],
+        "pokemon_count": len(team)
+    }
+    
+    if len(team) != 6:
+        validation["errors"].append(f"Team must have exactly 6 Pokemon, found {len(team)}")
+        validation["valid"] = False
+    
+    pokemon_names = []
+    for i, pokemon in enumerate(team):
+        pokemon_name = pokemon.get("name", "").strip()
+        
+        if not pokemon_name or pokemon_name == "Not specified":
+            validation["errors"].append(f"Pokemon {i+1}: Missing Pokemon name")
+            validation["valid"] = False
+            
+        if pokemon_name in pokemon_names:
+            validation["warnings"].append(f"Duplicate Pokemon: {pokemon_name}")
+        else:
+            pokemon_names.append(pokemon_name)
+            
+        if not pokemon.get("moves") or len(pokemon["moves"]) == 0:
+            validation["warnings"].append(f"{pokemon_name}: No moves specified")
+            
+        if pokemon.get("moves") and len(pokemon["moves"]) > 4:
+            validation["errors"].append(f"{pokemon_name}: Too many moves ({len(pokemon['moves'])}), max 4")
+            validation["valid"] = False
+    
+    return validation
+
+
+async def fetch_showdown_meta_data(regulation_format: str) -> Dict[str, Any]:
+    """Fetch meta data from Pokemon Showdown and related APIs"""
+    meta_data = {
+        "usage_stats": {},
+        "popular_teams": [],
+        "format_info": {"name": regulation_format, "gen": 9},
+        "error": None
+    }
+    
+    try:
+        # Try fetching from Babiri/Statsugiri API
+        base_url = "https://www.statsugiri.gg/api"
+        
+        async with aiohttp.ClientSession() as session:
+            # Fetch recent teams
+            try:
+                async with session.get(f"{base_url}/teams", timeout=10) as response:
+                    if response.status == 200:
+                        teams_data = await response.json()
+                        meta_data["popular_teams"] = teams_data.get("teams", [])[:20]  # Top 20 teams
+            except Exception as e:
+                st.warning(f"Could not fetch team data: {str(e)}")
+            
+            # Fetch usage stats
+            try:
+                async with session.get(f"{base_url}/usage", timeout=10) as response:
+                    if response.status == 200:
+                        usage_data = await response.json()
+                        meta_data["usage_stats"] = usage_data.get("usage", {})
+            except Exception as e:
+                st.warning(f"Could not fetch usage data: {str(e)}")
+                
+    except Exception as e:
+        meta_data["error"] = f"Meta data fetch failed: {str(e)}"
+        st.warning(f"Using fallback meta analysis: {str(e)}")
+    
+    return meta_data
+
+
+def get_regulation_formats() -> List[str]:
+    """Get available VGC regulation formats"""
+    return [
+        "VGC 2025 Regulation Set I",
+        "VGC 2025 Regulation H", 
+        "VGC 2024 Regulation G",
+        "VGC 2024 Regulation F",
+        "VGC 2023 Regulation E",
+        "Custom Format"
+    ]
+
+
 def render_team_strategy_section(team_analysis: dict, result: dict):
     """Render the team strategy analysis section"""
     st.markdown("## 🎯 Team Strategy Analysis")
@@ -4724,6 +4912,38 @@ def render_previous_articles_page():
             ]
             return any(legendary.lower() in pokemon_name.lower() for legendary in legendary_keywords)
 
+        def _is_restricted_legendary(pokemon_name):
+            """Check if a Pokemon is a restricted legendary (banned in most formats, allowed in G/I)"""
+            restricted_legendaries = [
+                "Dialga", "Palkia", "Giratina", "Reshiram", "Zekrom", "Kyurem",
+                "Xerneas", "Yveltal", "Zygarde", "Cosmog", "Cosmoem", "Solgaleo", 
+                "Lunala", "Necrozma", "Zacian", "Zamazenta", "Eternatus", 
+                "Calyrex", "Calyrex-Ice", "Calyrex-Shadow", "Koraidon", "Miraidon"
+            ]
+            return any(restricted.lower() in pokemon_name.lower() for restricted in restricted_legendaries)
+
+        def detect_regulation_by_team_composition(pokemon_team):
+            """Detect regulation based on team composition (restricted Pokemon count)"""
+            restricted_count = 0
+            restricted_pokemon = []
+            
+            for pokemon in pokemon_team:
+                pokemon_name = pokemon.get("name", "").strip()
+                if _is_restricted_legendary(pokemon_name):
+                    restricted_count += 1
+                    restricted_pokemon.append(pokemon_name)
+            
+            # Regulation detection based on restricted count
+            if restricted_count == 2:
+                return "I", f"Team has 2 restricted legendaries ({', '.join(restricted_pokemon)}) - indicates Regulation I (Double Restricted)"
+            elif restricted_count == 1:
+                return "G", f"Team has 1 restricted legendary ({restricted_pokemon[0]}) - indicates Regulation G (Single Restricted)"
+            elif restricted_count == 0:
+                # Could be A, B, C, D, E, F, or H - need other indicators
+                return None, "No restricted legendaries detected - regulation unclear from team composition alone"
+            else:
+                return None, f"Unusual restricted count ({restricted_count}) - regulation unclear"
+
         # Enhanced regulation conflict detection (2025 system)
         def check_pokemon_regulation_conflicts(pokemon_team, regulation):
             """Enhanced Pokemon regulation validation with comprehensive ban lists"""
@@ -4869,6 +5089,14 @@ def render_previous_articles_page():
                     banned_pokemon.append({"name": pokemon_name, "reason": ban_reason + suggestion})
             
             return banned_pokemon
+        
+        # Check team composition for regulation detection
+        composition_regulation, composition_reason = detect_regulation_by_team_composition(pokemon_team)
+        if composition_regulation and composition_regulation != regulation:
+            # Team composition suggests different regulation
+            if composition_regulation == "I" and regulation not in ["I", "Unknown"]:
+                st.warning(f"🔄 **Regulation Detection**: {composition_reason}")
+                st.info(f"💡 **Suggestion**: This team appears to be Regulation I (Double Restricted) based on having 2 restricted legendaries, but was detected as Regulation {regulation}")
         
         # Get regulation conflicts
         regulation_conflicts = check_pokemon_regulation_conflicts(pokemon_team, regulation)
@@ -5056,6 +5284,435 @@ def render_previous_articles_page():
             st.divider()
 
 
+def run_team_analysis(team_data: List[Dict[str, Any]], regulation: str, analysis_depth: str, meta_data: Dict[str, Any] = None) -> Dict[str, Any]:
+    """Run comprehensive team analysis using VGC agents"""
+    analysis_results = {
+        "team_composition": None,
+        "meta_analysis": None,
+        "matchups": None,
+        "counter_strategies": None,
+        "ev_optimization": None,
+        "error": None
+    }
+    
+    try:
+        # Prepare team data for agents
+        team_summary = format_team_for_analysis(team_data)
+        
+        # Prepare meta context if available
+        meta_context = ""
+        if meta_data and not meta_data.get("error"):
+            popular_teams_count = len(meta_data.get("popular_teams", []))
+            usage_stats_count = len(meta_data.get("usage_stats", {}))
+            
+            if popular_teams_count > 0 or usage_stats_count > 0:
+                meta_context = f"\n\nCurrent Meta Context:\n"
+                meta_context += f"- {popular_teams_count} popular team compositions available\n"
+                meta_context += f"- Usage statistics for {usage_stats_count} Pokemon available\n"
+                meta_context += "Use this data to inform your analysis of meta positioning and threats.\n"
+        
+        # 1. Team composition analysis using vgc-team-analyzer
+        st.info("🔍 Analyzing team composition and synergies...")
+        team_analysis_prompt = f"""
+        Analyze this VGC team composition for {regulation}:
+        
+        {team_summary}
+        {meta_context}
+        
+        Provide a comprehensive analysis including:
+        1. Team archetype identification
+        2. Core synergies and strategies 
+        3. Coverage analysis (offensive and defensive)
+        4. Potential weaknesses and gaps
+        5. Role distribution analysis
+        6. Team balance assessment
+        
+        Focus on competitive viability and strategic positioning.
+        """
+        
+        team_composition = Task(
+            description="VGC team composition analysis",
+            prompt=team_analysis_prompt,
+            subagent_type="vgc-team-analyzer"
+        )
+        
+        analysis_results["team_composition"] = team_composition
+        
+        # 2. Meta analysis using pokemon-meta-analyzer
+        if analysis_depth in ["Standard", "Comprehensive"]:
+            st.info("📊 Analyzing current meta positioning...")
+            meta_analysis_prompt = f"""
+            Analyze this team's position in the current {regulation} meta:
+            
+            {team_summary}
+            {meta_context}
+            
+            Research and provide:
+            1. Usage statistics for each Pokemon in current meta
+            2. Popularity trends and tier positioning
+            3. Common sets and variations being used
+            4. Meta relevance and viability assessment
+            5. How this team compares to current top teams
+            6. Specific meta threats this team needs to consider
+            
+            Use current Pokemon Showdown usage data where available.
+            """
+            
+            meta_analysis = Task(
+                description="Pokemon meta positioning analysis", 
+                prompt=meta_analysis_prompt,
+                subagent_type="pokemon-meta-analyzer"
+            )
+            
+            analysis_results["meta_analysis"] = meta_analysis
+        
+        # 3. Matchup calculations using vgc-matchup-calculator
+        if analysis_depth in ["Standard", "Comprehensive"]:
+            st.info("⚔️ Calculating key matchups...")
+            matchup_prompt = f"""
+            Analyze key matchups for this VGC team in {regulation}:
+            
+            {team_summary}
+            {meta_context}
+            
+            Provide detailed analysis of:
+            1. Favorable matchups against popular meta teams
+            2. Problematic matchups and difficult opponents
+            3. Specific damage calculations for key interactions
+            4. Lead matchup scenarios and positioning
+            5. Endgame scenarios and win conditions
+            6. Speed tier analysis and key benchmarks
+            
+            Focus on practical competitive scenarios.
+            """
+            
+            matchups = Task(
+                description="VGC matchup calculations",
+                prompt=matchup_prompt, 
+                subagent_type="vgc-matchup-calculator"
+            )
+            
+            analysis_results["matchups"] = matchups
+        
+        # 4. Counter-strategies (Comprehensive only)
+        if analysis_depth == "Comprehensive":
+            st.info("🛡️ Identifying counter-strategies...")
+            counter_prompt = f"""
+            Identify teams and strategies that counter this team in {regulation}:
+            
+            {team_summary}
+            {meta_context}
+            
+            Provide:
+            1. Specific team archetypes that counter this team
+            2. Key Pokemon that pose major threats
+            3. Alternative team compositions that address weaknesses
+            4. Specific anti-meta strategies to consider
+            5. Adjustments that could improve difficult matchups
+            6. Backup plans for problematic scenarios
+            
+            Focus on constructive counter-play solutions.
+            """
+            
+            counter_strategies = Task(
+                description="Counter-team analysis",
+                prompt=counter_prompt,
+                subagent_type="counter-team-builder"
+            )
+            
+            analysis_results["counter_strategies"] = counter_strategies
+        
+        # 5. EV optimization suggestions
+        if analysis_depth == "Comprehensive":
+            st.info("📈 Optimizing EV spreads...")
+            ev_prompt = f"""
+            Analyze and optimize EV spreads for this {regulation} team:
+            
+            {team_summary}
+            
+            Provide:
+            1. Analysis of current EV spreads and their effectiveness
+            2. Specific survival calculations for key matchups
+            3. Speed tier optimization recommendations
+            4. Damage output optimization suggestions
+            5. Alternative EV spreads for different meta focuses
+            6. Justification for each EV investment decision
+            
+            Include specific calculations and benchmarks.
+            """
+            
+            ev_optimization = Task(
+                description="EV spread optimization",
+                prompt=ev_prompt,
+                subagent_type="ev-spread-optimizer"
+            )
+            
+            analysis_results["ev_optimization"] = ev_optimization
+        
+        return analysis_results
+        
+    except Exception as e:
+        analysis_results["error"] = f"Analysis failed: {str(e)}"
+        st.error(f"Team analysis error: {str(e)}")
+        return analysis_results
+
+
+def format_team_for_analysis(team_data: List[Dict[str, Any]]) -> str:
+    """Format team data for agent analysis"""
+    team_summary = "VGC Team Composition:\n\n"
+    
+    for i, pokemon in enumerate(team_data, 1):
+        team_summary += f"{i}. {pokemon.get('name', 'Unknown')}\n"
+        
+        if pokemon.get('held_item') and pokemon['held_item'] != "Not specified":
+            team_summary += f"   Item: {pokemon['held_item']}\n"
+        
+        if pokemon.get('ability') and pokemon['ability'] != "Not specified":
+            team_summary += f"   Ability: {pokemon['ability']}\n"
+            
+        if pokemon.get('tera_type') and pokemon['tera_type'] != "Not specified":
+            team_summary += f"   Tera Type: {pokemon['tera_type']}\n"
+            
+        if pokemon.get('nature') and pokemon['nature'] != "Not specified":
+            team_summary += f"   Nature: {pokemon['nature']}\n"
+            
+        if pokemon.get('ev_spread') and pokemon['ev_spread'] != "Not specified":
+            team_summary += f"   EVs: {pokemon['ev_spread']}\n"
+            
+        if pokemon.get('moves'):
+            team_summary += "   Moves:\n"
+            for move in pokemon['moves']:
+                if move and move != "Not specified":
+                    team_summary += f"     - {move}\n"
+        
+        team_summary += "\n"
+    
+    return team_summary
+
+
+def render_analysis_results(analysis_results: Dict[str, Any], team_info: Dict[str, Any]):
+    """Render the comprehensive analysis results"""
+    st.markdown("---")
+    st.markdown("# 📊 Analysis Results")
+    
+    # Team overview
+    render_team_overview(team_info)
+    
+    # Team composition analysis
+    if analysis_results.get("team_composition"):
+        st.markdown("## 🏗️ Team Composition Analysis")
+        result = analysis_results["team_composition"]
+        if hasattr(result, 'result'):
+            st.markdown(result.result)
+        else:
+            st.info("Team composition analysis in progress...")
+    
+    # Meta analysis
+    if analysis_results.get("meta_analysis"):
+        st.markdown("## 📈 Meta Position Analysis") 
+        result = analysis_results["meta_analysis"]
+        if hasattr(result, 'result'):
+            st.markdown(result.result)
+        else:
+            st.info("Meta analysis in progress...")
+    
+    # Matchup analysis
+    if analysis_results.get("matchups"):
+        st.markdown("## ⚔️ Key Matchups")
+        result = analysis_results["matchups"] 
+        if hasattr(result, 'result'):
+            st.markdown(result.result)
+        else:
+            st.info("Matchup analysis in progress...")
+    
+    # Counter strategies
+    if analysis_results.get("counter_strategies"):
+        st.markdown("## 🛡️ Counter-Strategies & Threats")
+        result = analysis_results["counter_strategies"]
+        if hasattr(result, 'result'):
+            st.markdown(result.result)
+        else:
+            st.info("Counter-strategy analysis in progress...")
+    
+    # EV optimization
+    if analysis_results.get("ev_optimization"):
+        st.markdown("## 📊 EV Optimization")
+        result = analysis_results["ev_optimization"]
+        if hasattr(result, 'result'):
+            st.markdown(result.result)
+        else:
+            st.info("EV optimization in progress...")
+    
+    # Error handling
+    if analysis_results.get("error"):
+        st.error(f"Analysis Error: {analysis_results['error']}")
+
+
+def render_team_overview(team_info: Dict[str, Any]):
+    """Render team overview with sprites"""
+    st.markdown("## 👥 Your Team")
+    
+    team_data = team_info["team_data"]
+    regulation = team_info["regulation"]
+    
+    st.info(f"**Format:** {regulation} | **Team Size:** {len(team_data)} Pokemon")
+    
+    # Display team in a grid
+    cols = st.columns(3)
+    for i, pokemon in enumerate(team_data):
+        with cols[i % 3]:
+            pokemon_name = pokemon.get('name', 'Unknown')
+            
+            # Try to get sprite
+            sprite_url = get_pokemon_sprite_url(pokemon_name)
+            
+            with st.container():
+                st.markdown(f"""
+                <div class="pokemon-card">
+                    <div style="text-align: center;">
+                        <img src="{sprite_url}" alt="{pokemon_name}" style="width: 80px; height: 80px;">
+                        <h4>{pokemon_name}</h4>
+                    </div>
+                    <p><strong>Item:</strong> {pokemon.get('held_item', 'None')}</p>
+                    <p><strong>Ability:</strong> {pokemon.get('ability', 'Unknown')}</p>
+                    <p><strong>Tera:</strong> {pokemon.get('tera_type', 'Unknown')}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+
+def render_team_analysis_page():
+    """Render the team analysis page for pokepaste input and meta analysis"""
+    st.markdown(
+        '<div class="team-header"><h1>🔍 Team Analysis</h1><p>Analyze your VGC team against the current meta</p></div>',
+        unsafe_allow_html=True,
+    )
+    
+    # Team input section
+    st.markdown("## 📝 Team Input")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        pokepaste_input = st.text_area(
+            "Pokepaste Format",
+            placeholder="""Torkoal @ Charcoal
+Ability: Drought
+Tera Type: Fire
+EVs: 252 HP / 252 Atk / 4 Def
+Adamant Nature
+- Eruption
+- Heat Wave
+- Solar Beam
+- Protect
+
+Venusaur @ Life Orb
+Ability: Chlorophyll
+Tera Type: Grass
+EVs: 4 HP / 252 SpA / 252 Spe
+Modest Nature
+- Solar Beam
+- Sludge Bomb
+- Sleep Powder
+- Protect""",
+            height=300,
+            help="Paste your team in standard pokepaste format. Each Pokemon should be separated by a blank line."
+        )
+    
+    with col2:
+        regulation_format = st.selectbox(
+            "Regulation Format",
+            get_regulation_formats(),
+            index=0,
+            help="Select the VGC regulation format your team is designed for"
+        )
+        
+        analysis_depth = st.select_slider(
+            "Analysis Depth",
+            options=["Quick", "Standard", "Comprehensive"],
+            value="Standard",
+            help="Choose analysis depth - comprehensive includes counter-team suggestions"
+        )
+        
+        analyze_button = st.button("🔍 Analyze Team", type="primary", use_container_width=True)
+    
+    if analyze_button and pokepaste_input.strip():
+        with st.spinner("Analyzing team..."):
+            # Parse pokepaste
+            team_data = parse_pokepaste(pokepaste_input)
+            
+            if not team_data:
+                st.error("Could not parse pokepaste. Please check the format and try again.")
+                return
+            
+            # Validate team
+            validation = validate_pokepaste_team(team_data)
+            
+            if not validation["valid"]:
+                st.error("Team validation failed:")
+                for error in validation["errors"]:
+                    st.error(f"• {error}")
+                return
+            
+            if validation["warnings"]:
+                st.warning("Validation warnings:")
+                for warning in validation["warnings"]:
+                    st.warning(f"• {warning}")
+            
+            # Store team data in session state for analysis
+            st.session_state["current_team"] = {
+                "team_data": team_data,
+                "regulation": regulation_format,
+                "analysis_depth": analysis_depth,
+                "pokepaste": pokepaste_input
+            }
+            
+            # Run analysis
+            st.rerun()
+    
+    # Show analysis results if available
+    if "current_team" in st.session_state and "analysis_results" not in st.session_state:
+        team_info = st.session_state["current_team"]
+        
+        with st.spinner("Fetching meta data and running analysis..."):
+            # Fetch meta data first
+            try:
+                meta_data = asyncio.run(fetch_showdown_meta_data(team_info["regulation"]))
+                st.session_state["meta_data"] = meta_data
+                
+                if meta_data.get("error"):
+                    st.warning(f"Meta data warning: {meta_data['error']}")
+                else:
+                    st.success("✅ Meta data fetched successfully")
+                    
+            except Exception as e:
+                st.warning(f"Could not fetch meta data: {str(e)}")
+                meta_data = {"error": str(e)}
+                st.session_state["meta_data"] = meta_data
+            
+            # Run the comprehensive analysis using agents
+            analysis_results = run_team_analysis(
+                team_info["team_data"],
+                team_info["regulation"],
+                team_info["analysis_depth"],
+                st.session_state.get("meta_data", {})
+            )
+            
+            st.session_state["analysis_results"] = analysis_results
+            st.rerun()
+    
+    # Display analysis results
+    if "analysis_results" in st.session_state:
+        render_analysis_results(st.session_state["analysis_results"], st.session_state["current_team"])
+        
+        # Add option to start new analysis
+        if st.button("🔄 Analyze New Team", type="secondary"):
+            if "current_team" in st.session_state:
+                del st.session_state["current_team"]
+            if "analysis_results" in st.session_state:
+                del st.session_state["analysis_results"]
+            st.rerun()
+
+
 def main():
     """Main application function"""
     st.set_page_config(
@@ -5108,7 +5765,7 @@ def main():
             del st.session_state["current_page"]
     
     # Always show the selectbox with appropriate default
-    options = ["🏠 Article Analysis", "📚 Previous Articles"]
+    options = ["🏠 Article Analysis", "📚 Previous Articles", "🔍 Team Analysis"]
     default_index = options.index(default_page)
     
     page = st.sidebar.selectbox(
@@ -5121,6 +5778,8 @@ def main():
         render_article_analysis_page()
     elif page == "📚 Previous Articles":
         render_previous_articles_page()
+    elif page == "🔍 Team Analysis":
+        render_team_analysis_page()
 
 
 if __name__ == "__main__":

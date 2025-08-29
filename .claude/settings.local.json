@@ -29,7 +29,8 @@
       "WebFetch(domain:statcrusher.com)",
       "WebFetch(domain:munchstats.com)",
       "WebFetch(domain:www.smogon.com)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(curl:*)"
     ],
     "defaultMode": "acceptEdits"
   }
