@@ -393,10 +393,15 @@ SCAN EVERY pixel for EV patterns in these EXACT formats:
 - Search for Japanese stat names with numbers next to them
 - 🎯 Look for this in team card layouts and Pokemon description boxes
 
-**E. Abbreviated Format:**
+**E. Abbreviated Format (ENHANCED FOR USER'S HYBRID FORMAT):**
 - "H252 A0 B4 C252 D0 S0" (single line with spaces)
 - "252HP 4Def 252SpA" (mixed format)
-- Any combination of stat letters (H/A/B/C/D/S) with numbers
+- 🚨 **CRITICAL HYBRID FORMAT**: "努力値：H252 A4 B156 D68 S28" (Japanese prefix + abbreviated stats)
+- 🔥 **ULTRA-PRIORITY EXAMPLES**:
+  * "努力値：B4 C252 S252" (Defense 4, Special Attack 252, Speed 252)
+  * "努力値：H252 A4 B156 D68 S28" (HP 252, Attack 4, Defense 156, Special Defense 68, Speed 28)
+  * "個体値調整：H244 B12 C252 S4" (alternative Japanese prefix)
+- Any combination of stat letters (H/A/B/C/D/S) with numbers, with or without Japanese prefixes
 
 **F. Individual Stat Lines:**
 - HP: 252 (or ＨＰ：252)
@@ -796,9 +801,15 @@ def extract_ev_spreads_from_image_analysis(image_analysis: str) -> List[Dict[str
                 if spread_dict:
                     ev_spreads.append(spread_dict)
     
-    # PRIORITY 2: Space-separated format with stat abbreviations
+    # PRIORITY 2: Space-separated format with stat abbreviations (ENHANCED FOR JAPANESE HYBRID FORMAT)
     space_patterns = [
+        # CRITICAL: Japanese hybrid format (努力値：H252 A4 B156 format) - USER'S EXACT CASE
+        r"(?:努力値|個体値調整|EV配分|調整)[：:]\s*H(\d{1,3})\s+A(\d{1,3})\s+B(\d{1,3})\s+C(\d{1,3})\s+D(\d{1,3})\s+S(\d{1,3})",
+        r"(?:努力値|個体値調整|EV配分|調整)[：:]\s*H(\d{1,3})\s*A(\d{1,3})\s*B(\d{1,3})\s*C(\d{1,3})\s*D(\d{1,3})\s*S(\d{1,3})",  # Optional spaces
+        # Standard abbreviated format
         r"H(\d{1,3})\s+A(\d{1,3})\s+B(\d{1,3})\s+C(\d{1,3})\s+D(\d{1,3})\s+S(\d{1,3})",  # H252 A0 B4 C252 D0 S0
+        r"H(\d{1,3})\s*A(\d{1,3})\s*B(\d{1,3})\s*C(\d{1,3})\s*D(\d{1,3})\s*S(\d{1,3})",  # Flexible spacing
+        # Alternative format with HP/Atk names
         r"(\d{1,3})HP\s+(\d{1,3})Atk?\s+(\d{1,3})Def?\s+(\d{1,3})SpA?\s+(\d{1,3})SpD?\s+(\d{1,3})Spe?",  # 252HP 0Atk 4Def...
     ]
     

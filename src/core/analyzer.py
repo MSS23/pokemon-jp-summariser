@@ -597,10 +597,15 @@ Sp. Def: 0 (or とくぼう：0)
 Speed: 0 (or すばやさ：0)
 ```
 
-**FORMAT 6: Abbreviated Format**
+**FORMAT 6: Abbreviated Format (ENHANCED FOR JAPANESE HYBRID)**
 - "H252 A0 B4 C252 D0 S0"
 - "252HP 4Def 252SpA"
-- Any stat letters (H/A/B/C/D/S) with numbers
+- 🚨 **CRITICAL HYBRID FORMAT**: "努力値：H252 A4 B156 D68 S28" (Japanese prefix + abbreviated stats)
+- 🔥 **ULTRA-PRIORITY PATTERNS**:
+  * "努力値：B4 C252 S252" (Defense 4, Special Attack 252, Speed 252)
+  * "努力値：H252 A4 B156 D68 S28" (HP 252, Attack 4, Defense 156, Special Defense 68, Speed 28)
+  * "個体値調整：H244 B12 C252 S4" (alternative Japanese prefix)
+- Any stat letters (H/A/B/C/D/S) with numbers, with or without Japanese prefixes
 
 **FORMAT 7: Technical Calculation Format (ULTRA-ENHANCED - Common in competitive analysis)**
 - Pattern: "実数値:205-x-125-198-136-160" followed by "努力値:236-0-36-196-4-36"

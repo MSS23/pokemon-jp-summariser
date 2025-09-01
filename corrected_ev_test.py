@@ -35,12 +35,13 @@ def analyze_saved_results():
             
             # Check EV spread (correct total should be around 508)
             ev_spread = pokemon.get('ev_spread', {})
+            # Get EV total from stored total (already correct)
             ev_total = ev_spread.get('total', 0) if ev_spread else 0
             has_evs = ev_total > 0
             
-            # Check held_item (not item!)
-            held_item = pokemon.get('held_item', 'Not specified')
-            has_item = held_item and held_item not in ['Not specified', 'Unknown', None]
+            # Check held_item (correct field name)
+            held_item = pokemon.get('held_item', pokemon.get('item', 'Not specified'))  # Check both field names
+            has_item = held_item and held_item not in ['Not specified', 'Unknown', None, 'None']
             
             # Check moves
             moves = pokemon.get('moves', [])
@@ -92,12 +93,13 @@ def analyze_saved_results():
             
             # Check EV spread
             ev_spread = pokemon.get('ev_spread', {})
+            # Get EV total from stored total (already correct)
             ev_total = ev_spread.get('total', 0) if ev_spread else 0
             has_evs = ev_total > 0
             
             # Check held_item
-            held_item = pokemon.get('held_item', 'Not specified')
-            has_item = held_item and held_item not in ['Not specified', 'Unknown', None]
+            held_item = pokemon.get('held_item', pokemon.get('item', 'Not specified'))
+            has_item = held_item and held_item not in ['Not specified', 'Unknown', None, 'None']
             
             # Check moves
             moves = pokemon.get('moves', [])

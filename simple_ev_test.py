@@ -63,16 +63,22 @@ def test_single_url(url, description):
             ev_spread = pokemon.get('ev_spread', {})
             has_evs = ev_spread and any(v > 0 for v in ev_spread.values() if isinstance(v, int))
             
-            # Check other data
-            has_item = pokemon.get('item') and pokemon.get('item') != "Unknown"
+            # Check other data (use correct field names)
+            held_item = pokemon.get('held_item', pokemon.get('item', 'None'))  # Check both field names
+            has_item = held_item and held_item not in ["Unknown", "None", None, "Not specified"]
             has_moves = len(pokemon.get('moves', [])) >= 4
             has_ability = pokemon.get('ability') and pokemon.get('ability') != "Unknown"
             
-            ev_total = sum(v for v in ev_spread.values() if isinstance(v, int)) if ev_spread else 0
+            # Calculate EV total correctly (exclude the 'total' field to avoid double counting)
+            if ev_spread:
+                stat_keys = ['HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed']
+                ev_total = sum(ev_spread.get(key, 0) for key in stat_keys if isinstance(ev_spread.get(key), int))
+            else:
+                ev_total = 0
             
             print(f"  Pokemon {i}: {name}")
             print(f"    EV Spread: {has_evs} (Total: {ev_total})")
-            print(f"    Item: {has_item} ({pokemon.get('item', 'None')})")
+            print(f"    Item: {has_item} ({held_item})")
             print(f"    Moves: {has_moves} ({len(pokemon.get('moves', []))} moves)")
             print(f"    Ability: {has_ability} ({pokemon.get('ability', 'None')})")
             
