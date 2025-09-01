@@ -71,7 +71,7 @@ def render_settings_page(self):
     # Cache settings
     st.subheader("💾 Cache Management")
     
-    from cache_manager import cache
+    from utils import cache
     cache_stats = cache.get_stats()
     
     col1, col2, col3 = st.columns(3)

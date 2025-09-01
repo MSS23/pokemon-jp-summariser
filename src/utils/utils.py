@@ -403,32 +403,48 @@ def parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
 
     ev_dict = {"HP": 0, "Atk": 0, "Def": 0, "SpA": 0, "SpD": 0, "Spe": 0}
 
-    # PRIORITY 1: Try calculated stat format (H181(148)-A×↓-B131(124)-C184↑(116)-D112(4)-S119(116))
+    # PRIORITY 1: Try Japanese grid format (most common in note.com team cards)
+    japanese_grid_result = parse_japanese_grid_format(ev_string)
+    if japanese_grid_result[1] != "default_empty":
+        return japanese_grid_result
+
+    # PRIORITY 2: Try calculated stat format (H181(148)-A×↓-B131(124)-C184↑(116)-D112(4)-S119(116))
     calculated_format_result = parse_calculated_stat_format(ev_string)
     if calculated_format_result[1] != "default_empty":
         return calculated_format_result
 
-    # PRIORITY 2: Try "Number StatName" format (44 HP / 4 Def / 252 SpA / 28 SpD / 180 Spe)
-    if any(stat in ev_string for stat in ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]):
+    # PRIORITY 3: Try "Number StatName" format (44 HP / 4 Def / 252 SpA / 28 SpD / 180 Spe)
+    # Enhanced with Japanese stat names
+    stat_name_indicators = [
+        "HP", "Atk", "Def", "SpA", "SpD", "Spe", 
+        "ＨＰ", "こうげき", "ぼうぎょ", "とくこう", "とくぼう", "すばやさ"
+    ]
+    
+    if any(stat in ev_string for stat in stat_name_indicators):
         stat_name_patterns = {
-            r"(\d+)\s*HP": "HP",
-            r"(\d+)\s*Atk": "Atk",
-            r"(\d+)\s*Def": "Def", 
-            r"(\d+)\s*SpA": "SpA",
-            r"(\d+)\s*SpD": "SpD",
-            r"(\d+)\s*Spe": "Spe",
+            r"(\d+)\s*(?:HP|ＨＰ)": "HP",
+            r"(\d+)\s*(?:Atk|こうげき|攻撃)": "Atk",
+            r"(\d+)\s*(?:Def|ぼうぎょ|防御)": "Def", 
+            r"(\d+)\s*(?:SpA|とくこう|特攻|特殊攻撃)": "SpA",
+            r"(\d+)\s*(?:SpD|とくぼう|特防|特殊防御)": "SpD",
+            r"(\d+)\s*(?:Spe|すばやさ|素早さ|Speed)": "Spe",
         }
         
         for pattern, stat in stat_name_patterns.items():
-            matches = re.findall(pattern, ev_string, re.IGNORECASE)
+            matches = re.findall(pattern, ev_string, re.IGNORECASE | re.UNICODE)
             if matches:
-                ev_dict[stat] = int(matches[0])
+                try:
+                    value = int(matches[0])
+                    if 0 <= value <= 252:
+                        ev_dict[stat] = value
+                except ValueError:
+                    continue
         
         # If we found any valid stats, return the result
         if any(v > 0 for v in ev_dict.values()):
             return validate_and_fix_evs(ev_dict)
 
-    # PRIORITY 3: Try slash-separated format (252/0/0/252/4/0)
+    # PRIORITY 4: Try slash-separated format (252/0/0/252/4/0)
     if "/" in ev_string:
         parts = ev_string.split("/")
         if len(parts) == 6:
@@ -443,7 +459,7 @@ def parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
             except ValueError:
                 pass
 
-    # PRIORITY 4: Try format with stat labels (H252 A0 B0 C252 D4 S0)
+    # PRIORITY 5: Try format with stat labels (H252 A0 B0 C252 D4 S0)
     stat_patterns = {
         r"H(\d+)": "HP",
         r"A(\d+)": "Atk",
@@ -463,10 +479,13 @@ def parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
 
 def parse_calculated_stat_format(ev_string: str) -> Tuple[Dict[str, int], str]:
     """
-    Parse calculated stat format used by liberty-note.com and similar sites
+    ULTRA-ENHANCED calculated stat format parser for note.com and Japanese VGC articles
     
-    Format: H181(148)-A×↓-B131(124)-C184↑(116)-D112(4)-S119(116)
-    Where: [StatLetter][CalculatedValue]([EVValue])[NatureSymbol]
+    Supported Formats:
+    - H181(148)-A×↓-B131(124)-C184↑(116)-D112(4)-S119(116) (note.com standard)
+    - H(148)-A×-B(124)-C(116)-D(4)-S(116) (compact)
+    - H148↑-A0×-B124-C116↑-D4-S116 (without parentheses)
+    - H148 A0 B124 C116 D4 S116 (space separated)
     
     Args:
         ev_string: EV string in calculated stat format
@@ -487,27 +506,42 @@ def parse_calculated_stat_format(ev_string: str) -> Tuple[Dict[str, int], str]:
     ev_dict = {"HP": 0, "Atk": 0, "Def": 0, "SpA": 0, "SpD": 0, "Spe": 0}
     nature_info = {"boosts": [], "reductions": []}
     
-    # Enhanced regex pattern for calculated stat format
-    # Pattern explanation:
-    # ([HABCDS]) - Stat abbreviation
-    # (\d+) - Calculated stat value (we ignore this)
-    # \((\d+)\) - EV investment in parentheses (we extract this)
-    # ([↑↓×]?) - Optional nature symbol
-    calc_pattern = r'([HABCDS])(?:\d+)?\((\d+)\)([↑↓×]?)'
+    # ULTRA-ENHANCED regex patterns for all calculated stat variations
+    calc_patterns = [
+        # PRIORITY 1: Note.com standard format with parentheses
+        r'([HABCDS])(?:\d{2,3})?\((\d{1,3})\)([↑↓×]?)',  # H181(148)↑
+        
+        # PRIORITY 2: Compact format with parentheses
+        r'([HABCDS])\((\d{1,3})\)([↑↓×]?)',  # H(148)×
+        
+        # PRIORITY 3: Without parentheses but with nature symbols
+        r'([HABCDS])(\d{1,3})([↑↓×]+)',  # H148↑
+        
+        # PRIORITY 4: Simple letter + number format
+        r'([HABCDS])(\d{1,3})(?:\s|$|[^0-9])',  # H148 (followed by space or end)
+        
+        # PRIORITY 5: Space-separated format
+        r'([HABCDS])\s*(\d{1,3})(?:\s+|$)',  # H 148 or H148 
+    ]
     
-    matches = re.findall(calc_pattern, ev_string, re.UNICODE)
+    matches = []
+    best_pattern_matches = None
+    best_match_count = 0
     
+    # Try all patterns and use the one with most matches
+    for pattern in calc_patterns:
+        pattern_matches = re.findall(pattern, ev_string, re.UNICODE | re.IGNORECASE)
+        if len(pattern_matches) > best_match_count:
+            best_match_count = len(pattern_matches)
+            best_pattern_matches = pattern_matches
+    
+    matches = best_pattern_matches or []
+    
+    # If no matches with strict patterns, try ultra-flexible patterns
     if not matches:
-        # Try alternative pattern without calculated values
-        # Pattern: H(148)-A×-B(124)-C(116)-D(4)-S(116)
-        alt_pattern = r'([HABCDS])\((\d+)\)([↑↓×]?)'
-        matches = re.findall(alt_pattern, ev_string, re.UNICODE)
-    
-    if not matches:
-        # Try even more flexible pattern
-        # Pattern: H148-A×↓-B124-C116↑-D4-S116
-        flexible_pattern = r'([HABCDS])(\d+)([↑↓×]?)'
-        matches = re.findall(flexible_pattern, ev_string, re.UNICODE)
+        # Try to find any H/A/B/C/D/S followed by numbers
+        ultra_flexible_pattern = r'([HABCDS])[^\d]*?(\d{1,3})'
+        matches = re.findall(ultra_flexible_pattern, ev_string, re.UNICODE | re.IGNORECASE)
     
     if matches:
         stat_mapping = {
@@ -520,32 +554,113 @@ def parse_calculated_stat_format(ev_string: str) -> Tuple[Dict[str, int], str]:
         }
         
         found_stats = 0
-        for stat_letter, ev_value, nature_symbol in matches:
-            if stat_letter in stat_mapping:
-                try:
-                    ev_int = int(ev_value)
-                    # Validate EV value is reasonable
-                    if 0 <= ev_int <= 252:
-                        ev_dict[stat_mapping[stat_letter]] = ev_int
-                        found_stats += 1
-                        
-                        # Process nature symbols
-                        if nature_symbol == '↑':
-                            nature_info["boosts"].append(stat_mapping[stat_letter])
-                        elif nature_symbol == '↓':
-                            nature_info["reductions"].append(stat_mapping[stat_letter])
-                        # '×' means no investment or neutral
-                        
-                except ValueError:
-                    continue
+        total_ev_value = 0
         
-        # If we found at least 4 stats, consider it a successful parse
-        if found_stats >= 4:
+        for match_data in matches:
+            if len(match_data) >= 2:
+                stat_letter = match_data[0].upper()
+                ev_value_str = match_data[1]
+                nature_symbol = match_data[2] if len(match_data) > 2 else ''
+                
+                if stat_letter in stat_mapping:
+                    try:
+                        ev_int = int(ev_value_str)
+                        
+                        # Ultra-enhanced validation
+                        if 0 <= ev_int <= 252:
+                            ev_dict[stat_mapping[stat_letter]] = ev_int
+                            found_stats += 1
+                            total_ev_value += ev_int
+                            
+                            # Process nature symbols
+                            if '↑' in nature_symbol:
+                                nature_info["boosts"].append(stat_mapping[stat_letter])
+                            elif '↓' in nature_symbol:
+                                nature_info["reductions"].append(stat_mapping[stat_letter])
+                        elif ev_int > 252:
+                            # This might be a calculated stat value, try to infer EV
+                            # Common calculated stat ranges for level 50 Pokemon
+                            if 100 <= ev_int <= 200:
+                                # Rough estimation: calculated stat to EV
+                                estimated_ev = min(252, max(0, (ev_int - 80) * 8))
+                                if estimated_ev % 4 == 0:  # Prefer multiples of 4
+                                    ev_dict[stat_mapping[stat_letter]] = estimated_ev
+                                    found_stats += 1
+                                    total_ev_value += estimated_ev
+                                    
+                    except ValueError:
+                        continue
+        
+        # Enhanced success criteria
+        success_criteria = [
+            found_stats >= 4,  # Found at least 4 stats
+            found_stats >= 6 and total_ev_value <= 508,  # All stats and valid total
+            found_stats >= 3 and total_ev_value >= 400,  # Reasonable investment pattern
+        ]
+        
+        if any(success_criteria):
             # Additional validation for calculated stat format
             validated_evs, status = validate_and_fix_evs(ev_dict)
-            return validated_evs, f"calculated_stat_{status}"
+            confidence = "high" if found_stats >= 5 else "medium" if found_stats >= 4 else "low"
+            return validated_evs, f"calculated_stat_{confidence}_{status}"
     
     # No matches found
+    return {
+        "HP": 0,
+        "Atk": 0,
+        "Def": 0,
+        "SpA": 0,
+        "SpD": 0,
+        "Spe": 0,
+    }, "default_empty"
+
+
+def parse_japanese_grid_format(text: str) -> Tuple[Dict[str, int], str]:
+    """
+    Parse Japanese grid/table format commonly used in note.com team cards
+    
+    Format examples:
+    ＨＰ: 252    こうげき: 0     ぼうぎょ: 4
+    とくこう: 252  とくぼう: 0   すばやさ: 0
+    
+    Args:
+        text: Text containing Japanese EV spread
+        
+    Returns:
+        Tuple of (EV dictionary, source type)
+    """
+    ev_dict = {"HP": 0, "Atk": 0, "Def": 0, "SpA": 0, "SpD": 0, "Spe": 0}
+    
+    # Japanese stat name mappings (comprehensive)
+    japanese_stat_patterns = {
+        'HP': [r'(?:ＨＰ|HP|H|ヒットポイント|体力)[:\s]*(\d{1,3})', r'HP[:\s]*(\d{1,3})'],
+        'Atk': [r'(?:こうげき|攻撃|A|アタック|物理攻撃)[:\s]*(\d{1,3})', r'(?:Attack|ATK)[:\s]*(\d{1,3})'],
+        'Def': [r'(?:ぼうぎょ|防御|B|ディフェンス|物理防御)[:\s]*(\d{1,3})', r'(?:Defense|DEF)[:\s]*(\d{1,3})'],
+        'SpA': [r'(?:とくこう|特攻|特殊攻撃|C|とくしゅこうげき)[:\s]*(\d{1,3})', r'(?:Sp\.?\s*A|Special\s*Attack)[:\s]*(\d{1,3})'],
+        'SpD': [r'(?:とくぼう|特防|特殊防御|D|とくしゅぼうぎょ)[:\s]*(\d{1,3})', r'(?:Sp\.?\s*D|Special\s*Defense)[:\s]*(\d{1,3})'],
+        'Spe': [r'(?:すばやさ|素早さ|素早|S|スピード|速さ)[:\s]*(\d{1,3})', r'(?:Speed|SPE)[:\s]*(\d{1,3})']
+    }
+    
+    found_stats = 0
+    
+    for stat, patterns in japanese_stat_patterns.items():
+        for pattern in patterns:
+            matches = re.finditer(pattern, text, re.IGNORECASE | re.UNICODE)
+            for match in matches:
+                try:
+                    value = int(match.group(1))
+                    if 0 <= value <= 252:
+                        ev_dict[stat] = value
+                        found_stats += 1
+                        break  # Take first valid match for this stat
+                except (ValueError, IndexError):
+                    continue
+    
+    if found_stats >= 4:  # Need at least 4 stats for success
+        validated_evs, status = validate_and_fix_evs(ev_dict)
+        confidence = "high" if found_stats >= 6 else "medium" if found_stats >= 5 else "low"
+        return validated_evs, f"japanese_grid_{confidence}_{status}"
+    
     return {
         "HP": 0,
         "Atk": 0,

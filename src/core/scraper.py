@@ -166,7 +166,7 @@ class ArticleScraper:
             session.close()
     
     def _process_response_content(self, response) -> Optional[str]:
-        """Enhanced content processing from HTTP response"""
+        """Enhanced content processing from HTTP response with note.com specialization"""
         try:
             
             # Enhanced encoding detection and handling
@@ -182,6 +182,12 @@ class ArticleScraper:
                 html_content = response.text
 
             soup = BeautifulSoup(html_content, "html.parser")
+            
+            # Special handling for note.com articles (critical improvement)
+            if "note.com" in response.url:
+                note_content = self._extract_note_com_content_specialized(soup)
+                if note_content:
+                    return note_content
 
             # Remove unwanted elements but be more selective for dynamic content
             for element in soup(
@@ -229,28 +235,44 @@ class ArticleScraper:
         """Enhanced content extraction with multiple fallback strategies"""
         main_content = None
         
-        # PHASE 1: Note.com-specific selectors with enhanced detection
+        # PHASE 1: Note.com-specific selectors with ULTRA-ENHANCED detection (2025 update)
         note_selectors = [
-            # ULTRA-ENHANCED note.com selectors (covers more variations)
+            # PRIORITY 1: Latest note.com content selectors (most reliable)
+            "div[data-note-type='TextNote'] .note-common-styles__textnote-body",
             ".note-common-styles__textnote-body",
-            ".o-noteContentText", 
-            ".note-post__body",
-            "div[data-module='TextModule']",  # Note.com text module
-            ".note-common-styles__textnote",
-            ".js-textBody", 
-            ".p-article__body",
-            "section[data-testid='article-body']",
+            ".o-noteContentText",
             
-            # More note.com patterns found in different layouts
-            "article .note-common-styles",
+            # PRIORITY 2: Modern note.com article structure
+            "article[data-testid='note-article'] .note-common-styles",
+            "section[data-testid='article-body']",
+            "div[data-module='TextModule']",  # Note.com text module
+            ".note-post__body",
+            ".js-textBody",
+            
+            # PRIORITY 3: Content-specific selectors for Pokemon articles
+            ".note-common-styles__textnote",
+            ".p-article__body",
             "main .note-common-styles", 
+            "article .note-common-styles",
+            
+            # PRIORITY 4: Fallback note.com patterns
             ".note__body",
             ".article__body", 
             ".post__content",
             ".note-body",
-            "[data-testid*='note']",
             ".note-content",
-            ".textnote-body"
+            ".textnote-body",
+            
+            # PRIORITY 5: Generic note.com content containers
+            "[data-testid*='note']",
+            "[data-note-type*='Text']",
+            ".note-article__content",
+            ".note-article__body",
+            
+            # PRIORITY 6: Deep content extraction for problematic articles
+            "div.note-common-styles div:not([class*='header']):not([class*='footer']):not([class*='nav'])",
+            "main > div > div:not([class*='sidebar']):not([class*='menu'])",
+            "[role='main'] .note-common-styles"
         ]
         
         # Enhanced note.com detection with better content validation
@@ -328,12 +350,37 @@ class ArticleScraper:
         # Length bonus (up to 1000 chars = 10 points)
         score += min(len(text) // 100, 10)
         
-        # VGC/Pokemon content indicators (high value)
+        # ULTRA-ENHANCED VGC/Pokemon content indicators (2025 comprehensive)
         vgc_indicators = {
-            'ポケモン': 15, '構築': 12, 'チーム': 8, 'バトル': 8, 'ダブル': 10,
-            'ランクマ': 8, '調整': 6, '努力値': 8, 'とくこう': 5, 'すばやさ': 5,
-            'pokemon': 10, 'vgc': 15, 'team': 6, 'battle': 6, 'double': 8,
-            'regulation': 10, 'tournament': 8, 'ev': 8, 'nature': 5, 'ability': 5
+            # ULTRA HIGH VALUE - Core VGC terms
+            'vgc': 20, 'ポケモン': 18, '構築': 15, 'チーム': 12, 'ダブル': 12,
+            'regulation': 15, 'pokemon': 12, 
+            
+            # HIGH VALUE - Competitive terms
+            '努力値': 10, '調整': 10, 'ランクマ': 10, 'バトル': 8, 'tournament': 10,
+            'ev': 10, 'battle': 8, 'double': 8, 'team': 8,
+            
+            # MEDIUM-HIGH VALUE - Stat/build terms
+            'とくこう': 8, 'すばやさ': 8, 'こうげき': 8, 'ぼうぎょ': 8, 'とくぼう': 8,
+            'nature': 6, 'ability': 6, '特性': 8, '性格': 8, '持ち物': 8,
+            
+            # MEDIUM VALUE - Game mechanics
+            'item': 5, 'move': 5, 'tera': 8, 'テラス': 8, 'dynamax': 6, 'ダイマックス': 6,
+            
+            # NOTE.COM SPECIFIC - Common article patterns
+            '最終': 8, '順位': 6, 'シーズン': 8, '使用': 6, '採用': 6,
+            'final': 6, 'season': 6, 'ranking': 6,
+            
+            # POKEMON NAMES - Ultra high value (popular VGC Pokemon)
+            'ガブリアス': 12, 'ランドロス': 12, 'ガオガエン': 12, 'エルフーン': 10,
+            'パオジアン': 12, 'チオンジェン': 12, 'ディンルー': 10, 'イーユイ': 10,
+            'テツノ': 10, 'ハバタクカミ': 10, 'サーフゴー': 10, 'コライドン': 12,
+            'ミライドン': 12, 'ザマゼンタ': 12, 'ザシアン': 12, 'モロバレル': 8,
+            
+            # ENGLISH POKEMON NAMES
+            'garchomp': 10, 'landorus': 10, 'incineroar': 10, 'whimsicott': 8,
+            'chien-pao': 10, 'chi-yu': 10, 'gholdengo': 10, 'flutter mane': 10,
+            'koraidon': 10, 'miraidon': 10, 'zamazenta': 10, 'zacian': 10
         }
         
         text_lower = text.lower()
@@ -510,3 +557,176 @@ class ArticleScraper:
                 ui_lines += 1
         
         return ui_lines / max(1, len(lines))
+    
+    def _extract_note_com_content_specialized(self, soup) -> Optional[str]:
+        """
+        ULTRA-SPECIALIZED note.com content extraction optimized for Pokemon VGC articles
+        This method specifically targets the unique DOM structure of note.com articles
+        """
+        try:
+            # STRATEGY 1: Direct content extraction using ultra-specific note.com patterns
+            ultra_specific_selectors = [
+                # Most recent note.com article structure (high priority)
+                "div.note-common-styles__textnote-body",
+                "div[data-testid='article-body'] .note-common-styles",
+                ".o-noteContentText",
+                
+                # Content within article containers
+                "article .note-common-styles__textnote-body",
+                "main .note-common-styles__textnote-body",
+                
+                # Text modules (note.com uses modular content)
+                "div[data-module='TextModule'] .note-common-styles",
+                ".js-textBody .note-common-styles",
+                
+                # Fallback patterns
+                ".note-common-styles:not([class*='header']):not([class*='nav'])",
+            ]
+            
+            best_content = None
+            best_score = 0
+            
+            for selector in ultra_specific_selectors:
+                try:
+                    elements = soup.select(selector)
+                    for element in elements:
+                        text_content = element.get_text(separator=" ", strip=True)
+                        if len(text_content) > 100:  # Minimum length threshold
+                            # Score this content for VGC relevance
+                            content_score = self._calculate_content_score(text_content)
+                            if content_score > best_score:
+                                best_score = content_score
+                                best_content = element
+                except Exception:
+                    continue
+            
+            if best_content:
+                # Extract and clean the content
+                text = best_content.get_text(separator=" ", strip=True)
+                
+                # Advanced note.com text cleaning
+                text = self._clean_note_com_content_specialized(text)
+                
+                # Validate that we got meaningful content
+                if self._validate_note_com_content(text):
+                    return text
+            
+            # STRATEGY 2: If direct extraction failed, try broader content search
+            # Look for any element with substantial Japanese VGC content
+            all_potential_elements = soup.find_all(['div', 'section', 'article'])
+            
+            for element in all_potential_elements:
+                try:
+                    text = element.get_text(separator=" ", strip=True)
+                    if len(text) > 200:  # Longer content for broader search
+                        content_score = self._calculate_content_score(text)
+                        if content_score > 50:  # High threshold for VGC content
+                            cleaned_text = self._clean_note_com_content_specialized(text)
+                            if self._validate_note_com_content(cleaned_text):
+                                return cleaned_text
+                except Exception:
+                    continue
+                    
+            return None
+            
+        except Exception as e:
+            print(f"Note.com specialized extraction failed: {e}")
+            return None
+    
+    def _clean_note_com_content_specialized(self, text: str) -> str:
+        """Ultra-specialized cleaning for note.com Pokemon VGC content"""
+        if not text:
+            return text
+        
+        # Remove note.com specific boilerplate with enhanced patterns
+        note_com_removal_patterns = [
+            r"note\.com.*?",
+            r"記事を読む.*?",
+            r"続きを読む.*?",
+            r"もっと見る.*?",
+            r"フォロー.*?する.*?",
+            r"いいね.*?",
+            r"コメント.*?",
+            r"シェア.*?",
+            r"購読.*?",
+            r"ログイン.*?",
+            r"会員登録.*?",
+            r"有料記事.*?",
+            r"プレミアム.*?",
+            r"\d+年\d+月\d+日.*?更新",
+            r"更新日時.*?",
+            r"投稿日.*?",
+            r"著者.*?",
+            r"タグ.*?",
+            r"カテゴリ.*?",
+        ]
+        
+        lines = text.split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Skip lines matching removal patterns
+            should_skip = False
+            for pattern in note_com_removal_patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    should_skip = True
+                    break
+            
+            # Skip very short lines that are likely navigation
+            if len(line) < 3:
+                should_skip = True
+            
+            # Skip lines that are just numbers or symbols
+            if re.match(r'^[\d\s\-\/\(\)\.]+$', line):
+                should_skip = True
+                
+            if not should_skip:
+                cleaned_lines.append(line)
+        
+        # Join and normalize whitespace
+        result = '\n'.join(cleaned_lines)
+        
+        # Final cleanup
+        import unicodedata
+        result = unicodedata.normalize('NFKC', result)
+        result = re.sub(r'\s+', ' ', result)
+        result = re.sub(r'\n\s*\n', '\n', result)
+        
+        return result.strip()
+    
+    def _validate_note_com_content(self, text: str) -> bool:
+        """Validate that extracted note.com content is meaningful VGC content"""
+        if not text or len(text) < 100:
+            return False
+            
+        # Check for VGC/Pokemon indicators
+        vgc_indicators = [
+            'ポケモン', '構築', 'VGC', 'ダブル', 'バトル', '調整', '努力値',
+            'pokemon', 'team', 'battle', 'regulation', 'tournament',
+            'ガブリアス', 'ランドロス', 'ガオガエン', 'パオジアン', 'チオンジェン'
+        ]
+        
+        found_indicators = sum(1 for indicator in vgc_indicators 
+                              if indicator in text.lower())
+        
+        # Need at least 2 VGC indicators for valid content
+        if found_indicators < 2:
+            return False
+            
+        # Check that content has reasonable Japanese/English mix
+        japanese_chars = sum(1 for char in text[:1000] if ord(char) > 127)
+        if japanese_chars < 50:  # Too little Japanese for note.com article
+            return False
+            
+        # Check for excessive repetition (indicates scraped navigation)
+        words = text.lower().split()
+        if len(words) > 20:
+            unique_ratio = len(set(words)) / len(words)
+            if unique_ratio < 0.4:  # Too repetitive
+                return False
+                
+        return True

@@ -42,30 +42,42 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
                 # Convert relative URLs to absolute
                 img_url = urljoin(url, img_src)
 
-                # Priority scoring for note.com team images
+                # ULTRA-ENHANCED priority scoring for note.com team images
                 is_note_com_asset = "assets.st-note.com" in img_url
                 is_likely_team_card = False
 
-                # Check for team card indicators in URL or context
+                # COMPREHENSIVE team card indicators for note.com
                 team_indicators = [
-                    "team",
-                    "pokemon",
-                    "vgc",
-                    "party",
-                    "DvCIsNZXzyA2irhdlucjKOGR",
+                    # Core VGC terms
+                    "team", "pokemon", "vgc", "party", "チーム", "ポケモン", "構築",
+                    
+                    # Note.com specific patterns
+                    "DvCIsNZXzyA2irhdlucjKOGR",  # Known note.com team card pattern
+                    "rental", "レンタル", "build", "lineup",
+                    
+                    # Japanese VGC terms
+                    "ダブルバトル", "ダブル", "バトル", "調整", "努力値",
+                    "とくこう", "すばやさ", "こうげき", "ぼうぎょ",
+                    
+                    # Pokemon names that frequently appear in team cards
+                    "ガブリアス", "ランドロス", "ガオガエン", "エルフーン", "パオジアン",
+                    "テツノ", "ザマゼンタ", "ザシアン", "コライドン", "ミライドン"
                 ]
+                
                 url_lower = img_url.lower()
                 alt_text = img_tag.get("alt", "").lower()
                 title_text = img_tag.get("title", "").lower()
+                combined_text = f"{url_lower} {alt_text} {title_text}"
 
+                # Enhanced team card detection with scoring
+                team_card_score = 0
                 for indicator in team_indicators:
-                    if (
-                        indicator.lower() in url_lower
-                        or indicator in alt_text
-                        or indicator in title_text
-                    ):
-                        is_likely_team_card = True
-                        break
+                    if indicator.lower() in combined_text:
+                        team_card_score += 1
+                        if indicator in ["team", "pokemon", "vgc", "チーム", "ポケモン", "構築"]:
+                            team_card_score += 2  # Extra weight for core terms
+                
+                is_likely_team_card = team_card_score >= 1
 
                 # Skip very small images but be more lenient for note.com assets
                 width = img_tag.get("width")
@@ -117,6 +129,7 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
                         "content_type": img_response.headers.get("content-type", ""),
                         "is_note_com_asset": is_note_com_asset,
                         "is_likely_team_card": is_likely_team_card,
+                        "team_card_score": team_card_score,
                         "file_size": len(img_response.content),
                     }
 
@@ -151,26 +164,36 @@ def is_potentially_vgc_image(image_info: Dict[str, Any]) -> bool:
         width, height = image_info.get("size", (0, 0))
         file_size = image_info.get("file_size", 0)
         url = image_info.get("url", "").lower()
+        team_score = image_info.get("team_card_score", 0)
         
         # Note.com team cards have very specific characteristics
         if width >= 400 and height >= 300 and file_size > 15000:  # 15KB+ minimum for team cards
             relevance_score += 12  # ULTRA HIGH base score for note.com
             
-            # Bonus for ideal team card dimensions
+            # MAJOR bonus for high team card score
+            relevance_score += min(team_score * 2, 8)  # Up to +8 points for team indicators
+            
+            # Bonus for ideal team card dimensions (note.com standard sizes)
             if 600 <= width <= 1200 and 400 <= height <= 800:
-                relevance_score += 3  # Perfect team card size
+                relevance_score += 4  # Perfect team card size
+            elif 800 <= width <= 1600 and 500 <= height <= 1000:
+                relevance_score += 3  # Large team card format
                 
-            # Bonus for large file size (indicates detailed content)
-            if file_size > 50000:  # 50KB+
-                relevance_score += 2
-            if file_size > 100000:  # 100KB+
+            # Enhanced file size analysis for note.com
+            if file_size > 50000:  # 50KB+ indicates detailed team card
+                relevance_score += 3
+            if file_size > 100000:  # 100KB+ premium content
+                relevance_score += 3
+            if file_size > 200000:  # 200KB+ ultra-detailed 
                 relevance_score += 2
                 
-            # Note.com URL pattern analysis
+            # Note.com URL pattern analysis (enhanced)
             if "uploads/images" in url:  # User-uploaded content
+                relevance_score += 3  # Higher weight for user content
+            if any(pattern in url for pattern in ["rectangle", "large", "medium", "wide"]):
                 relevance_score += 2
-            if any(pattern in url for pattern in ["rectangle", "large", "medium"]):
-                relevance_score += 1
+            if "note-common-styles" in url or "team" in url:
+                relevance_score += 2
                 
     # PRIORITY 2: Advanced dimension analysis for VGC content
     width, height = image_info.get("size", (0, 0))
@@ -881,11 +904,13 @@ def filter_vgc_images(images: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if is_potentially_vgc_image(image):
             vgc_images.append(image)
     
-    # Sort by priority (note.com assets first, then by file size)
+    # ULTRA-ENHANCED sorting by priority (note.com + team score + file size)
     vgc_images.sort(key=lambda x: (
-        -10 if x.get("is_note_com_asset", False) else 0,
-        -5 if x.get("is_likely_team_card", False) else 0,
-        -x.get("file_size", 0)
+        -15 if x.get("is_note_com_asset", False) else 0,  # Note.com assets highest priority
+        -x.get("team_card_score", 0) * 2,  # Team card score (higher = better)
+        -10 if x.get("is_likely_team_card", False) else 0,  # General team card indicator
+        -x.get("file_size", 0) // 1000,  # File size in KB (larger = more detailed)
+        x.get("url", "").count("/"),  # Fewer URL segments = simpler/cleaner URLs
     ))
     
     return vgc_images[:5]  # Return top 5 most relevant images

@@ -33,7 +33,9 @@
       "Bash(curl:*)",
       "WebFetch(domain:vgcmulticalc.com)",
       "WebFetch(domain:ai.google.dev)",
-      "WebFetch(domain:x.com)"
+      "WebFetch(domain:x.com)",
+      "Bash(del test_cache_imports.py simple_cache_test.py)",
+      "Bash(del test_note_com_fixes.py simple_note_com_test.py)"
     ],
     "defaultMode": "acceptEdits"
   }

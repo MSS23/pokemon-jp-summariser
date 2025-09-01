@@ -41,7 +41,7 @@ def test_imports():
         from utils import validate_url, get_pokemon_sprite_url
         print("+ Utils module imported")
         
-        from cache_manager import cache
+        from utils import cache
         print("+ Cache Manager module imported")
         
         return True
