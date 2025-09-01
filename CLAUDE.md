@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with this Pokemon VGC an
 
 ## Project Overview
 
-This is a single-page Pokemon VGC (Video Game Championships) article analysis application built with Streamlit. The application analyzes Japanese Pokemon VGC articles using Google Gemini AI to provide comprehensive team composition analysis, translations, EV explanations, and team showcases with Pokemon sprites.
+This is a modular Pokemon VGC (Video Game Championships) article analysis application built with Streamlit. The application analyzes Japanese Pokemon VGC articles using Google Gemini AI to provide comprehensive team composition analysis, translations, EV explanations, and team showcases with Pokemon sprites.
 
 ## Development Commands
 
@@ -23,31 +23,70 @@ python -m flake8 .
 
 ## Application Architecture
 
-### Clean Single-File Structure
+### Clean Modular Structure
 ```
 Pokemon Translation Web App/
-├── app.py                     # Main Streamlit application
-├── requirements.txt           # Python dependencies
+├── app.py                     # Main Streamlit application entry point
+├── config.py                  # Configuration management
+├── vgc_analyzer.py           # Core VGC analysis logic
+├── ui_components.py          # Streamlit UI components
+├── utils.py                  # Utility functions
+├── cache_manager.py          # Caching functionality
+├── requirements.txt          # Python dependencies
+├── database/                 # Database models and operations
+│   ├── models.py            # SQLAlchemy models
+│   ├── crud.py              # Database operations
+│   └── __init__.py
 ├── .streamlit/
-│   ├── config.toml           # Streamlit configuration
-│   └── secrets.toml          # API keys and secrets
-└── CLAUDE.md                 # Project documentation
+│   ├── config.toml          # Streamlit configuration
+│   └── secrets.toml         # API keys and secrets
+├── cache/                   # Analysis result cache
+├── streamlit-app/logs/      # Application logs
+└── CLAUDE.md               # Project documentation
 ```
 
 ### Key Features
-- **Single-file architecture**: All functionality in one clean, maintainable file
+- **Modular architecture**: Clean separation of concerns across multiple focused modules
 - **Google Gemini AI integration**: Advanced VGC analysis with specialized prompts
 - **Pokemon sprite display**: Automatic sprite fetching from PokeAPI
 - **Clean UI components**: Professional team showcase with hover effects
 - **Export functionality**: Download translations and pokepaste formats
+- **Caching system**: Intelligent caching for improved performance
+- **Database integration**: Optional SQLite database for team storage
 - **Responsive design**: Works well on desktop and mobile
 
-## Core Functions
+## Core Modules
 
-### GeminiVGCAnalyzer Class
+### Main Application (app.py)
+- `VGCAnalysisApp`: Main application class that orchestrates all functionality
+- Clean, focused entry point with proper error handling
+- Session state management for analysis results
+
+### VGC Analyzer (vgc_analyzer.py)
+- `GeminiVGCAnalyzer`: Core analysis engine using Google Gemini
 - `scrape_article(url)`: Extracts content from Japanese VGC article URLs
 - `validate_url(url)`: Validates article URLs before processing
 - `analyze_article(content)`: Uses specialized VGC prompt for comprehensive analysis
+
+### Configuration (config.py)
+- `Config`: Centralized configuration management
+- API key handling with fallbacks
+- Translation dictionaries for Pokemon, moves, and items
+
+### UI Components (ui_components.py)
+- Modular Streamlit UI components for different sections
+- Professional styling with custom CSS
+- Export functionality for translations and pokepaste format
+
+### Utilities (utils.py)
+- Pokemon sprite fetching from PokeAPI
+- EV spread parsing and validation
+- Content hashing and validation functions
+
+### Cache Manager (cache_manager.py)
+- `CacheManager`: Intelligent caching system for analysis results
+- TTL-based cache expiration
+- Performance optimization for repeated analyses
 
 ### Helper Functions
 - `get_pokemon_sprite_url(name)`: Fetches Pokemon sprites from PokeAPI
