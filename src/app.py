@@ -7,9 +7,9 @@ import streamlit as st
 from typing import Dict, Any, Optional
 
 # Import our modular components
-from src.utils.config import Config
-from src.core.analyzer import GeminiVGCAnalyzer
-from src.ui.components import (
+from .utils.config import Config
+from .core.analyzer import GeminiVGCAnalyzer
+from .ui.components import (
     render_page_header,
     render_analysis_input,
     render_article_summary,
@@ -23,8 +23,8 @@ from src.ui.components import (
 
 # Import database components if available
 try:
-    from src.database.models import init_database
-    from src.database.crud import TeamCRUD
+    from .database.models import init_database
+    from .database.crud import TeamCRUD
 
     DATABASE_AVAILABLE = True
 except ImportError:

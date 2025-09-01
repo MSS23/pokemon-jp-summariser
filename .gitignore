@@ -4,10 +4,24 @@
 .env.development.local
 .env.test.local
 .env.production.local
+.env*
+*.env
 
-# Ignore Streamlit secrets
+# Streamlit secrets and configuration (COMPREHENSIVE)
 .streamlit/secrets.toml
 streamlit-app/.streamlit/secrets.toml
+config/.streamlit/secrets.toml
+**/secrets.toml
+**/.streamlit/secrets.toml
+
+# API Keys and secrets (ENHANCED PROTECTION)
+**/*secret*
+**/*key*
+**/*token*
+**/*credential*
+**/config/secrets.*
+api_key*
+secret_*
 
 # Virtual environments
 llm_env/
@@ -55,7 +69,29 @@ cache/
 .DS_Store
 Thumbs.db
 
-# API Keys and secrets
+# Security files (COMPREHENSIVE PROTECTION)
 *.key
 *.pem
+*.p12
+*.pfx
+*.crt
+*.cert
+*.csr
 secret_key.txt
+
+# Additional secret patterns
+.secrets
+secrets/
+auth.json
+service-account*.json
+firebase-adminsdk*.json
+
+# Development and testing
+.pytest_cache/
+*.tmp
+*.temp
+test_secrets*
+dev_secrets*
+
+# Claude Code configuration (optional - contains permissions)
+# .claude/ (commented out - user may want to keep this)

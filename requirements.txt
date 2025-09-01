@@ -1,11 +1,12 @@
 # Pokemon VGC Analysis Platform - Streamlit Cloud Dependencies
-streamlit>=1.28.0
-google-generativeai>=0.3.0
-requests>=2.31.0
-beautifulsoup4>=4.12.0
-lxml>=4.9.0
-urllib3>=2.0.0
-Pillow>=10.0.0
-sqlalchemy>=2.0.0
-pandas>=2.0.0
-aiohttp>=3.8.0
+# Pinned versions for stable deployment and to prevent module loading issues
+streamlit==1.37.0
+google-generativeai==0.7.2
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==4.9.4
+urllib3==2.0.7
+Pillow==10.4.0
+sqlalchemy==2.0.32
+pandas==2.0.3
+aiohttp==3.9.5
