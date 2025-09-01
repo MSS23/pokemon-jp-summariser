@@ -4,7 +4,7 @@ A clean, modular Streamlit application for analyzing Japanese VGC articles
 """
 
 import streamlit as st
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 # Import our modular components
 from config import Config
