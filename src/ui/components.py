@@ -541,12 +541,12 @@ def render_team_showcase(analysis_result: Dict[str, Any]):
         st.button("📊 Export Team", help="Use the export options below", disabled=True)
 
 
-def render_pokemon_team(pokemon_team: List[Dict[str, Any]]):
+def render_pokemon_team(pokemon_team):
     """
     Render the Pokemon team with enhanced formatting and sprite grid
 
     Args:
-        pokemon_team: List of Pokemon data dictionaries
+        pokemon_team: List of Pokemon data dictionaries or dict with pokemon data
     """
     st.header("🏆 Your VGC Team")
 
@@ -554,11 +554,21 @@ def render_pokemon_team(pokemon_team: List[Dict[str, Any]]):
         st.warning("❌ No Pokemon team data available")
         return
     
+    # Handle both list and dictionary inputs
+    if isinstance(pokemon_team, dict):
+        # If it's a dict, get the values or look for 'pokemon' key
+        if 'pokemon' in pokemon_team:
+            team_list = pokemon_team['pokemon']
+        else:
+            team_list = list(pokemon_team.values())
+    else:
+        team_list = pokemon_team
+    
     # Team sprite grid overview
     st.subheader("📋 Team Overview")
     
     # Create sprite grid - display in rows of 3
-    rows = [pokemon_team[i:i+3] for i in range(0, len(pokemon_team), 3)]
+    rows = [team_list[i:i+3] for i in range(0, len(team_list), 3)]
     
     for row in rows:
         cols = st.columns(3)
@@ -587,17 +597,17 @@ def render_pokemon_team(pokemon_team: List[Dict[str, Any]]):
     st.divider()
 
     # Render Pokemon cards in 2-column layout to reduce scrolling
-    for i in range(0, len(pokemon_team), 2):
+    for i in range(0, len(team_list), 2):
         col1, col2 = st.columns([1, 1])
         
         # Render first Pokemon of the pair
         with col1:
-            render_pokemon_card(pokemon_team[i], i)
+            render_pokemon_card(team_list[i], i)
         
         # Render second Pokemon of the pair (if it exists)
-        if i + 1 < len(pokemon_team):
+        if i + 1 < len(team_list):
             with col2:
-                render_pokemon_card(pokemon_team[i + 1], i + 1)
+                render_pokemon_card(team_list[i + 1], i + 1)
         else:
             # If odd number of Pokemon, leave second column empty
             with col2:
