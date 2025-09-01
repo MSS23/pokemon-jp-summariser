@@ -197,10 +197,10 @@ class GeminiVGCAnalyzer:
             # Analyze each image
             for image_info in vgc_images:
                 try:
-                    if image_info.get('image_data') and image_info.get('format'):
+                    if image_info.get('data') and image_info.get('format'):
                         # Analyze image with vision model
                         vision_analysis = analyze_image_with_vision(
-                            image_info['image_data'], 
+                            image_info['data'], 
                             image_info['format'], 
                             self.vision_model
                         )
@@ -268,23 +268,27 @@ class GeminiVGCAnalyzer:
                 current_spread = pokemon.get("ev_spread", {})
                 current_total = current_spread.get("total", 0) if isinstance(current_spread, dict) else 0
                 
-                # Determine if current EVs are inadequate (enhanced for Japanese VGC)
+                # ULTRA-STRICT: Only use image EVs if text analysis completely failed (enhanced for Japanese VGC)
                 needs_image_evs = any([
                     current_evs == "Not specified",
                     current_evs == "",
-                    current_total <= 50,  # Very low total indicates failed detection (more lenient)
+                    current_total <= 0,  # Only if completely no data
                     isinstance(current_evs, str) and "not found" in current_evs.lower(),
                     isinstance(current_evs, str) and "not specified" in current_evs.lower(),
-                    isinstance(current_evs, str) and len(current_evs) < 5,  # Too short to be real EV spread
-                    # Accept technical spreads with totals 468-508 (common in Japanese VGC)
-                    isinstance(current_total, int) and current_total > 0 and current_total < 400,
+                    isinstance(current_evs, str) and len(current_evs) < 3,  # Too short to be real EV spread
                 ])
                 
-                # Assign best available image EV spread
+                # ULTRA-STRICT: Assign image EV spread with validation against generation
                 if needs_image_evs and sorted_image_evs:
                     best_image_spread = sorted_image_evs.pop(0)  # Take highest confidence spread
                     
-                    if best_image_spread.get("is_valid", False):
+                    # Additional validation to prevent AI generation
+                    spread_total = best_image_spread.get("total", 0)
+                    
+                    if (best_image_spread.get("is_valid", False) and 
+                        spread_total > 0 and spread_total <= 508 and
+                        not (spread_total == 508 and len([p for p in pokemon_team if p.get("ev_spread", {}).get("total", 0) == 508]) >= 2)):  # Prevent multiple 508s
+                        
                         # Convert image EV spread to standard format
                         pokemon["evs"] = best_image_spread["format"]
                         pokemon["ev_spread"] = {
@@ -294,7 +298,7 @@ class GeminiVGCAnalyzer:
                             "Special Attack": best_image_spread.get("special_attack", 0),
                             "Special Defense": best_image_spread.get("special_defense", 0),
                             "Speed": best_image_spread.get("speed", 0),
-                            "total": best_image_spread.get("total", 0),
+                            "total": spread_total,
                             "source": f"image_analysis_{best_image_spread.get('confidence', 'medium')}"
                         }
                         
@@ -303,6 +307,10 @@ class GeminiVGCAnalyzer:
                         pokemon["ev_explanation"] = f"EV spread detected from team image ({confidence} confidence): {best_image_spread['format']}"
                         
                         ev_assignment_log.append(f"Pokemon {i+1} ({pokemon.get('name', 'Unknown')}): Assigned {confidence} confidence EVs from image")
+                    else:
+                        # Image EV failed validation - suspicious pattern detected
+                        pokemon["ev_explanation"] = "Image EV data failed validation (potential AI generation detected)"
+                        ev_assignment_log.append(f"Pokemon {i+1} ({pokemon.get('name', 'Unknown')}): Image EVs rejected due to suspicious pattern")
                 
                 # Even if we don't replace EVs, log the decision
                 elif not needs_image_evs:
@@ -548,10 +556,13 @@ class GeminiVGCAnalyzer:
 You are a Pokemon VGC expert analyst with extensive knowledge of Pokemon identification and naming conventions.
 Your task is to analyze Japanese Pokemon VGC articles and provide comprehensive analysis including team composition, strategy explanation, and accurate translations.
 
-🚨 ULTRA-CRITICAL EV DETECTION PRIORITY 🚨
+🚨 ULTRA-CRITICAL EV DETECTION PRIORITY - EXTRACTION ONLY, NO GENERATION 🚨
 
 **PRIMARY OBJECTIVE: EV SPREAD EXTRACTION (HIGHEST PRIORITY)**
-Your most important task is finding EV spreads. EVERY Japanese VGC article contains EV data - you MUST find it using these exact patterns:
+**CRITICAL RULE: ONLY extract EVs that are EXPLICITLY present in the article text. DO NOT generate, infer, or create EV spreads.**
+**If no EV data is found in the text, you MUST return EV spread values of 0 for all stats.**
+
+Your most important task is finding EV spreads that are ACTUALLY written in the article. Scan methodically for these exact patterns:
 
 **🎯 COMPREHENSIVE JAPANESE EV FORMATS (2025 COMPLETE GUIDE):**
 
@@ -627,8 +638,8 @@ Speed: 0 (or すばやさ：0)
 - **Sp.Defense**: とくぼう, 特防, 特殊防御, D, とくしゅぼうぎょ
 - **Speed**: すばやさ, 素早さ, S, スピード, 速さ
 
-**🚨 ULTRA-ENHANCED EV DETECTION PROTOCOL (2025 COMPLETE):**
-1. **SCAN METHODICALLY**: Check every paragraph, sentence, and line for EV patterns
+**🚨 ULTRA-ENHANCED EV DETECTION PROTOCOL - EXTRACTION ONLY (2025 COMPLETE):**
+1. **SCAN METHODICALLY**: Check every paragraph, sentence, and line for EV patterns IN THE PROVIDED TEXT ONLY
 2. **ABSOLUTE PRIORITY**: Check Format 2 (努力値:) FIRST AND FOREMOST
 3. **MULTIPLE FORMATS**: Try ALL 7 formats for each Pokemon systematically
 4. **CONTEXT AWARENESS**: Scan near these indicator words:
@@ -636,12 +647,10 @@ Speed: 0 (or すばやさ：0)
    * Calculations: "乱数1発", "確定1発", "乱数2発", "耐え", "抜き"
    * Optimization: "11n", "16n-1", "調整", "ライン", "意識"
 5. **VALIDATE TOTALS**: EVs must total ≤508 (if >508, these are battle stats, not EVs)
-6. **EXPANDED PATTERNS**: Look for competitive spreads:
-   * Standard: 252/252/4, 252/0/0/252/4/0, 244/0/12/252/0/0
-   * Technical: 236/0/36/196/4/36 (Miraidon), 244/0/4/252/4/4
-   * Defensive: 252/0/156/0/100/0, 252/0/252/4/0/0
-7. **NEVER GIVE UP**: If one format fails, try others - EVs are ALWAYS present in VGC articles
+6. **CRITICAL - NO GENERATION**: If you cannot find explicit EV spreads in the text, return all zeros (0/0/0/0/0/0)
+7. **NO ASSUMPTIONS**: Do not assume standard spreads like 252/252/4 unless explicitly written
 8. **SEQUENTIAL SEARCH**: When you find "実数値:", immediately search next 3 lines for EV data
+9. **AUTHOR'S STATEMENT OVERRIDE**: If author says EVs are "適当" (arbitrary) or "詳細なし" (no details), return 0s unless actual numbers are provided
 
 **⚡ EV VALIDATION REQUIREMENTS (JAPANESE VGC OPTIMIZED):**
 - Valid EV values: 0, 4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 92, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 188, 196, 204, 212, 220, 228, 236, 244, 252
@@ -725,12 +734,15 @@ Speed: 0 (or すばやさ：0)
 
 CRITICAL REQUIREMENTS:
 1. ALWAYS provide a valid JSON response
-2. Include EV spreads for ALL Pokemon - FIND THEM USING THE FORMATS ABOVE
-3. Provide strategic explanations for EV choices
-4. Translate all Japanese text to English with PERFECT Pokemon identification
-5. Ensure team composition makes sense for VGC format
-6. Use EXACT Pokemon names with proper forms and spellings
-7. EXTRACT regulation information from the article content - DO NOT ASSUME
+2. **NEVER GENERATE EV SPREADS** - Only extract what is explicitly in the text
+3. If no EV data is found, use 0 for all EV values and explain in ev_explanation
+4. If author mentions "適当" (arbitrary) or similar, use 0s unless actual numbers are provided
+5. Provide strategic explanations for EV choices ONLY if mentioned in the article
+6. Translate all Japanese text to English with PERFECT Pokemon identification
+7. Ensure team composition makes sense for VGC format
+8. Use EXACT Pokemon names with proper forms and spellings
+9. EXTRACT regulation information from the article content - DO NOT ASSUME
+10. **VALIDATION**: If all Pokemon end up with identical EV totals (like 508), this indicates generation rather than extraction - recheck for actual text-based EVs
 
 🚨 ULTRA-COMPREHENSIVE POKEMON IDENTIFICATION (2025 COMPLETE DATABASE) 🚨
 

@@ -10,13 +10,14 @@
       "tera_type": "Fairy",
       "nature": "Modest",
       "ev_spread": {
-        "HP": 236,
-        "Attack": 0,
-        "Defense": 36,
-        "Special Attack": 196,
-        "Special Defense": 4,
-        "Speed": 36,
-        "total": 508
+        "HP": 252,
+        "Attack": 4,
+        "Defense": 156,
+        "Special Attack": 0,
+        "Special Defense": 68,
+        "Speed": 28,
+        "total": 508,
+        "source": "image_analysis_high"
       },
       "moves": [
         "Thunder Drive",
@@ -24,8 +25,9 @@
         "Volt Switch",
         "Magical Shine"
       ],
-      "ev_explanation": "More durable Miraidon. The EV spread is designed to survive certain attacks and outspeed other Miraidon and Zamazenta. H-B: Survives a Brilliant Diamond from a 220 Attack White Kyurem with a 12.5% chance. = Survives an Ice Fang from a 172 Attack Jolly Chien-Pao with a 12.5% chance. C: 11n. S: Outspeeds base 90 Speed Pokemon by 4.",
-      "role_in_team": "Primary special attacker and speed control"
+      "ev_explanation": "EV spread detected from team image (high confidence): 252/4/156/0/68/28",
+      "role_in_team": "Primary special attacker and speed control",
+      "evs": "252/4/156/0/68/28"
     },
     {
       "name": "Koraidon",
@@ -150,7 +152,7 @@
   ],
   "overall_strategy": "The team aims to gain an advantage through single target high power attacks and secure a numbers advantage. The team uses Miraidon and Incineroar as a core, with Grimmsnarl, Volcarona, Koraidon, and Flutter Mane providing support and coverage.",
   "tournament_context": "JCS2025 Online Preliminary",
-  "translation_notes": "CTS is likely referring to a specific stat calculation or strategy. Black Kyurem is referred to as 黒馬 (Kuro Uma). White Kyurem is referred to as 白馬 (Shiro Uma).",
+  "translation_notes": "CTS is likely referring to a specific stat calculation or strategy. Black Kyurem is referred to as 黒馬 (Kuro Uma). White Kyurem is referred to as 白馬 (Shiro Uma). | EV Integration: Pokemon 1 (Miraidon): Assigned high confidence EVs from image | Cross-referenced with 5 team images | Confidence boosted by image analysis (+10%) | Enhanced with image analysis from 5 images",
   "content_summary": "The article details a VGC team built around Grimmsnarl and Miraidon, explaining the team's construction process, individual Pokemon builds, and general strategy. The author achieved a final rating of 2001 and placed 11th. The article also includes a rental code for the team.",
   "analysis_confidence": 1.0
 }

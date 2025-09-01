@@ -359,8 +359,9 @@ def get_vision_analysis_prompt() -> str:
 🎯 ULTRA-ENHANCED JAPANESE POKEMON TEAM CARD ANALYSIS (2025):
 Extract complete Pokemon team data from Japanese VGC team cards with maximum precision on EV spreads.
 
-**🚨 CRITICAL PRIORITY: EV SPREAD EXTRACTION 🚨**
-This is your PRIMARY objective. Every Pokemon team card contains EV data - you MUST find it.
+**🚨 CRITICAL PRIORITY: EV SPREAD EXTRACTION - VISUAL ONLY, NO GENERATION 🚨**
+This is your PRIMARY objective. ONLY extract EV data that is VISUALLY PRESENT and READABLE in the image.
+**CRITICAL RULE: If you cannot see clear, readable EV numbers in the image, return "EV data not visible" - DO NOT generate or guess spreads.**
 
 **OBJECTIVE 1: SYSTEMATIC EV DETECTION (HIGHEST PRIORITY)**
 SCAN EVERY pixel for EV patterns in these EXACT formats:
@@ -489,7 +490,13 @@ Failed Extractions: [X] (reasons)
 CRITICAL ISSUES: [List any major problems]
 ```
 
-**🚨 REMEMBER: If you don't find EV spreads, the analysis has FAILED. Look harder - they're always there in team cards!**
+**🚨 CRITICAL VALIDATION RULES:**
+1. **NEVER generate EV spreads** - only extract what is clearly visible as text/numbers in the image
+2. **If EV data is blurry, cut off, or unclear** - return "EV data not readable" rather than guessing
+3. **Do not assume standard competitive spreads** (like 252/252/4) unless you can clearly read those exact numbers
+4. **If you see Pokemon sprites but no EV data** - this is normal for many team cards, return "EVs not displayed"
+5. **Multiple Pokemon with identical EV spreads indicates generation** - recheck your extraction carefully
+6. **Prefer "no data found" over potentially wrong data** - accuracy is more important than completeness
 '''
 
 
@@ -884,14 +891,17 @@ def extract_ev_spreads_from_image_analysis(image_analysis: str) -> List[Dict[str
 
 
 def _create_ev_spread_dict(ev_values: List[int], format_type: str, raw_match: str) -> Dict[str, Any]:
-    """Create and validate EV spread dictionary"""
+    """Create and validate EV spread dictionary with ultra-strict validation"""
     if len(ev_values) != 6:
         return None
     
     total = sum(ev_values)
     
-    # Enhanced validation
+    # ULTRA-STRICT validation to prevent AI generation
     if total > 508:  # Definitely not EVs
+        return None
+    
+    if total == 0:  # All zeros - likely no data found
         return None
     
     # Check if all values are multiples of 4 (EV requirement)
@@ -902,13 +912,28 @@ def _create_ev_spread_dict(ev_values: List[int], format_type: str, raw_match: st
     if any(ev > 252 for ev in ev_values):
         return None
     
-    # Determine confidence level
+    # ANTI-GENERATION: Reject suspicious patterns
+    if total == 508 and sum(1 for ev in ev_values if ev in [252, 4]) >= 3:
+        # Suspiciously perfect competitive spread - likely generated
+        return None
+        
+    if all(ev in [0, 4, 252] for ev in ev_values):
+        # Only uses basic competitive values - suspicious
+        return None
+    
+    # Check for realistic variation
+    non_zero_values = [ev for ev in ev_values if ev > 0]
+    if len(non_zero_values) >= 3 and all(ev == non_zero_values[0] for ev in non_zero_values):
+        # Multiple identical non-zero values - suspicious
+        return None
+    
+    # Determine confidence level (more conservative)
     confidence = "low"
-    if total >= 500:  # Near-max investment
-        confidence = "high"
-    elif total >= 400:  # Substantial investment
+    if total >= 480 and format_type in ["japanese_format", "calculated_stat_format"]:  # Good format + substantial investment
         confidence = "medium"
-    elif format_type == "slash_format":  # Standard format gets bonus
+    elif total >= 400 and format_type == "slash_format":  # Standard format with good investment
+        confidence = "medium"
+    elif total >= 500 and format_type in ["slash_format", "japanese_format"]:  # High investment + good format
         confidence = "high"
     
     return {
@@ -923,7 +948,8 @@ def _create_ev_spread_dict(ev_values: List[int], format_type: str, raw_match: st
         "confidence": confidence,
         "format_type": format_type,
         "raw_match": raw_match[:100],  # Store first 100 chars of original match
-        "is_valid": True
+        "is_valid": True,
+        "validation_notes": f"Total: {total}, Non-zero stats: {len(non_zero_values)}, Format: {format_type}"
     }
 
 
