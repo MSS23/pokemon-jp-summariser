@@ -8,8 +8,8 @@ import gzip
 import pickle
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Any, Set
-from config import Config
-from utils import create_content_hash, ensure_cache_directory
+from .config import Config
+from .utils import create_content_hash, ensure_cache_directory
 
 
 class CacheManager:

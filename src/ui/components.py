@@ -4,7 +4,7 @@ UI Components for Pokemon VGC Analysis application
 
 import streamlit as st
 from typing import Dict, List, Any
-from utils import (
+from src.utils import (
     get_pokemon_sprite_url,
     format_moves_html,
     get_pokemon_type_class,

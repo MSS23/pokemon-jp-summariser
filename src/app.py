@@ -7,9 +7,9 @@ import streamlit as st
 from typing import Dict, Any, Optional
 
 # Import our modular components
-from .utils.config import Config
-from .core.analyzer import GeminiVGCAnalyzer
-from .ui.components import (
+from src.utils.config import Config
+from src.core.analyzer import GeminiVGCAnalyzer
+from src.ui.components import (
     render_page_header,
     render_analysis_input,
     render_article_summary,
@@ -23,8 +23,8 @@ from .ui.components import (
 
 # Import database components if available
 try:
-    from .database.models import init_database
-    from .database.crud import TeamCRUD
+    from src.database.models import init_database
+    from src.database.crud import TeamCRUD
 
     DATABASE_AVAILABLE = True
 except ImportError:
@@ -420,7 +420,7 @@ class VGCAnalysisApp:
             # Display the uploaded image
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
-                st.image(uploaded_file, caption="Uploaded Screenshot", use_column_width=True)
+                st.image(uploaded_file, caption="Uploaded Screenshot", use_container_width=True)
             
             st.success(f"✅ Screenshot uploaded: {uploaded_file.name} ({uploaded_file.size} bytes)")
 

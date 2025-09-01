@@ -3,7 +3,7 @@ Additional page methods for the VGC Analysis App
 """
 
 def render_saved_teams_page(self):
-    \"\"\"Render the saved teams page\"\"\"
+    """Render the saved teams page"""
     st.header("📚 Saved Teams")
     
     if not DATABASE_AVAILABLE:
@@ -48,24 +48,24 @@ def render_saved_teams_page(self):
         st.error(f"Error loading saved teams: {e}")
         
 def render_team_search_page(self):
-    \"\"\"Render the team search page\"\"\"
+    """Render the team search page"""
     st.header("🔍 Team Search")
     st.info("🚧 Team search functionality coming soon!")
     
     # Placeholder for future search functionality
     st.markdown(
-        \"\"\"
+        """
         **Planned Features:**
         - Search by Pokemon name
         - Filter by regulation (A, B, C)
         - Search by author
         - Filter by tournament results
         - Advanced team archetype filtering
-        \"\"\"
+        """
     )
     
 def render_settings_page(self):
-    \"\"\"Render the settings page\"\"\"
+    """Render the settings page"""
     st.header("⚙️ Settings")
     
     # Cache settings
@@ -100,24 +100,24 @@ def render_settings_page(self):
     st.info("🚧 Display preferences coming soon!")
     
 def render_help_page(self):
-    \"\"\"Render the help and guide page\"\"\"
+    """Render the help and guide page"""
     st.header("📖 Help & User Guide")
     
     # Quick start guide
     st.subheader("🚀 Quick Start")
     st.markdown(
-        \"\"\"
+        """
         1. **📝 Input**: Paste a Japanese VGC article URL or text
         2. **🔍 Analyze**: Click the Analyze button to process
         3. **👀 Review**: Examine the translated team and analysis
         4. **💾 Export**: Download translations or pokepaste format
-        \"\"\"
+        """
     )
     
     # Supported formats
     st.subheader("📄 Supported Article Formats")
     st.markdown(
-        \"\"\"
+        """
         **✅ Supported Sites:**
         - note.com articles
         - Most Japanese Pokemon blogs
@@ -128,27 +128,27 @@ def render_help_page(self):
         - Move sets and EV spreads  
         - Strategic explanations
         - Tournament context
-        \"\"\"
+        """
     )
     
     # Sample URLs
     st.subheader("🌟 Sample Analysis")
     st.markdown(
-        \"\"\"
+        """
         Try analyzing this sample article featuring:
         - 🛡️ Zamazenta-Crowned
         - ⚔️ Iron Valiant
         - ⚡ Pawmot
         
         **Sample URL:** `https://note.com/icho_poke/n/n8ffb464e9335`
-        \"\"\"
+        """
     )
     
     # Troubleshooting
     st.subheader("🔧 Troubleshooting")
     with st.expander("Common Issues"):
         st.markdown(
-            \"\"\"
+            """
             **"Invalid URL" Error:**
             - Ensure the URL is accessible
             - Check for typos in the URL
@@ -163,5 +163,5 @@ def render_help_page(self):
             - Large articles take longer to process
             - First analysis may take longer (caching helps)
             - Check your internet connection
-            \"\"\"
+            """
         )

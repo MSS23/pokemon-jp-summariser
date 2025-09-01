@@ -11,7 +11,7 @@ from PIL import Image
 from typing import Dict, List, Optional, Any
 from urllib.parse import urljoin
 import google.generativeai as genai
-from config import EV_STAT_TRANSLATIONS, NATURE_TRANSLATIONS, ABILITY_TRANSLATIONS, MOVE_NAME_TRANSLATIONS
+from src.utils.config import EV_STAT_TRANSLATIONS, NATURE_TRANSLATIONS, ABILITY_TRANSLATIONS, MOVE_NAME_TRANSLATIONS
 
 
 def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, Any]]:
