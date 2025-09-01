@@ -195,17 +195,15 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
         # Core information with modern styling
         st.markdown("#### ⚔️ Battle Ready Details")
         
-        # Enhanced info display in 2-column layout
+        # Clean single-column info display (no nested columns to prevent overlapping)
         info_items = [
             ("🧬", "Ability", ability),
             ("🎒", "Held Item", item), 
             ("🌟", "Nature", nature)
         ]
         
-        # Create 2-column layout for battle ready details
-        detail_col1, detail_col2 = st.columns([1, 1])
-        
-        for i, (icon, label, value) in enumerate(info_items):
+        # Display all items in a clean single-column layout
+        for icon, label, value in info_items:
             status_class = "specified" if value != "Not specified" else "not-specified"
             info_html = f"""
             <div class="info-item {status_class}">
@@ -214,14 +212,7 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
                 <span class="info-value">{value}</span>
             </div>
             """
-            
-            # Distribute items across columns (alternate placement)
-            if i == 0:  # Ability in first column
-                detail_col1.markdown(info_html, unsafe_allow_html=True)
-            elif i == 1:  # Held Item in second column
-                detail_col2.markdown(info_html, unsafe_allow_html=True)
-            elif i == 2:  # Nature in first column (under Ability)
-                detail_col1.markdown(info_html, unsafe_allow_html=True)
+            st.markdown(info_html, unsafe_allow_html=True)
         
         # Enhanced moveset display
         st.markdown("#### 🎮 Combat Moveset")
@@ -1160,12 +1151,14 @@ def apply_custom_css():
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 0.8rem;
-        margin-bottom: 0.8rem;
+        padding: 0.9rem 1.1rem;
+        margin-bottom: 0.6rem;
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         border-radius: 12px;
         border-left: 4px solid #6366f1;
         transition: all 0.2s ease;
+        width: 100%;
+        box-sizing: border-box;
     }
     
     .info-item:hover {
@@ -1204,19 +1197,22 @@ def apply_custom_css():
     /* Moveset Styling */
     .moveset-container {
         display: grid;
-        gap: 0.8rem;
+        gap: 0.6rem;
         margin-top: 1rem;
+        width: 100%;
     }
     
     .move-item {
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 0.8rem;
+        padding: 0.8rem 1rem;
         background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%);
         border-radius: 12px;
         border-left: 4px solid #0ea5e9;
         transition: all 0.2s ease;
+        width: 100%;
+        box-sizing: border-box;
     }
     
     .move-item:hover {

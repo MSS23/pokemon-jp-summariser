@@ -161,6 +161,9 @@ CORRECT POKEMON FORMS:
 - Calyrex-Ice (not "Ice Calyrex" or "Calyrex Ice")
 - Urshifu-Rapid-Strike (not "Urshifu Rapid" or "Rapid Strike Urshifu")
 - Urshifu-Single-Strike (not "Urshifu Single" or "Single Strike Urshifu")
+
+PARADOX POKEMON - CRITICAL NAMING:
+- Iron Valiant (NEVER "Iron-Valiant-Therian", "Iron-Valian-Therian", "Iron Valian", or "Iron-Valian")
 - Flutter Mane (not "Flutter-Mane")
 - Iron Moth (not "Iron-Moth")
 - Sandy Shocks (not "Sandy-Shocks")
@@ -177,39 +180,35 @@ REGIONAL FORMS:
 - For Hisuian forms: "Pokemon-Hisui" (e.g., "Zoroark-Hisui")
 
 REGULATION DETECTION REQUIREMENTS:
-CRITICAL: Extract the VGC regulation directly from the article content. Look for:
+ULTRA CRITICAL: Extract the VGC regulation ONLY and EXCLUSIVELY from the article text content. DO NOT INFER OR GUESS based on team composition.
 
-**Japanese Regulation Terms:**
-- "レギュレーション" (Regulation)
-- "ルール" (Rules)  
-- "シリーズ" (Series)
-- "シーズン" (Season)
+**STRICT ARTICLE-ONLY DETECTION:**
+You MUST only look for explicit regulation mentions in the article text. Look for:
 
-**English Regulation Indicators:**
+**Japanese Regulation Terms (only if explicitly stated in text):**
+- "レギュレーション" (Regulation) + letter/number
+- "ルール" (Rules) + regulation identifier
+- "シリーズ" (Series) + number
+- "シーズン" (Season) + identifier
+
+**English Regulation Indicators (only if explicitly stated in text):**
 - "Regulation A", "Regulation B", "Regulation C", etc.
 - "Series 1", "Series 2", etc.
-- "VGC 2024", "VGC 2025"
-- Tournament format mentions
+- "VGC 2024", "VGC 2025" + regulation
+- Tournament format mentions with specific regulation
 
-**Context Clues:**
-- Tournament dates and event names
-- Restricted Pokemon usage (0, 1, or 2 restricted legendaries)
-- Available Pokemon generation mentions
-- DLC content availability references
+**FORBIDDEN - DO NOT DO THESE:**
+- DO NOT infer regulation from team composition
+- DO NOT guess based on restricted legendary count
+- DO NOT assume regulation from Pokemon availability
+- DO NOT use team analysis to determine regulation
+- DO NOT make educated guesses about regulation
 
-**Regulation Guidelines:**
-- Regulation A/B: Paldea Pokemon only
-- Regulation C+: Treasures of Ruin available
-- Regulation D+: Home integration, past generation Pokemon
-- Regulation G: Single restricted legendary allowed
-- Regulation H: No restricted legendaries ("Back to Basics")
-- Regulation I: Two restricted legendaries allowed
-
-If no clear regulation is mentioned in the article, analyze the team composition:
-- Teams with 2 restricted legendaries = likely Regulation I
-- Teams with 1 restricted legendary = likely Regulation G  
-- Teams with 0 restricted legendaries = could be Regulation H or earlier
-- Unknown if unclear = "Not specified"
+**REQUIRED BEHAVIOR:**
+- If no explicit regulation is mentioned in the article text: return "Not specified"
+- If regulation terms appear without clear identifier: return "Not specified"  
+- Only return a specific regulation (A, B, C, etc.) if it is EXPLICITLY stated in the article
+- When in doubt, always return "Not specified"
 
 RESPONSE FORMAT (MUST BE VALID JSON):
 {
@@ -348,6 +347,36 @@ Please analyze the following content and provide your response in the exact JSON
         for field in required_fields:
             if field not in result:
                 result[field] = "Not specified"
+
+        # CRITICAL: Validate regulation field follows article-only requirement
+        if "regulation" in result:
+            regulation = result["regulation"]
+            
+            # If regulation looks like it was inferred rather than explicit from article
+            suspicious_patterns = [
+                "likely", "probably", "appears to be", "based on", "seems to be",
+                "inferred", "guessing", "estimated", "assumed", "2 restricted",
+                "1 restricted", "0 restricted", "legendary count", "team composition"
+            ]
+            
+            if any(pattern in regulation.lower() for pattern in suspicious_patterns):
+                result["regulation"] = "Not specified"
+                
+            # Only allow specific regulation formats or "Not specified"
+            valid_regulations = [
+                "Not specified", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
+                "Regulation A", "Regulation B", "Regulation C", "Regulation D",
+                "Regulation E", "Regulation F", "Regulation G", "Regulation H", 
+                "Regulation I", "Regulation J", "Series 1", "Series 2", "Series 3",
+                "VGC 2024", "VGC 2025"
+            ]
+            
+            if regulation not in valid_regulations:
+                # If it's not in valid list, check if it's a simple letter/number
+                if not (len(regulation.strip()) <= 2 and regulation.strip().upper() in "ABCDEFGHIJ"):
+                    result["regulation"] = "Not specified"
+        else:
+            result["regulation"] = "Not specified"
 
         # Clean and validate Pokemon team
         if "pokemon_team" in result:
@@ -511,15 +540,20 @@ Please analyze the following content and provide your response in the exact JSON
         Returns:
             Fixed Pokemon name
         """
+        # ULTRA COMPREHENSIVE Iron Valiant fixes - catch EVERY possible variation
+        # Apply Iron Valiant fixes first with maximum priority
+        name = self._fix_iron_valiant_variants(name)
+        
         # Common form notation fixes
         form_fixes = [
-            # High priority: Fix specific Paradox Pokemon with incorrect forms
-            (r'\bIron[\s\-]*Valiant[\s\-]*Therian\b', 'Iron Valiant'),
-            (r'\bIron[\s\-]*Valian[\s\-]*Therian\b', 'Iron Valiant'),
-            (r'\bFlutter[\s\-]*Mane[\s\-]*Therian\b', 'Flutter Mane'),
-            (r'\bIron[\s\-]*Moth[\s\-]*Therian\b', 'Iron Moth'),
+            # Paradox Pokemon should NEVER have forms - catch any remaining cases
+            (r'\bFlutter[\s\-]*Mane[\s\-]*(?:Therian|Form|Forme)\b', 'Flutter Mane'),
+            (r'\bIron[\s\-]*Moth[\s\-]*(?:Therian|Form|Forme)\b', 'Iron Moth'),
+            (r'\bSandy[\s\-]*Shocks[\s\-]*(?:Therian|Form|Forme)\b', 'Sandy Shocks'),
+            (r'\bRoaring[\s\-]*Moon[\s\-]*(?:Therian|Form|Forme)\b', 'Roaring Moon'),
+            (r'\bBrute[\s\-]*Bonnet[\s\-]*(?:Therian|Form|Forme)\b', 'Brute Bonnet'),
             
-            # Therian forms (specific to Pokemon that actually have Therian forms)
+            # Therian forms (ONLY for Pokemon that actually have Therian forms)
             (r'\b(Landorus)[\s\-]*T\b', r'\1-Therian'),
             (r'\b(Thundurus)[\s\-]*T\b', r'\1-Therian'),  
             (r'\b(Tornadus)[\s\-]*T\b', r'\1-Therian'),
@@ -561,6 +595,54 @@ Please analyze the following content and provide your response in the exact JSON
         
         fixed_name = name
         for pattern, replacement in form_fixes:
+            fixed_name = re.sub(pattern, replacement, fixed_name, flags=re.IGNORECASE)
+            
+        return fixed_name
+    
+    def _fix_iron_valiant_variants(self, name: str) -> str:
+        """
+        Ultra-comprehensive Iron Valiant variant fixing
+        
+        Args:
+            name: Pokemon name to fix
+            
+        Returns:
+            Fixed name with Iron Valiant corrections
+        """
+        import re
+        
+        # ULTRA PRIORITY: Iron Valiant fixes - catch EVERY possible variation
+        iron_valiant_patterns = [
+            # Main variations with Therian (most common error)
+            (r'\bIron[\s\-]*Valiant[\s\-]*Therian\b', 'Iron Valiant'),
+            (r'\bIron[\s\-]*Valian[\s\-]*Therian\b', 'Iron Valiant'), 
+            (r'\bIron[\s\-]*Valien[\s\-]*Therian\b', 'Iron Valiant'),
+            (r'\bIron[\s\-]*Valliant[\s\-]*Therian\b', 'Iron Valiant'),  # Common typo
+            (r'\bIron[\s\-]*Valient[\s\-]*Therian\b', 'Iron Valiant'),   # Common typo
+            
+            # Just the misspelled base names (without Therian)
+            (r'\bIron[\s\-]*Valian\b(?![\s\-]*Valiant)', 'Iron Valiant'),
+            (r'\bIron[\s\-]*Valien\b(?![\s\-]*Valiant)', 'Iron Valiant'),
+            (r'\bIron[\s\-]*Valliant\b(?![\s\-]*Valiant)', 'Iron Valiant'),
+            (r'\bIron[\s\-]*Valient\b(?![\s\-]*Valiant)', 'Iron Valiant'),
+            
+            # Partial matches (just the wrong part with Therian)
+            (r'\bValian[\s\-]*Therian\b', 'Iron Valiant'),
+            (r'\bValien[\s\-]*Therian\b', 'Iron Valiant'),
+            (r'\bValliant[\s\-]*Therian\b', 'Iron Valiant'),
+            (r'\bValient[\s\-]*Therian\b', 'Iron Valiant'),
+            
+            # With other incorrect form suffixes
+            (r'\bIron[\s\-]*Valiant[\s\-]*(?:Forme?|Form)\b', 'Iron Valiant'),
+            (r'\bIron[\s\-]*Valian[\s\-]*(?:Forme?|Form)\b', 'Iron Valiant'),
+            (r'\bIron[\s\-]*Valien[\s\-]*(?:Forme?|Form)\b', 'Iron Valiant'),
+            
+            # Catch any remaining variations with common errors
+            (r'\bIron[\s\-]*V[aeiou][lL][lia][eaio]?n[ts]?[\s\-]*(?:Therian|T|Form|Forme)\b', 'Iron Valiant'),
+        ]
+        
+        fixed_name = name
+        for pattern, replacement in iron_valiant_patterns:
             fixed_name = re.sub(pattern, replacement, fixed_name, flags=re.IGNORECASE)
             
         return fixed_name
@@ -698,6 +780,47 @@ Please analyze the following content and provide your response in the exact JSON
         """
         name_lower = name.lower()
         
+        # CRITICAL PRIORITY: Handle Paradox Pokemon FIRST (before general form validation)
+        paradox_pokemon_map = {
+            'iron-valiant': 'Iron Valiant',
+            'iron-moth': 'Iron Moth', 
+            'flutter-mane': 'Flutter Mane',
+            'sandy-shocks': 'Sandy Shocks',
+            'roaring-moon': 'Roaring Moon',
+            'brute-bonnet': 'Brute Bonnet',
+            'great-tusk': 'Great Tusk',
+            'scream-tail': 'Scream Tail',
+            'iron-treads': 'Iron Treads',
+            'iron-bundle': 'Iron Bundle',
+            'iron-hands': 'Iron Hands',
+            'iron-jugulis': 'Iron Jugulis',
+            'iron-thorns': 'Iron Thorns',
+            'slither-wing': 'Slither Wing',
+            'walking-wake': 'Walking Wake',
+            'iron-leaves': 'Iron Leaves'
+        }
+        
+        # ULTRA PRIORITY: Iron Valiant specific check (most common error)
+        if 'iron' in name_lower and any(variant in name_lower for variant in ['valiant', 'valian', 'valien']):
+            # Remove any form suffix from Iron Valiant variants
+            if any(form in name_lower for form in ['therian', 'shadow', 'galar', 'alola', 'hisui', 'form', 'forme']):
+                # Debug print
+                # print(f"DEBUG: Iron Valiant form detected, returning 'Iron Valiant' for input: {name}")
+                return 'Iron Valiant'
+        
+        for paradox_key, correct_name in paradox_pokemon_map.items():
+            paradox_spaced = paradox_key.replace('-', ' ')
+            # Check if this name contains the paradox Pokemon (with any form suffix)
+            if (paradox_key in name_lower or paradox_spaced.lower() in name_lower or 
+                name_lower.startswith(paradox_key) or name_lower.startswith(paradox_spaced.lower())):
+                # Remove any incorrectly applied forms from Paradox Pokemon
+                if any(form in name_lower for form in ['therian', 'shadow', 'galar', 'alola', 'hisui', 'form', 'forme']):
+                    return correct_name
+                # Even if no form detected, return correct name if it's hyphenated (should be spaced)  
+                elif '-' in name and paradox_key in name_lower:
+                    return correct_name
+        
+        # GENERAL FORM VALIDATION (after paradox Pokemon handling)
         # Define Pokemon that can have specific forms
         valid_forms = {
             # Therian forms (only these 3 Pokemon can have Therian forms)
@@ -739,19 +862,6 @@ Please analyze the following content and provide your response in the exact JSON
                     corrected_name = name.replace(f'-{form_name.title()}', '').replace(f' {form_name.title()}', '').strip()
                     corrected_name = corrected_name.replace(f'-{form_name}', '').replace(f' {form_name}', '').strip()
                     return corrected_name
-        
-        # Special cases for Paradox Pokemon (they should never have forms)
-        paradox_pokemon = ['iron-valiant', 'iron-moth', 'flutter-mane', 'sandy-shocks', 
-                          'roaring-moon', 'brute-bonnet', 'great-tusk', 'scream-tail',
-                          'iron-treads', 'iron-bundle', 'iron-hands', 'iron-jugulis',
-                          'iron-thorns', 'slither-wing', 'walking-wake', 'iron-leaves']
-        
-        for paradox in paradox_pokemon:
-            if paradox in name_lower:
-                # Remove any incorrectly applied forms from Paradox Pokemon
-                base_paradox_name = paradox.replace('-', ' ').title()
-                if 'therian' in name_lower or 'shadow' in name_lower or 'galar' in name_lower:
-                    return base_paradox_name
         
         return name
     

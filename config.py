@@ -225,19 +225,50 @@ POKEMON_NAME_TRANSLATIONS = {
     "ナットレイ": "Ferrothorn",
     "バンギラス": "Tyranitar",
     
-    # Flutter Mane and Paradox Pokemon (common errors)
+    # Flutter Mane and Paradox Pokemon (ULTRA COMPREHENSIVE Iron Valiant fixes)
     "ハバタクカミ": "Flutter Mane",
     "Flutter-Mane": "Flutter Mane",
     "テツノドクガ": "Iron Moth",
     "Iron-Moth": "Iron Moth",
+    
+    # IRON VALIANT - Ultra comprehensive mapping (catch every possible variant)
     "テツノブジン": "Iron Valiant",
     "Iron-Valiant": "Iron Valiant", 
     "Iron-Valian": "Iron Valiant",
     "Iron Valian": "Iron Valiant",
+    "Iron-Valien": "Iron Valiant",
+    "Iron Valien": "Iron Valiant",
+    "Iron-Valliant": "Iron Valiant",  # Common typo
+    "Iron Valliant": "Iron Valiant",
+    "Iron-Valient": "Iron Valiant",   # Common typo
+    "Iron Valient": "Iron Valiant",
+    
+    # WITH THERIAN (the main error pattern)
     "Iron-Valiant-Therian": "Iron Valiant",
     "Iron-Valian-Therian": "Iron Valiant",
     "Iron Valiant-Therian": "Iron Valiant",
     "Iron Valian-Therian": "Iron Valiant",
+    "Iron-Valien-Therian": "Iron Valiant",
+    "Iron Valien-Therian": "Iron Valiant",
+    "Iron-Valliant-Therian": "Iron Valiant",
+    "Iron Valliant-Therian": "Iron Valiant",
+    "Iron-Valient-Therian": "Iron Valiant",
+    "Iron Valient-Therian": "Iron Valiant",
+    
+    # PARTIAL MATCHES (just the wrong part)
+    "Valian-Therian": "Iron Valiant",
+    "Valien-Therian": "Iron Valiant",
+    "Valliant-Therian": "Iron Valiant",
+    "Valient-Therian": "Iron Valiant",
+    "Valiant-Therian": "Iron Valiant",  # In case someone removes "Iron" but keeps wrong form
+    
+    # WITH OTHER INCORRECT FORMS
+    "Iron-Valiant-Forme": "Iron Valiant",
+    "Iron-Valiant-Form": "Iron Valiant",
+    "Iron-Valian-Forme": "Iron Valiant",
+    "Iron-Valian-Form": "Iron Valiant",
+    "Iron Valiant-Forme": "Iron Valiant",
+    "Iron Valiant-Form": "Iron Valiant",
     "スナノケガワ": "Sandy Shocks",
     "Sandy-Shocks": "Sandy Shocks",
     "アラブルタケ": "Brute Bonnet",
