@@ -1,0 +1,126 @@
+{
+  "title": "Pokemon SV Double Battle S30 Retrospective - Seabed",
+  "author": "海抜 (Kaibatsu)",
+  "regulation": "Not specified",
+  "pokemon_team": [
+    {
+      "name": "Calyrex-Ice",
+      "ability": "As One (Glastrier)",
+      "held_item": "Not specified",
+      "tera_type": "Not specified",
+      "nature": "Not specified",
+      "ev_spread": {
+        "HP": 0,
+        "Attack": 0,
+        "Defense": 0,
+        "Special Attack": 0,
+        "Special Defense": 0,
+        "Speed": 0,
+        "total": 0
+      },
+      "moves": [],
+      "ev_explanation": "Not specified, but used as a partner for the team and the author is familiar with its HP management and damage calculation.",
+      "role_in_team": "Support role, used due to familiarity and preference for stall strategies."
+    },
+    {
+      "name": "Kyogre",
+      "ability": "Drizzle",
+      "held_item": "Not specified",
+      "tera_type": "Not specified",
+      "nature": "Not specified",
+      "ev_spread": {
+        "HP": 0,
+        "Attack": 0,
+        "Defense": 0,
+        "Special Attack": 0,
+        "Special Defense": 0,
+        "Speed": 0,
+        "total": 0
+      },
+      "moves": [],
+      "ev_explanation": "The author mentions that the EVs were '適当' (tekitou), meaning 'random' or 'arbitrary'.",
+      "role_in_team": "Main attacker, used in conjunction with Tailwind and Trick Room strategies."
+    },
+    {
+      "name": "Gouging Fire",
+      "ability": "Protosynthesis",
+      "held_item": "Booster Energy",
+      "tera_type": "Not specified",
+      "nature": "Not specified",
+      "ev_spread": {
+        "HP": 0,
+        "Attack": 0,
+        "Defense": 0,
+        "Special Attack": 0,
+        "Special Defense": 0,
+        "Speed": 0,
+        "total": 0
+      },
+      "moves": [],
+      "ev_explanation": "Not specified",
+      "role_in_team": "Not specified"
+    },
+    {
+      "name": "Whimsicott",
+      "ability": "Prankster",
+      "held_item": "Focus Sash",
+      "tera_type": "Not specified",
+      "nature": "Not specified",
+      "ev_spread": {
+        "HP": 0,
+        "Attack": 0,
+        "Defense": 0,
+        "Special Attack": 0,
+        "Special Defense": 0,
+        "Speed": 0,
+        "total": 0
+      },
+      "moves": [],
+      "ev_explanation": "Not specified",
+      "role_in_team": "Not specified"
+    },
+    {
+      "name": "Amoonguss",
+      "ability": "Regenerator",
+      "held_item": "Not specified",
+      "tera_type": "Not specified",
+      "nature": "Not specified",
+      "ev_spread": {
+        "HP": 0,
+        "Attack": 0,
+        "Defense": 0,
+        "Special Attack": 0,
+        "Special Defense": 0,
+        "Speed": 0,
+        "total": 0
+      },
+      "moves": [],
+      "ev_explanation": "Deals with Miraidon and Koraidon with Rage Powder.",
+      "role_in_team": "Redirector"
+    },
+    {
+      "name": "Iron Crown",
+      "ability": "Quark Drive",
+      "held_item": "Not specified",
+      "tera_type": "Not specified",
+      "nature": "Not specified",
+      "ev_spread": {
+        "HP": 0,
+        "Attack": 0,
+        "Defense": 0,
+        "Special Attack": 0,
+        "Special Defense": 0,
+        "Speed": 0,
+        "total": 0
+      },
+      "moves": [],
+      "ev_explanation": "Not specified",
+      "role_in_team": "Not specified"
+    }
+  ],
+  "overall_strategy": "The team uses a combination of Tailwind and Trick Room to control speed, with Kyogre as a primary attacker. Calyrex-Ice provides support, and Amoonguss redirects attacks. The team aims to exploit weaknesses in the opponent's team using a combination of offensive pressure and redirection.",
+  "tournament_context": "The author participated in an offline tournament called シンギュラ2.0 (Singular 2.0) and used this team in Season 30.",
+  "translation_notes": "The author mentions that the EV spreads for Kyogre were '適当' (tekitou), meaning 'random' or 'arbitrary'. The team composition was copied from other players, with the author adjusting the EV spreads to their liking. The author also mentions using Lunala + Koraidon and Lunala + Miraidon combinations before switching to the current team.",
+  "content_summary": "The article is a retrospective on the author's performance in Season 30 of Pokemon SV double battles. The author discusses their team composition, strategy, and challenges faced during the season. They also reflect on their past performance and future goals.",
+  "analysis_confidence": 1.0
+}

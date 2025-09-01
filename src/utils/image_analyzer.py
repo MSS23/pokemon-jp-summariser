@@ -42,26 +42,37 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
                 # Convert relative URLs to absolute
                 img_url = urljoin(url, img_src)
 
-                # ULTRA-ENHANCED priority scoring for note.com team images
+                # ULTRA-ENHANCED priority scoring for note.com and hatenablog team images
                 is_note_com_asset = "assets.st-note.com" in img_url
+                is_hatenablog_asset = any(domain in img_url for domain in ["hatenablog.jp", "hatena.ne.jp", "hatenablog.com"])
                 is_likely_team_card = False
 
-                # COMPREHENSIVE team card indicators for note.com
+                # COMPREHENSIVE team card indicators for Japanese VGC sites
                 team_indicators = [
                     # Core VGC terms
                     "team", "pokemon", "vgc", "party", "チーム", "ポケモン", "構築",
                     
                     # Note.com specific patterns
                     "DvCIsNZXzyA2irhdlucjKOGR",  # Known note.com team card pattern
-                    "rental", "レンタル", "build", "lineup",
+                    "rental", "レンタル", "build", "lineup", "note", "st-note",
                     
-                    # Japanese VGC terms
-                    "ダブルバトル", "ダブル", "バトル", "調整", "努力値",
-                    "とくこう", "すばやさ", "こうげき", "ぼうぎょ",
+                    # Hatenablog specific patterns
+                    "hatenablog", "hatena", "blog", "entry", "ブログ", "記事",
+                    
+                    # Japanese VGC terms and EV indicators
+                    "ダブルバトル", "ダブル", "バトル", "調整", "努力値", "実数値",
+                    "とくこう", "すばやさ", "こうげき", "ぼうぎょ", "とくぼう",
+                    "最速", "準速", "4振り", "252", "244", "236", # Common EV values
+                    "乱数1発", "確定1発", "耐え", "抜き", # Calc terms
                     
                     # Pokemon names that frequently appear in team cards
                     "ガブリアス", "ランドロス", "ガオガエン", "エルフーン", "パオジアン",
-                    "テツノ", "ザマゼンタ", "ザシアン", "コライドン", "ミライドン"
+                    "テツノ", "ザマゼンタ", "ザシアン", "コライドン", "ミライドン",
+                    "ハバタクカミ", "サーフゴー", "ドラパルト", "イエッサン", "ウインディ",
+                    
+                    # Items and moves that indicate team cards
+                    "こだわりメガネ", "きあいのタスキ", "とつげきチョッキ", "たべのこし",
+                    "まもる", "ねこだまし", "じしん", "10まんボルト"
                 ]
                 
                 url_lower = img_url.lower()
@@ -74,12 +85,22 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
                 for indicator in team_indicators:
                     if indicator.lower() in combined_text:
                         team_card_score += 1
+                        # Extra weight for core VGC terms
                         if indicator in ["team", "pokemon", "vgc", "チーム", "ポケモン", "構築"]:
-                            team_card_score += 2  # Extra weight for core terms
+                            team_card_score += 2
+                        # Extra weight for EV indicators (high priority for our goal)
+                        if indicator in ["努力値", "実数値", "調整", "252", "244", "236"]:
+                            team_card_score += 3
+                
+                # Domain-specific scoring bonuses
+                if is_note_com_asset:
+                    team_card_score += 2  # Note.com assets get priority
+                if is_hatenablog_asset:
+                    team_card_score += 2  # Hatenablog assets get priority
                 
                 is_likely_team_card = team_card_score >= 1
 
-                # Skip very small images but be more lenient for note.com assets
+                # Skip very small images but be more lenient for Japanese VGC sites
                 width = img_tag.get("width")
                 height = img_tag.get("height")
                 skip_small = False
@@ -87,9 +108,9 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
                 if width and height:
                     try:
                         w, h = int(width), int(height)
-                        # For note.com assets, be more permissive
-                        if is_note_com_asset:
-                            if w < 300 or h < 200:  # More lenient for note.com
+                        # More lenient for Japanese VGC sites
+                        if is_note_com_asset or is_hatenablog_asset:
+                            if w < 300 or h < 200:  # Lenient for Japanese sites
                                 skip_small = True
                         else:
                             if w < 100 or h < 100:
@@ -128,13 +149,14 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
                         "title": img_tag.get("title", ""),
                         "content_type": img_response.headers.get("content-type", ""),
                         "is_note_com_asset": is_note_com_asset,
+                        "is_hatenablog_asset": is_hatenablog_asset,
                         "is_likely_team_card": is_likely_team_card,
                         "team_card_score": team_card_score,
                         "file_size": len(img_response.content),
                     }
 
-                    # Prioritize note.com assets and likely team cards
-                    if is_note_com_asset or is_likely_team_card:
+                    # Prioritize Japanese VGC site assets and likely team cards
+                    if is_note_com_asset or is_hatenablog_asset or is_likely_team_card:
                         note_com_images.append(image_info)
                     else:
                         other_images.append(image_info)
@@ -142,7 +164,11 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
             except Exception as e:
                 continue
 
-        # Combine with priority: note.com assets first, then others
+        # Sort priority images by team card score (highest first)
+        note_com_images.sort(key=lambda x: x["team_card_score"], reverse=True)
+        other_images.sort(key=lambda x: x["team_card_score"], reverse=True)
+        
+        # Combine with priority: Japanese VGC site assets first, then others
         priority_images = note_com_images + other_images
         images = priority_images[:max_images]
 
@@ -339,35 +365,51 @@ This is your PRIMARY objective. Every Pokemon team card contains EV data - you M
 **OBJECTIVE 1: SYSTEMATIC EV DETECTION (HIGHEST PRIORITY)**
 SCAN EVERY pixel for EV patterns in these EXACT formats:
 
-**A. Calculated Stat Format (PRIORITY - liberty-note.com style):**
+**A. Calculated Stat Format (PRIORITY - hatenablog.jp & note.com style):**
 - "H181(148)-A×↓-B131(124)-C184↑(116)-D112(4)-S119(116)"
 - Format: [StatLetter][CalculatedValue]([EVValue])[NatureSymbol]
 - Extract ONLY the numbers in parentheses (148, 124, 116, 4, 116)
 - Nature symbols: ↑ = boost, ↓ = reduce, × = neutral/no investment
 - IGNORE the first number (calculated stat), focus on parentheses
+- 🎯 EXACT EXAMPLES from problem articles:
+  * "実数値:205-x-125-198-136-160" + "努力値:236-0-36-196-4-36"
+  * "H205(236)-A×↓-B125(36)-C198↑(196)-D136(4)-S160(36)"
 
-**B. Standard Slash Format:**
+**B. Direct Japanese EV Format (ULTRA-PRIORITY for yunu.hatenablog.jp):**
+- "努力値:236-0-36-196-4-36" (EXACT pattern from Miraidon example)
+- "努力値: 252-0-4-252-0-0" (standard format)
+- "個体値調整: 244-0-12-252-0-0" (alternative format)
+- Structure: [keyword]: [HP]-[Atk]-[Def]-[SpA]-[SpD]-[Spe]
+- 🚨 CRITICAL: This is the MOST COMMON format in Japanese VGC articles
+
+**C. Standard Slash Format:**
 - "252/0/4/252/0/0" or "252-0-4-252-0-0" (HP/Atk/Def/SpA/SpD/Spe order)
 - "H252/A0/B4/C252/D0/S0" (with stat prefixes)
 - Look for 6 numbers separated by slashes or dashes
 
-**C. Japanese Grid/Table Format (MOST COMMON in note.com):**
+**D. Japanese Grid/Table Format (MOST COMMON in note.com):**
 - ＨＰ: 252    こうげき: 0     ぼうぎょ: 4
 - とくこう: 252  とくぼう: 0   すばやさ: 0
 - Search for Japanese stat names with numbers next to them
+- 🎯 Look for this in team card layouts and Pokemon description boxes
 
-**D. Abbreviated Format:**
+**E. Abbreviated Format:**
 - "H252 A0 B4 C252 D0 S0" (single line with spaces)
 - "252HP 4Def 252SpA" (mixed format)
 - Any combination of stat letters (H/A/B/C/D/S) with numbers
 
-**E. Individual Stat Lines:**
+**F. Individual Stat Lines:**
 - HP: 252 (or ＨＰ：252)
 - Attack: 0 (or こうげき：0)
 - Defense: 4 (or ぼうぎょ：4)
 - Sp. Atk: 252 (or とくこう：252)
 - Sp. Def: 0 (or とくぼう：0)
 - Speed: 0 (or すばやさ：0)
+
+**G. Technical Context Format (From actual VGC analysis):**
+- Damage calculations near EVs: "H-B:白馬A220のブリランダブルダメ乱数1発(12.5%)"
+- Speed tier context: "S:最速90族＋4" indicates specific EV allocation
+- Nature context: "控え目(C↑A↓)" = Modest nature
 
 **🔍 ADVANCED JAPANESE EV DETECTION:**
 

@@ -268,13 +268,16 @@ class GeminiVGCAnalyzer:
                 current_spread = pokemon.get("ev_spread", {})
                 current_total = current_spread.get("total", 0) if isinstance(current_spread, dict) else 0
                 
-                # Determine if current EVs are inadequate
+                # Determine if current EVs are inadequate (enhanced for Japanese VGC)
                 needs_image_evs = any([
                     current_evs == "Not specified",
                     current_evs == "",
-                    current_total <= 20,  # Very low total indicates failed detection
+                    current_total <= 50,  # Very low total indicates failed detection (more lenient)
                     isinstance(current_evs, str) and "not found" in current_evs.lower(),
+                    isinstance(current_evs, str) and "not specified" in current_evs.lower(),
                     isinstance(current_evs, str) and len(current_evs) < 5,  # Too short to be real EV spread
+                    # Accept technical spreads with totals 468-508 (common in Japanese VGC)
+                    isinstance(current_total, int) and current_total > 0 and current_total < 400,
                 ])
                 
                 # Assign best available image EV spread
@@ -285,12 +288,12 @@ class GeminiVGCAnalyzer:
                         # Convert image EV spread to standard format
                         pokemon["evs"] = best_image_spread["format"]
                         pokemon["ev_spread"] = {
-                            "hp": best_image_spread.get("hp", 0),
-                            "attack": best_image_spread.get("attack", 0), 
-                            "defense": best_image_spread.get("defense", 0),
-                            "special_attack": best_image_spread.get("special_attack", 0),
-                            "special_defense": best_image_spread.get("special_defense", 0),
-                            "speed": best_image_spread.get("speed", 0),
+                            "HP": best_image_spread.get("hp", 0),
+                            "Attack": best_image_spread.get("attack", 0), 
+                            "Defense": best_image_spread.get("defense", 0),
+                            "Special Attack": best_image_spread.get("special_attack", 0),
+                            "Special Defense": best_image_spread.get("special_defense", 0),
+                            "Speed": best_image_spread.get("speed", 0),
                             "total": best_image_spread.get("total", 0),
                             "source": f"image_analysis_{best_image_spread.get('confidence', 'medium')}"
                         }
@@ -559,11 +562,19 @@ Your most important task is finding EV spreads. EVERY Japanese VGC article conta
 - 🚨 IGNORE the first number (calculated stat), focus on parentheses
 - Nature symbols: ↑ = boost, ↓ = reduce, × = neutral/no investment
 
-**FORMAT 2: Japanese Direct EV Format (ULTRA-CRITICAL)**
+**FORMAT 2: Japanese Direct EV Format (ULTIMATE PRIORITY - CHECK FIRST!)**
 - Pattern: "努力値:236-0-36-196-4-36" or "努力値: 252-0-4-252-0-0"
 - Structure: 努力値: [HP]-[Attack]-[Defense]-[SpA]-[SpD]-[Speed]
-- 🚨 MOST COMMON IN JAPANESE VGC ARTICLES - ALWAYS CHECK FOR THIS!
-- Alternative keywords: "個体値調整:", "EV配分:", "振り分け:"
+- 🚨 MOST COMMON IN JAPANESE VGC ARTICLES - SCAN EVERY LINE FOR THIS!
+- 🔥 EXPANDED Keywords to Check (ULTRA-COMPREHENSIVE):
+  * Primary: "努力値:", "努力値：", "努力値 :", "努力値 ："
+  * Secondary: "個体値調整:", "EV配分:", "振り分け:", "調整:", "ステータス:"
+  * Technical: "EV値:", "EV:", "努力:", "個体値:", "配分:"
+  * Context: "実数値:" followed by "努力値:" (common pattern)
+- 🎯 EXACT EXAMPLES FROM REAL ARTICLES:
+  * "努力値:236-0-36-196-4-36" (Miraidon example)
+  * "努力値: 252-0-4-252-0-0" (Standard format)
+  * "個体値調整: 244-0-12-252-0-0" (Alternative format)
 
 **FORMAT 3: Standard Slash Format**
 - Patterns: "252/0/4/252/0/0", "252-0-4-252-0-0", "H252/A0/B4/C252/D0/S0"
@@ -591,10 +602,17 @@ Speed: 0 (or すばやさ：0)
 - "252HP 4Def 252SpA"
 - Any stat letters (H/A/B/C/D/S) with numbers
 
-**FORMAT 7: Technical Calculation Format (Common in competitive analysis)**
+**FORMAT 7: Technical Calculation Format (ULTRA-ENHANCED - Common in competitive analysis)**
 - Pattern: "実数値:205-x-125-198-136-160" followed by "努力値:236-0-36-196-4-36"
-- Often includes damage calculations like "H-B:白馬A220のブリランダブルダメ乱数1発(12.5%)"
-- Speed tier notations: "S:最速90族＋4" or "S:準速100族"
+- 🎯 EXACT SEQUENCE RECOGNITION:
+  * Line 1: "実数値:" with actual battle stats (includes 'x' for unused Attack)
+  * Line 2: "努力値:" with EV distribution (EXTRACT THIS!)
+- 🔍 ENHANCED Context Patterns:
+  * Damage calculations: "H-B:白馬A220のブリランダブルダメ乱数1発(12.5%)"
+  * Equivalent calcs: "＝陽気パオジアンA172のつららおとし乱数1発(12.5%)"
+  * Speed benchmarks: "S:最速90族＋4", "S:準速100族", "S:4振り○○"
+  * Optimization notes: "C:11n", "H:16n-1"
+- 🚨 CRITICAL: When you see "実数値:" IMMEDIATELY scan next 2-3 lines for "努力値:"
 
 **🔍 ULTRA-COMPREHENSIVE JAPANESE STAT VOCABULARY:**
 - **HP**: ＨＰ, HP, H, ヒットポイント, 体力
@@ -604,20 +622,31 @@ Speed: 0 (or すばやさ：0)
 - **Sp.Defense**: とくぼう, 特防, 特殊防御, D, とくしゅぼうぎょ
 - **Speed**: すばやさ, 素早さ, S, スピード, 速さ
 
-**🚨 EV DETECTION PROTOCOL:**
-1. **SCAN METHODICALLY**: Check every paragraph for EV patterns
-2. **MULTIPLE FORMATS**: Try ALL 7 formats for each Pokemon
-3. **PRIORITIZE**: Check Format 2 (努力値:) FIRST - most common in Japanese articles
-4. **VALIDATE TOTALS**: EVs must total ≤508 (if >508, these are battle stats, not EVs)
-5. **COMMON PATTERNS**: Look for 252/252/4, 252/0/0/252/4/0, 244/0/12/252/0/0, 236/0/36/196/4/36
-6. **NEVER GIVE UP**: If one format fails, try others - EVs are always present
-7. **CONTEXT CLUES**: Look for damage calculations and speed tiers near EV spreads
+**🚨 ULTRA-ENHANCED EV DETECTION PROTOCOL (2025 COMPLETE):**
+1. **SCAN METHODICALLY**: Check every paragraph, sentence, and line for EV patterns
+2. **ABSOLUTE PRIORITY**: Check Format 2 (努力値:) FIRST AND FOREMOST
+3. **MULTIPLE FORMATS**: Try ALL 7 formats for each Pokemon systematically
+4. **CONTEXT AWARENESS**: Scan near these indicator words:
+   * Speed tiers: "最速90族", "準速100族", "4振り", "無振り", "準速", "最速"
+   * Calculations: "乱数1発", "確定1発", "乱数2発", "耐え", "抜き"
+   * Optimization: "11n", "16n-1", "調整", "ライン", "意識"
+5. **VALIDATE TOTALS**: EVs must total ≤508 (if >508, these are battle stats, not EVs)
+6. **EXPANDED PATTERNS**: Look for competitive spreads:
+   * Standard: 252/252/4, 252/0/0/252/4/0, 244/0/12/252/0/0
+   * Technical: 236/0/36/196/4/36 (Miraidon), 244/0/4/252/4/4
+   * Defensive: 252/0/156/0/100/0, 252/0/252/4/0/0
+7. **NEVER GIVE UP**: If one format fails, try others - EVs are ALWAYS present in VGC articles
+8. **SEQUENTIAL SEARCH**: When you find "実数値:", immediately search next 3 lines for EV data
 
-**⚡ EV VALIDATION REQUIREMENTS:**
+**⚡ EV VALIDATION REQUIREMENTS (JAPANESE VGC OPTIMIZED):**
 - Valid EV values: 0, 4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 92, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 188, 196, 204, 212, 220, 228, 236, 244, 252
-- Total EVs must be ≤508
+- Total EVs must be ≤508 (Accept totals 468-508 as valid competitive spreads)
 - Individual stats must be ≤252
-- Multiples of 4 are preferred (indicates proper EV allocation)
+- Common Japanese competitive patterns:
+  * 236/0/36/196/4/36 = 468 total ✓ (Miraidon technical spread)
+  * 252/252/4/0/0/0 = 508 total ✓ (Standard offensive)
+  * 244/0/12/252/0/0 = 508 total ✓ (Bulky special attacker)
+- Multiples of 4 are preferred but accept technical optimizations (11n, 16n-1)
 
 🏆 **REGULATION DETECTION PROTOCOL (ULTRA-CRITICAL)** 🏆
 

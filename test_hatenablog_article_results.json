@@ -1,0 +1,156 @@
+{
+  "title": "Final 11th Place, Final Rating 2001: Ooronge-Centered Construction",
+  "author": "Not specified",
+  "regulation": "レギュI",
+  "pokemon_team": [
+    {
+      "name": "Miraidon",
+      "ability": "Hadron Engine",
+      "held_item": "Choice Specs",
+      "tera_type": "Fairy",
+      "nature": "Modest",
+      "ev_spread": {
+        "HP": 236,
+        "Attack": 0,
+        "Defense": 36,
+        "Special Attack": 196,
+        "Special Defense": 4,
+        "Speed": 36,
+        "total": 508
+      },
+      "moves": [
+        "Thunder Drive",
+        "Meteor Beam",
+        "Volt Switch",
+        "Magical Shine"
+      ],
+      "ev_explanation": "More durable Miraidon. The EV spread is designed to survive certain attacks and outspeed other Miraidon and Zamazenta. H-B: Survives a Brilliant Diamond from a 220 Attack White Kyurem with a 12.5% chance. = Survives an Ice Fang from a 172 Attack Jolly Chien-Pao with a 12.5% chance. C: 11n. S: Outspeeds base 90 Speed Pokemon by 4.",
+      "role_in_team": "Primary special attacker and speed control"
+    },
+    {
+      "name": "Koraidon",
+      "ability": "Orichalcum Pulse",
+      "held_item": "Loaded Dice",
+      "tera_type": "Fire",
+      "nature": "Adamant",
+      "ev_spread": {
+        "HP": 4,
+        "Attack": 252,
+        "Defense": 0,
+        "Special Attack": 0,
+        "Special Defense": 0,
+        "Speed": 252,
+        "total": 508
+      },
+      "moves": [
+        "Scale Shot",
+        "Axel Break",
+        "Flare Blitz",
+        "Protect"
+      ],
+      "ev_explanation": "H: Remaining EVs, good for Flare Blitz recoil, 16n (useful for Grassy Terrain recovery). A: Maximum investment for power. Scale Shot 4 hits guarantees KO on uninvested Chien-Pao. S: Maximum investment, speed ties with Jolly Pao.",
+      "role_in_team": "Physical attacker, late-game cleaner"
+    },
+    {
+      "name": "Flutter Mane",
+      "ability": "Protosynthesis",
+      "held_item": "Focus Sash",
+      "tera_type": "Normal",
+      "nature": "Timid",
+      "ev_spread": {
+        "HP": 4,
+        "Attack": 0,
+        "Defense": 0,
+        "Special Attack": 252,
+        "Special Defense": 0,
+        "Speed": 252,
+        "total": 508
+      },
+      "moves": [
+        "Moonblast",
+        "Icy Wind",
+        "Taunt",
+        "Protect"
+      ],
+      "ev_explanation": "H: Remaining EVs, hoping for more Flare Blitz recoil damage. C: Maximum investment for power. S: Maximum investment for speed.",
+      "role_in_team": "Speed control, anti-Trick Room, special attacker"
+    },
+    {
+      "name": "Volcarona",
+      "ability": "Flame Body",
+      "held_item": "Electric Seed",
+      "tera_type": "Water",
+      "nature": "Bold",
+      "ev_spread": {
+        "HP": 252,
+        "Attack": 0,
+        "Defense": 204,
+        "Special Attack": 0,
+        "Special Defense": 52,
+        "Speed": 0,
+        "total": 508
+      },
+      "moves": [
+        "Fiery Dance",
+        "Rage Powder",
+        "Tailwind",
+        "Protect"
+      ],
+      "ev_explanation": "H: Maximum investment for bulk. B: 16n+1, even number for Electric Seed efficiency. After Electric Seed, survives two Crunch from a 189 Attack Adamant Chien-Pao (3.5% chance). D: Survives two Astral Barrage from a 217 Special Attack Timid Black Kyurem (8.5% chance).",
+      "role_in_team": "Support, redirection, speed control"
+    },
+    {
+      "name": "Grimmsnarl",
+      "ability": "Prankster",
+      "held_item": "Covert Cloak",
+      "tera_type": "Ground",
+      "nature": "Impish",
+      "ev_spread": {
+        "HP": 252,
+        "Attack": 0,
+        "Defense": 156,
+        "Special Attack": 0,
+        "Special Defense": 100,
+        "Speed": 0,
+        "total": 508
+      },
+      "moves": [
+        "Sucker Punch",
+        "Thunder Wave",
+        "Light Screen",
+        "Fake Out"
+      ],
+      "ev_explanation": "H: Maximum investment for bulk. B: Survives a Heavy Slam from a 141 Attack (4 EV) Zamazenta. D: Remaining EVs.",
+      "role_in_team": "Support, speed control, disruption"
+    },
+    {
+      "name": "Incineroar",
+      "ability": "Intimidate",
+      "held_item": "Assault Vest",
+      "tera_type": "Water",
+      "nature": "Adamant",
+      "ev_spread": {
+        "HP": 244,
+        "Attack": 36,
+        "Defense": 124,
+        "Special Attack": 0,
+        "Special Defense": 76,
+        "Speed": 28,
+        "total": 508
+      },
+      "moves": [
+        "Flare Blitz",
+        "Knock Off",
+        "U-Turn",
+        "Fake Out"
+      ],
+      "ev_explanation": "H: High HP investment. A: 11n. B: Survives a Brilliant Diamond + High Horsepower from a 220 Attack White Kyurem. D: Even number, survives a Thunder Drive from a 205 Special Attack Modest Miraidon with some leeway. S: Slightly faster than other Incineroar, slower than slowest Kyogre (-1), outspeeds base 100 with Tailwind.",
+      "role_in_team": "Intimidate support, utility, physical attacker"
+    }
+  ],
+  "overall_strategy": "The team aims to gain an advantage through single target high power attacks and secure a numbers advantage. The team uses Miraidon and Incineroar as a core, with Grimmsnarl, Volcarona, Koraidon, and Flutter Mane providing support and coverage.",
+  "tournament_context": "JCS2025 Online Preliminary",
+  "translation_notes": "CTS is likely referring to a specific stat calculation or strategy. Black Kyurem is referred to as 黒馬 (Kuro Uma). White Kyurem is referred to as 白馬 (Shiro Uma).",
+  "content_summary": "The article details a VGC team built around Grimmsnarl and Miraidon, explaining the team's construction process, individual Pokemon builds, and general strategy. The author achieved a final rating of 2001 and placed 11th. The article also includes a rental code for the team.",
+  "analysis_confidence": 1.0
+}
