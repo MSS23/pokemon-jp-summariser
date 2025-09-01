@@ -141,7 +141,7 @@ The application uses a comprehensive 380+ line prompt that includes:
 - Meta relevance assessment criteria
 
 ### Gemini Model Configuration
-- **Model**: `gemini-2.0-flash-exp`
+- **Model**: `gemini-2.5-flash-lite`
 - **Content Limit**: 8000 characters for analysis
 - **Output Format**: Structured JSON with team data and translations
 

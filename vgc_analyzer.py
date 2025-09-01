@@ -28,11 +28,11 @@ class GeminiVGCAnalyzer:
         self.api_key = Config.get_google_api_key()
         genai.configure(api_key=self.api_key)
 
-        # Configure the text model with latest Gemini 2.5 Flash
-        self.model = genai.GenerativeModel("gemini-2.5-flash")
+        # Configure the text model with Gemini 2.5 Flash-Lite (optimized for higher quota)
+        self.model = genai.GenerativeModel("gemini-2.5-flash-lite")
         
         # Configure the vision model
-        self.vision_model = genai.GenerativeModel("gemini-2.5-flash")
+        self.vision_model = genai.GenerativeModel("gemini-2.5-flash-lite")
 
         # Generation config for consistent output
         self.generation_config = {
