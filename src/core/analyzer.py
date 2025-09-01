@@ -4,13 +4,19 @@ Core VGC analysis engine using Google Gemini AI.
 
 import json
 import re
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 import google.generativeai as genai
 
 from ..utils.config import Config, POKEMON_NAME_TRANSLATIONS
 from ..utils.cache_manager import cache
 from .scraper import ArticleScraper
 from .pokemon_validator import PokemonValidator
+from ..utils.image_analyzer import (
+    extract_images_from_url,
+    filter_vgc_images,
+    analyze_image_with_vision,
+    extract_ev_spreads_from_image_analysis
+)
 
 
 class GeminiVGCAnalyzer:
@@ -114,6 +120,163 @@ class GeminiVGCAnalyzer:
             # Enhanced error context
             error_context = self._generate_error_context(content, url, str(e))
             raise ValueError(f"Analysis failed: {str(e)}. {error_context}")
+
+    def analyze_article_with_images(self, content: str, url: str = None) -> Dict[str, Any]:
+        """
+        Enhanced article analysis combining text and image analysis
+        
+        Args:
+            content: Article content to analyze
+            url: Optional URL for image extraction and context
+            
+        Returns:
+            Analysis result combining text and image data
+        """
+        try:
+            # Start with text-only analysis
+            text_result = self.analyze_article(content, url)
+            
+            # If URL is provided, attempt image analysis
+            if url:
+                try:
+                    # Extract and analyze images
+                    image_analysis = self._analyze_images_from_url(url)
+                    
+                    # Merge image data into text analysis
+                    if image_analysis:
+                        text_result = self._merge_text_and_image_analysis(text_result, image_analysis)
+                        
+                        # Add image analysis notes
+                        existing_notes = text_result.get("translation_notes", "")
+                        image_notes = f"Enhanced with image analysis from {len(image_analysis.get('analyzed_images', []))} images"
+                        text_result["translation_notes"] = f"{existing_notes} | {image_notes}".strip(" |")
+                        
+                except Exception as e:
+                    # Image analysis failed, add note but continue with text analysis
+                    existing_notes = text_result.get("translation_notes", "")
+                    failure_note = f"Image analysis failed: {str(e)}"
+                    text_result["translation_notes"] = f"{existing_notes} | {failure_note}".strip(" |")
+                    
+            return text_result
+            
+        except Exception as e:
+            # If text analysis also fails, re-raise the error
+            raise e
+    
+    def _analyze_images_from_url(self, url: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract and analyze images from URL for VGC content
+        
+        Args:
+            url: URL to extract images from
+            
+        Returns:
+            Dictionary containing image analysis results or None if failed
+        """
+        try:
+            # Extract images from URL
+            all_images = extract_images_from_url(url, max_images=10)
+            
+            if not all_images:
+                return None
+                
+            # Filter for VGC-relevant images
+            vgc_images = filter_vgc_images(all_images)
+            
+            if not vgc_images:
+                # If no VGC-specific images found, try a few of the best general images
+                vgc_images = all_images[:3]
+            
+            analyzed_images = []
+            extracted_data = {
+                "pokemon_team": [],
+                "ev_spreads": [],
+                "strategy_insights": []
+            }
+            
+            # Analyze each image
+            for image_info in vgc_images:
+                try:
+                    if image_info.get('image_data') and image_info.get('format'):
+                        # Analyze image with vision model
+                        vision_analysis = analyze_image_with_vision(
+                            image_info['image_data'], 
+                            image_info['format'], 
+                            self.vision_model
+                        )
+                        
+                        if vision_analysis:
+                            analyzed_images.append({
+                                'url': image_info.get('url', ''),
+                                'analysis': vision_analysis,
+                                'confidence': image_info.get('confidence_score', 0.5)
+                            })
+                            
+                            # Extract EV spreads from analysis
+                            ev_spreads = extract_ev_spreads_from_image_analysis(vision_analysis)
+                            if ev_spreads:
+                                extracted_data["ev_spreads"].extend(ev_spreads)
+                                
+                except Exception as img_error:
+                    # Skip this image but continue with others
+                    continue
+            
+            if analyzed_images:
+                extracted_data["analyzed_images"] = analyzed_images
+                return extracted_data
+                
+            return None
+            
+        except Exception as e:
+            # Return None to indicate image analysis failed
+            return None
+    
+    def _merge_text_and_image_analysis(self, text_result: Dict[str, Any], image_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Merge image analysis data with text analysis results
+        
+        Args:
+            text_result: Result from text-only analysis
+            image_data: Result from image analysis
+            
+        Returns:
+            Merged analysis result
+        """
+        merged_result = text_result.copy()
+        
+        # Extract EV spreads from images
+        image_ev_spreads = image_data.get("ev_spreads", [])
+        
+        # Enhance Pokemon team data with image information
+        pokemon_team = merged_result.get("pokemon_team", [])
+        
+        # Try to match EV spreads from images to Pokemon in team
+        if image_ev_spreads and pokemon_team:
+            for i, pokemon in enumerate(pokemon_team):
+                # If Pokemon has no EV spread or default spread, try to fill from image data
+                current_spread = pokemon.get("ev_spread", {})
+                current_total = current_spread.get("total", 0)
+                
+                # If current spread is empty or default, try to use image data
+                if current_total <= 0 and i < len(image_ev_spreads):
+                    image_spread = image_ev_spreads[i]
+                    if image_spread.get("ev_spread"):
+                        pokemon["ev_spread"] = image_spread["ev_spread"]
+                        
+                        # Enhance explanation with image source
+                        original_explanation = pokemon.get("ev_explanation", "Not specified")
+                        if original_explanation == "Not specified" and image_spread.get("explanation"):
+                            pokemon["ev_explanation"] = f"From image: {image_spread['explanation']}"
+                        elif image_spread.get("explanation"):
+                            pokemon["ev_explanation"] = f"{original_explanation} | From image: {image_spread['explanation']}"
+        
+        # Add image analysis confidence to overall result
+        if "analysis_confidence" in merged_result:
+            # Boost confidence if we have good image data
+            image_boost = 0.1 if len(image_data.get("analyzed_images", [])) > 0 else 0
+            merged_result["analysis_confidence"] = min(1.0, merged_result["analysis_confidence"] + image_boost)
+        
+        return merged_result
     
     def _preprocess_content_for_analysis(self, content: str) -> str:
         """Preprocess content to improve analysis accuracy"""
