@@ -51,7 +51,7 @@ try:
         render_sidebar,
         apply_custom_css
     )
-    from ui.pages import render_switch_translation_page, render_settings_page
+    from ui.pages import render_switch_translation_page, render_settings_page, render_saved_teams_page, render_team_search_page
     from utils import cache
     from utils.config import Config
     
@@ -166,6 +166,12 @@ try:
         
     elif current_page == "⚙️ Settings":  
         render_settings_page()
+        
+    elif current_page == "📚 Saved Teams":
+        render_saved_teams_page()
+        
+    elif current_page == "🔍 Team Search":
+        render_team_search_page()
         
     elif current_page == "📖 Help & Guide":
         st.header("📖 Help & User Guide")

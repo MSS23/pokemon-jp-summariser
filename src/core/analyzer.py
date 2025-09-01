@@ -156,6 +156,9 @@ class GeminiVGCAnalyzer:
                     existing_notes = text_result.get("translation_notes", "")
                     failure_note = f"Image analysis failed: {str(e)}"
                     text_result["translation_notes"] = f"{existing_notes} | {failure_note}".strip(" |")
+            
+            # ULTRA-CRITICAL: Apply validation pipeline including stat abbreviation translation
+            text_result = self._validate_and_enhance_result(text_result, content, url)
                     
             return text_result
             
@@ -463,6 +466,12 @@ class GeminiVGCAnalyzer:
         result = self.pokemon_validator.fix_pokemon_name_translations(result)
         result = self.pokemon_validator.apply_pokemon_validation(result)
         
+        # ULTRA-CRITICAL: Validate Pokemon identification using signature moves
+        result = self.pokemon_validator.validate_pokemon_moves_consistency(result)
+        
+        # ULTRA-CRITICAL: Translate Japanese stat abbreviations in strategic reasoning
+        result = self.pokemon_validator.translate_strategic_reasoning_stats(result)
+        
         # Add confidence scoring
         confidence_score = self._calculate_analysis_confidence(result, content)
         result["analysis_confidence"] = confidence_score
@@ -698,9 +707,52 @@ Speed: 0 (or すばやさ：0)
 5. **If no strategic reasoning found**, use "EV reasoning not specified in article"
 6. **Never make up strategic reasoning** - only use what's actually written
 
-**TRANSLATION EXAMPLES**:
+**🚨 ULTRA-CRITICAL STAT ABBREVIATION TRANSLATION PROTOCOL:**
+
+**PRIMARY RULE**: ALWAYS translate Japanese stat abbreviations to full English terms in ev_explanation field.
+
+**STAT ABBREVIATION MAPPING:**
+- H = HP (Hit Points)
+- A = Attack  
+- B = Defense
+- C = Special Attack
+- D = Special Defense
+- S = Speed
+- CS = Special Attack and Speed
+- AS = Attack and Speed
+- HB = HP and Defense
+
+**CRITICAL TRANSLATION EXAMPLES:**
+
+**Japanese Strategic Reasoning → English Translation:**
+
+1. **Basic Stat References:**
+   - "CS振り" → "Special Attack and Speed investment"  
+   - "H252 B4" → "252 HP, 4 Defense"
+   - "S調整" → "Speed adjustment"
+   - "B極振り" → "max Defense"
+
+2. **Technical Explanations:**
+   - "CS max. B investment was tested..." → "max Special Attack and Speed. Defense investment was tested..."
+   - "S: 最速90族+2" → "Speed: outspeeds max speed base 90 +2"  
+   - "H: 11n" → "HP: multiple of 11"
+   - "B4 D252残り" → "4 Defense, 252 Special Defense remaining"
+
+3. **Complex Strategic Reasoning:**
+   - "S最速ウーラオス+2を意識してH調整、Bは削った" → "Speed: considering fastest Urshifu +2, HP adjusted, Defense reduced"
+   - "CS極振りでHBは耐久重視" → "max Special Attack and Speed with HP and Defense focusing on bulk"
+
+**TRANSLATION PROTOCOL:**
+1. **Extract strategic reasoning first** in Japanese abbreviated form
+2. **Immediately translate all stat abbreviations** to full English terms  
+3. **Preserve technical accuracy** while making it readable for English speakers
+4. **Use "HP" not "H", "Defense" not "B", "Special Attack" not "C"**, etc.
+
+**FORBIDDEN**: Never leave stat abbreviations untranslated in the final ev_explanation field.
+
+**TRANSLATION EXAMPLES FOR DAMAGE CALCULATIONS:**
 - "陽気ガブリアスの地震確定耐え" → "Survives Earthquake from Jolly Garchomp"
-- "最速100族抜き" → "Outspeeds max speed base 100 Pokemon"
+- "最速100族抜き" → "Outspeeds max speed base 100 Pokemon"  
 - "特化珠フラッターのシャドボ乱数耐え" → "Survives Shadow Ball from Choice Specs Flutter Mane with some probability"
 
 **⚡ EV VALIDATION REQUIREMENTS (JAPANESE VGC OPTIMIZED):**
@@ -814,6 +866,35 @@ These are CRITICAL to identify correctly as they appear frequently in competitiv
 - ザシアン = Zacian (Fairy/Steel legendary with sword)
 - ハバタクカミ = Flutter Mane (Ghost/Fairy paradox) - NEVER "Flatter Mane"
 - サーフゴー = Gholdengo (Ghost/Steel - surfboard-like golden Pokemon)
+
+**🔥 CRITICAL MISSING POKEMON - FREQUENTLY MISIDENTIFIED:**
+- オーロンゲ = Grimmsnarl (Dark/Fairy - NEVER "Ooronge")
+
+**⚠️ CALYREX vs KYUREM FORMS - ULTRA-CRITICAL DISTINCTION:**
+🚨 **NEVER CONFUSE THESE RESTRICTED POKEMON** 🚨
+
+**CALYREX FORMS (Psychic type base):**
+- バドレックス-はくばじょう = Calyrex-Ice (Psychic/Ice - riding Glastrier)
+  * Signature Move: ブリザードランス = Glacial Lance
+  * Alternative names: はくばじょうバドレックス, 白馬 (White Horse)
+- バドレックス-こくばじょう = Calyrex-Shadow (Psychic/Ghost - riding Spectrier)  
+  * Signature Move: アストラルビット = Astral Barrage
+  * Alternative names: こくばじょうバドレックス, 黒馬 (Black Horse)
+
+**KYUREM FORMS (Dragon/Ice type):**
+- キュレム-ホワイト = Kyurem-White (Dragon/Ice - WHITE KYUREM, NOT CALYREX!)
+  * Signature Move: アイスバーン = Ice Burn
+  * Alternative names: ホワイトキュレム
+- キュレム-ブラック = Kyurem-Black (Dragon/Ice - BLACK KYUREM, NOT CALYREX!)
+  * Signature Move: フリーズボルト = Freeze Shock  
+  * Alternative names: ブラックキュレム
+
+**🎯 SIGNATURE MOVE IDENTIFICATION PROTOCOL:**
+When you see these moves, you can be 100% certain of the Pokemon:
+- Glacial Lance (ブリザードランス) = ALWAYS Calyrex-Ice
+- Astral Barrage (アストラルビット) = ALWAYS Calyrex-Shadow
+- Ice Burn (アイスバーン) = ALWAYS Kyurem-White
+- Freeze Shock (フリーズボルト) = ALWAYS Kyurem-Black
 
 **GENERATION 9 META STAPLES:**
 - コライドン = Koraidon (Fighting/Dragon legendary - orange)
@@ -995,7 +1076,7 @@ Provide your response in this EXACT JSON structure:
       },
       "evs": "HP/Attack/Defense/SpA/SpD/Speed format (e.g., 252/0/4/252/0/0)",
       "moves": ["Move 1", "Move 2", "Move 3", "Move 4"],
-      "ev_explanation": "EXACT strategic reasoning for EV distribution as mentioned in the article, translated to English. Include damage calcs, speed benchmarks, defensive benchmarks, or other tactical reasoning found in the text.",
+      "ev_explanation": "EXACT strategic reasoning for EV distribution as mentioned in the article, translated to English with ALL stat abbreviations converted to full English terms (H→HP, B→Defense, C→Special Attack, etc.). Include damage calcs, speed benchmarks, defensive benchmarks, or other tactical reasoning found in the text.",
       "role_in_team": "Pokemon's strategic role"
     }
   ],

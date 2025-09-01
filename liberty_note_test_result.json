@@ -24,8 +24,9 @@
         "Encore",
         "Protect"
       ],
-      "ev_explanation": "CS max. B investment was tested to be aware of scarf Suicune, but it was often barely survived because C was reduced, and since OTS can tell the type of Suicune, no adjustment was made.",
-      "role_in_team": "Main attacker, supported by other team members"
+      "ev_explanation": "max Special Attack and Speed. B investment was tested to be aware of scarf Suicune, but it was often barely survived because C was reduced, and since OTS can tell the type of Suicune, no adjustment was made.",
+      "role_in_team": "Main attacker, supported by other team members",
+      "evs": "0/0/4/252/0/252"
     },
     {
       "name": "Zamazenta",
@@ -48,8 +49,9 @@
         "Wide Guard",
         "Protect"
       ],
-      "ev_explanation": "S: Fastest Urshifu +2.  To be faster than the opponent's Zamazenta, S was invested to be aware of Focus Sash Urshifu.  For durability, I didn't want to lower H too much considering Life Orb Calyrex, so I had to lower B.  It felt like a compromise, but as intended, I was able to take the lead in almost all Zamazenta mirrors, and I was able to win by barely surviving attacks from Black Rider and Miraidon, so the aim was not bad.  The Tera type is Dragon because Zamazenta is the axis against Kyogre, so water resistance is essential, so I considered Grass, Water, and Dragon. Grass is too harsh on Fire consistency, and Water is too harsh on Electric being super effective, so I chose Dragon.",
-      "role_in_team": "Defensive pivot, Kyogre counter"
+      "ev_explanation": "Speed: Fastest Urshifu +2. To be faster than the opponent's Zamazenta, S was invested to be aware of Focus Sash Urshifu. For durability, I didn't want to lower HP too much considering Life Orb Calyrex, so I had to lower Defense. It felt like a compromise, but as intended, I was able to take the lead in almost all Zamazenta mirrors, and I was able to win by barely surviving attacks from Black Rider and Miraidon, so the aim was not bad. The Tera type is Dragon because Zamazenta is the axis against Kyogre, so water resistance is essential, so I considered Grass, Water, and Dragon. Grass is too harsh on Fire consistency, and Water is too harsh on Electric being super effective, so I chose Dragon.",
+      "role_in_team": "Defensive pivot, Kyogre counter",
+      "evs": "220/0/156/0/0/132"
     },
     {
       "name": "Chien-Pao",
@@ -72,8 +74,9 @@
         "Sucker Punch",
         "Ice Shard"
       ],
-      "ev_explanation": "S: Quasi-fast 135 +2.  The endurance was distributed to the point where the random number of Urshifu's Water Tera Torrent was good, and the rest was distributed to D.  I didn't feel the merit of +2 to S, so I think it's okay to adjust it to the extraction.",
-      "role_in_team": "Offensive support, priority user"
+      "ev_explanation": "Speed: Quasi-fast 135 +2. The endurance was distributed to the point where the random number of Urshifu's Water Tera Torrent was good, and the rest was distributed to D. I didn't feel the merit of +2 to S, so I think it's okay to adjust it to the extraction.",
+      "role_in_team": "Offensive support, priority user",
+      "evs": "252/4/36/0/84/132"
     },
     {
       "name": "Chi-Yu",
@@ -96,8 +99,9 @@
         "Overheat",
         "Dark Pulse"
       ],
-      "ev_explanation": "CS max.  I felt that it was good to be modest because there were no scenes where I wanted a speed correction because the durability would not be enough to withstand what I wanted it to withstand unless I invested quite a bit.",
-      "role_in_team": "Speed control, special attacker"
+      "ev_explanation": "max Special Attack and Speed. I felt that it was good to be modest because there were no scenes where I wanted a speed correction because the durability would not be enough to withstand what I wanted it to withstand unless I invested quite a bit.",
+      "role_in_team": "Speed control, special attacker",
+      "evs": "4/0/0/252/0/252"
     },
     {
       "name": "Amoonguss",
@@ -120,8 +124,9 @@
         "Rage Powder",
         "Protect"
       ],
-      "ev_explanation": "H: 3n B: 11n.  At first, I was thinking of putting more into D, but Hachima Urshifu became difficult, and Gachiguma's Revenge didn't withstand unless I invested firmly in B, so the durability was almost entirely focused on B.  S was slower than the slowest Morobareru and faster than the iron ball Kyogre, so it was uncorrected reverse V. If you do this, it's best to remove the slowest Pippi.  The reason for Sludge Bomb instead of Pollen Puff is that there are almost no opportunities to ally Pollen Puff in a construction that cannot be cycled, and Sludge Bomb hits Lunaala and Grass Tera that have cut Fairy Tera. It was quite strong.",
-      "role_in_team": "Redirector, sleep inducer, physical wall"
+      "ev_explanation": "HP: 3n Defense: 11n. At first, I was thinking of putting more into D, but Hachima Urshifu became difficult, and Gachiguma's Revenge didn't withstand unless I invested firmly in B, so the durability was almost entirely focused on B. S was slower than the slowest Morobareru and faster than the iron ball Kyogre, so it was uncorrected reverse V. If you do this, it's best to remove the slowest Pippi. The reason for Sludge Bomb instead of Pollen Puff is that there are almost no opportunities to ally Pollen Puff in a construction that cannot be cycled, and Sludge Bomb hits Lunaala and Grass Tera that have cut Fairy Tera. It was quite strong.",
+      "role_in_team": "Redirector, sleep inducer, physical wall",
+      "evs": "236/0/236/0/36/0"
     },
     {
       "name": "Ogerpon-Cornerstone",
@@ -144,13 +149,14 @@
         "Follow Me",
         "Needle Guard"
       ],
-      "ev_explanation": "AS max.  I also considered durability distribution so that I could absorb as many attacks as possible, but it was too strong that I was taking over most of Miraidon at the fastest speed, so I didn't adjust the durability.  You can defeat Miraidon with Ghost Tera Astral Bit + Ivy Club.  I considered high-power Wood Hammer for the Water Tera White Rider's hit point. I hardly hit it, but because the usage scene is limited, I made it a hit stable technique.  Thanks to the characteristics and Follow Me, it never rots, and thanks to Ogerpon, I no longer have trouble choosing.",
-      "role_in_team": "Offensive support, redirection, sturdy attacker"
+      "ev_explanation": "max Attack and Speed. I also considered durability distribution so that I could absorb as many attacks as possible, but it was too strong that I was taking over most of Miraidon at the fastest speed, so I didn't adjust the durability. You can defeat Miraidon with Ghost Tera Astral Bit + Ivy Club. I considered high-power Wood Hammer for the Water Tera White Rider's hit point. I hardly hit it, but because the usage scene is limited, I made it a hit stable technique. Thanks to the characteristics and Follow Me, it never rots, and thanks to Ogerpon, I no longer have trouble choosing.",
+      "role_in_team": "Offensive support, redirection, sturdy attacker",
+      "evs": "0/252/4/0/0/252"
     }
   ],
   "overall_strategy": "The team focuses on supporting Calyrex-Shadow with other members, using Zamazenta as a defensive pivot and Chien-Pao for offensive support. Chi-Yu provides speed control and special attack power, while Amoonguss redirects attacks and induces sleep. Ogerpon-Cornerstone offers redirection and a sturdy attacker.",
   "tournament_context": "The team won the Teru Fes x Viera Cup on July 19th.",
-  "translation_notes": "Regulation I is inferred from the text mentioning the World Championships and the desire to share the build before it ends. The article mentions the team achieved a 13-win streak on the ranked ladder. | Cross-referenced with 1 team images | Confidence boosted by image analysis (+10%) | Enhanced with image analysis from 1 images",
+  "translation_notes": "Regulation I is inferred from the text mentioning the World Championships and the desire to share the build before it ends. The article mentions the team achieved a 13-win streak on the ranked ladder. | Cross-referenced with 1 team images | Confidence boosted by image analysis (+10%) | Enhanced with image analysis from 1 images | Move Validation: Calyrex-Shadow: Confirmed by signature move | Chien-Pao: Confirmed by signature move | Stat Translation: Translated stat abbreviations for Calyrex-Shadow | Translated stat abbreviations for Zamazenta | Translated stat abbreviations for Chien-Pao | Translated stat abbreviations for Chi-Yu | Translated stat abbreviations for Amoonguss | Translated stat abbreviations for Ogerpon-Cornerstone",
   "content_summary": "The article describes a winning VGC team featuring Calyrex-Shadow and Zamazenta, detailing the team's construction, individual Pokemon roles, and strategies against common matchups. The author discusses the reasoning behind each Pokemon's moveset, EV spread, and Tera type.",
   "analysis_confidence": 1.0
 }
