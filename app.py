@@ -140,7 +140,7 @@ try:
         # Team showcase
         if result.get("pokemon_team"):
             render_team_showcase(result)
-            render_pokemon_team(result)
+            render_pokemon_team(result.get("pokemon_team"))
 
         # Export section
         render_export_section(result)

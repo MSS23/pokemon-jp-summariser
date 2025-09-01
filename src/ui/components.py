@@ -564,6 +564,24 @@ def render_pokemon_team(pokemon_team):
     else:
         team_list = pokemon_team
     
+    # Filter and validate pokemon entries - only keep valid dictionary entries
+    valid_pokemon = []
+    for pokemon in team_list:
+        if isinstance(pokemon, dict):
+            # Valid pokemon dict - keep it
+            valid_pokemon.append(pokemon)
+        elif isinstance(pokemon, str):
+            # Convert string to basic pokemon dict
+            valid_pokemon.append({'name': pokemon, 'role': 'Unknown'})
+        # Skip any other invalid entries
+    
+    team_list = valid_pokemon
+    
+    # Check if we have any valid pokemon after filtering
+    if not team_list:
+        st.warning("❌ No valid Pokemon data found in team")
+        return
+    
     # Team sprite grid overview
     st.subheader("📋 Team Overview")
     
