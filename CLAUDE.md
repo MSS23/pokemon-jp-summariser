@@ -141,7 +141,7 @@ The application uses a comprehensive 380+ line prompt that includes:
 - Meta relevance assessment criteria
 
 ### Gemini Model Configuration
-- **Text Model**: `gemini-2.5-pro` (premium quality for VGC analysis)
+- **Text Model**: `gemini-2.5-flash` (optimal balance: advanced quality + 5x higher quota than Pro)
 - **Vision Model**: `gemini-2.5-flash-lite` (cost-effective for image processing)
 - **Content Limit**: 8000 characters for analysis
 - **Output Format**: Structured JSON with team data and translations
