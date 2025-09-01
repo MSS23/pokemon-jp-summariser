@@ -7,11 +7,11 @@ import re
 from typing import Dict, Optional, Any, List
 import google.generativeai as genai
 
-from ..utils.config import Config, POKEMON_NAME_TRANSLATIONS
-from ..utils.cache_manager import cache
-from .scraper import ArticleScraper
-from .pokemon_validator import PokemonValidator
-from ..utils.image_analyzer import (
+from utils.config import Config, POKEMON_NAME_TRANSLATIONS
+from utils.cache_manager import cache
+from core.scraper import ArticleScraper
+from core.pokemon_validator import PokemonValidator
+from utils.image_analyzer import (
     extract_images_from_url,
     filter_vgc_images,
     analyze_image_with_vision,
