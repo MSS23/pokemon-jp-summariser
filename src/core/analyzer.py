@@ -652,6 +652,57 @@ Speed: 0 (or すばやさ：0)
 8. **SEQUENTIAL SEARCH**: When you find "実数値:", immediately search next 3 lines for EV data
 9. **AUTHOR'S STATEMENT OVERRIDE**: If author says EVs are "適当" (arbitrary) or "詳細なし" (no details), return 0s unless actual numbers are provided
 
+**🧠 STRATEGIC REASONING EXTRACTION (ULTRA-CRITICAL FOR EV EXPLANATIONS):**
+
+**PRIMARY OBJECTIVE**: For EVERY Pokemon with EV spreads, extract the EXACT strategic reasoning from the article text.
+
+**SCAN FOR THESE STRATEGIC PATTERNS:**
+
+1. **Damage Calculations (最重要 - Most Important)**:
+   - "確定1発" = "guaranteed OHKO" 
+   - "乱数1発" = "random OHKO" 
+   - "確定2発" = "guaranteed 2HKO"
+   - "乱数2発" = "random 2HKO"
+   - "耐え" = "survives" (e.g., "特化ランドロスの地震を耐え")
+   - Specific damage ranges: "75%で1発" = "75% chance to OHKO"
+
+2. **Speed Benchmarks**:
+   - "最速○族抜き" = "outspeeds max speed base [X]"
+   - "準速○族抜き" = "outspeeds neutral nature base [X]"
+   - "4振り○○抜き" = "outspeeds 4 EV [Pokemon name]"
+   - "最速○○-1" = "1 point slower than max speed [Pokemon]"
+   - "トリックルーム下で最遅" = "slowest for Trick Room"
+
+3. **Defensive Benchmarks**:
+   - "特化○○のx確定耐え" = "survives [specific attack] from max [stat] [Pokemon]"
+   - "眼鏡○○のx乱数耐え" = "survives [move] from Choice Specs [Pokemon] [percentage]%"
+   - "ダメージ○○%" = "[X]% damage taken"
+
+4. **Technical Optimizations**:
+   - "11n" = "multiple of 11 (for Substitute/recovery)"
+   - "16n-1" = "1 less than multiple of 16 (for weather damage)"
+   - "砂嵐ダメ調整" = "sandstorm damage adjustment"
+   - "きのみ発動調整" = "berry activation threshold"
+
+5. **Role-Based Reasoning**:
+   - "サポート型なので耐久重視" = "support role, focuses on bulk"
+   - "先制技意識" = "priority move consideration" 
+   - "カウンター意識" = "Counter move consideration"
+   - "起点作り" = "setup support role"
+
+**EXTRACTION PROTOCOL**:
+1. **Find EV spread first**, then scan surrounding 3-5 lines for reasoning
+2. **Look for specific numerical targets** (base stats, damage amounts, percentages)
+3. **Extract original Japanese phrases** and translate them accurately
+4. **Include specific Pokemon/move names** mentioned in calculations
+5. **If no strategic reasoning found**, use "EV reasoning not specified in article"
+6. **Never make up strategic reasoning** - only use what's actually written
+
+**TRANSLATION EXAMPLES**:
+- "陽気ガブリアスの地震確定耐え" → "Survives Earthquake from Jolly Garchomp"
+- "最速100族抜き" → "Outspeeds max speed base 100 Pokemon"
+- "特化珠フラッターのシャドボ乱数耐え" → "Survives Shadow Ball from Choice Specs Flutter Mane with some probability"
+
 **⚡ EV VALIDATION REQUIREMENTS (JAPANESE VGC OPTIMIZED):**
 - Valid EV values: 0, 4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 92, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 188, 196, 204, 212, 220, 228, 236, 244, 252
 - Total EVs must be ≤508 (Accept totals 468-508 as valid competitive spreads)
@@ -909,6 +960,17 @@ You MUST only look for explicit regulation mentions in the article text. Look fo
 
 If NO explicit regulation is mentioned in the text, you MUST use "Not specified" - DO NOT guess.
 
+**CRITICAL EV AND EXPLANATION EXTRACTION REQUIREMENTS:**
+1. **EV Values**: Replace "EXTRACTED_FROM_ARTICLE" with actual numerical values found in the article. If no EVs found for a Pokemon, use 0.
+2. **EV Format**: Fill "evs" field with standard format like "252/0/4/252/0/0" based on extracted values.
+3. **Strategic Reasoning**: Replace the ev_explanation placeholder with ACTUAL strategic text from the article:
+   - Look for damage calculations (e.g., "survives X's move", "OHKOs Y Pokemon")  
+   - Look for speed benchmarks (e.g., "outspeeds base 100", "underspeed for Trick Room")
+   - Look for defensive benchmarks (e.g., "survives Choice Band attack")
+   - Look for technical explanations (e.g., "16n-1 for weather", "11n for Substitute")
+   - Translate Japanese strategic text to English
+   - If no strategic reasoning found, use "EV reasoning not specified in article"
+
 RESPONSE FORMAT:
 Provide your response in this EXACT JSON structure:
 {
@@ -923,16 +985,17 @@ Provide your response in this EXACT JSON structure:
       "tera_type": "Tera type or 'Not specified'",
       "nature": "Pokemon nature or 'Not specified'",
       "ev_spread": {
-        "HP": 0,
-        "Attack": 0,
-        "Defense": 0,
-        "Special Attack": 0,
-        "Special Defense": 0,
-        "Speed": 0,
-        "total": 0
+        "HP": "EXTRACTED_FROM_ARTICLE",
+        "Attack": "EXTRACTED_FROM_ARTICLE", 
+        "Defense": "EXTRACTED_FROM_ARTICLE",
+        "Special Attack": "EXTRACTED_FROM_ARTICLE",
+        "Special Defense": "EXTRACTED_FROM_ARTICLE",
+        "Speed": "EXTRACTED_FROM_ARTICLE",
+        "total": "SUM_OF_ABOVE_VALUES"
       },
+      "evs": "HP/Attack/Defense/SpA/SpD/Speed format (e.g., 252/0/4/252/0/0)",
       "moves": ["Move 1", "Move 2", "Move 3", "Move 4"],
-      "ev_explanation": "Strategic reasoning for EV distribution",
+      "ev_explanation": "EXACT strategic reasoning for EV distribution as mentioned in the article, translated to English. Include damage calcs, speed benchmarks, defensive benchmarks, or other tactical reasoning found in the text.",
       "role_in_team": "Pokemon's strategic role"
     }
   ],
@@ -1041,26 +1104,52 @@ Please analyze the following content and provide your response in the exact JSON
             cleaned_team = []
             for pokemon in result["pokemon_team"]:
                 if isinstance(pokemon, dict):
-                    # Ensure required Pokemon fields
-                    pokemon_fields = {
+                    # Ensure required Pokemon fields (preserving extracted EV data)
+                    pokemon_defaults = {
                         "name": "Unknown Pokemon",
-                        "ability": "Not specified",
+                        "ability": "Not specified", 
                         "held_item": "Not specified",
                         "tera_type": "Not specified",
                         "nature": "Not specified",
                         "moves": [],
-                        "ev_spread": {
-                            "HP": 0, "Attack": 0, "Defense": 0,
-                            "Special Attack": 0, "Special Defense": 0, "Speed": 0,
-                            "total": 0
-                        },
                         "ev_explanation": "Not specified",
                         "role_in_team": "Not specified"
                     }
                     
-                    for field, default in pokemon_fields.items():
+                    # Apply defaults only for missing basic fields
+                    for field, default in pokemon_defaults.items():
                         if field not in pokemon:
                             pokemon[field] = default
+                    
+                    # Handle EV spread specially - preserve extracted data or create proper defaults
+                    if "ev_spread" not in pokemon:
+                        pokemon["ev_spread"] = {
+                            "HP": 0, "Attack": 0, "Defense": 0,
+                            "Special Attack": 0, "Special Defense": 0, "Speed": 0,
+                            "total": 0
+                        }
+                    else:
+                        # Validate and fix extracted EV spread
+                        ev_spread = pokemon["ev_spread"]
+                        if isinstance(ev_spread, dict):
+                            # Ensure all required EV fields exist and are numeric
+                            ev_fields = ["HP", "Attack", "Defense", "Special Attack", "Special Defense", "Speed"]
+                            for field in ev_fields:
+                                if field not in ev_spread:
+                                    ev_spread[field] = 0
+                                elif not isinstance(ev_spread[field], int):
+                                    try:
+                                        ev_spread[field] = int(ev_spread[field]) if ev_spread[field] not in ["EXTRACTED_FROM_ARTICLE", ""] else 0
+                                    except (ValueError, TypeError):
+                                        ev_spread[field] = 0
+                            
+                            # Calculate and set total
+                            ev_spread["total"] = sum(ev_spread[field] for field in ev_fields)
+                            
+                            # Create standard EVs string format if missing
+                            if "evs" not in pokemon:
+                                ev_values = [ev_spread[field] for field in ev_fields]
+                                pokemon["evs"] = "/".join(map(str, ev_values))
                     
                     cleaned_team.append(pokemon)
             

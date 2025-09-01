@@ -1,0 +1,15 @@
+=== EXTRACTED IMAGES FROM ARTICLE ===
+
+Total images found: 1
+
+Image 1:
+  URL: https://liberty-note.com/wp-content/uploads/2022/11/952EBEF5-B116-4D14-A577-63737F3EEAE1.png
+  Size: (1024, 175)
+  File Size: 40897 bytes
+  Team Card Score: 1
+  Is Likely Team Card: True
+  Format: PNG
+  Is Note.com Asset: False
+  Alt Text: リバティノート
+  Title: 
+

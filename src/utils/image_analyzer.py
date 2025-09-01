@@ -808,11 +808,14 @@ def extract_ev_spreads_from_image_analysis(image_analysis: str) -> List[Dict[str
                 if spread_dict:
                     ev_spreads.append(spread_dict)
     
-    # PRIORITY 2: Space-separated format with stat abbreviations (ENHANCED FOR JAPANESE HYBRID FORMAT)
+    # PRIORITY 2: Space-separated format with stat abbreviations (ULTRA-ENHANCED FOR JAPANESE HYBRID FORMAT)
     space_patterns = [
         # CRITICAL: Japanese hybrid format (努力値：H252 A4 B156 format) - USER'S EXACT CASE
-        r"(?:努力値|個体値調整|EV配分|調整)[：:]\s*H(\d{1,3})\s+A(\d{1,3})\s+B(\d{1,3})\s+C(\d{1,3})\s+D(\d{1,3})\s+S(\d{1,3})",
-        r"(?:努力値|個体値調整|EV配分|調整)[：:]\s*H(\d{1,3})\s*A(\d{1,3})\s*B(\d{1,3})\s*C(\d{1,3})\s*D(\d{1,3})\s*S(\d{1,3})",  # Optional spaces
+        r"(?:努力値|個体値調整|EV配分|調整|EV)[：:\s]\s*H(\d{1,3})\s+A(\d{1,3})\s+B(\d{1,3})\s+C(\d{1,3})\s+D(\d{1,3})\s+S(\d{1,3})",
+        r"(?:努力値|個体値調整|EV配分|調整|EV)[：:\s]\s*H(\d{1,3})\s*A(\d{1,3})\s*B(\d{1,3})\s*C(\d{1,3})\s*D(\d{1,3})\s*S(\d{1,3})",  # Optional spaces
+        # Enhanced Japanese variations
+        r"(?:努力値振り|EV振り|振り分け)[：:\s]\s*H(\d{1,3})\s*A(\d{1,3})\s*B(\d{1,3})\s*C(\d{1,3})\s*D(\d{1,3})\s*S(\d{1,3})",
+        r"(?:実数値調整|ステ振り)[：:\s]\s*H(\d{1,3})\s*A(\d{1,3})\s*B(\d{1,3})\s*C(\d{1,3})\s*D(\d{1,3})\s*S(\d{1,3})",
         # Standard abbreviated format
         r"H(\d{1,3})\s+A(\d{1,3})\s+B(\d{1,3})\s+C(\d{1,3})\s+D(\d{1,3})\s+S(\d{1,3})",  # H252 A0 B4 C252 D0 S0
         r"H(\d{1,3})\s*A(\d{1,3})\s*B(\d{1,3})\s*C(\d{1,3})\s*D(\d{1,3})\s*S(\d{1,3})",  # Flexible spacing
@@ -826,6 +829,27 @@ def extract_ev_spreads_from_image_analysis(image_analysis: str) -> List[Dict[str
             ev_values = [int(x) for x in match.groups()]
             if len(ev_values) == 6:
                 spread_dict = _create_ev_spread_dict(ev_values, "space_format", match.group())
+                if spread_dict:
+                    ev_spreads.append(spread_dict)
+    
+    # PRIORITY 2.5: Additional Japanese format variations
+    additional_japanese_patterns = [
+        # Table/grid format commonly used in note.com
+        r"HP[:：]\s*(\d{1,3})\s*こうげき[:：]\s*(\d{1,3})\s*ぼうぎょ[:：]\s*(\d{1,3})\s*とくこう[:：]\s*(\d{1,3})\s*とくぼう[:：]\s*(\d{1,3})\s*すばやさ[:：]\s*(\d{1,3})",
+        # Bullet point format
+        r"[・•]\s*HP\s*(\d{1,3})\s*[・•]\s*こうげき\s*(\d{1,3})\s*[・•]\s*ぼうぎょ\s*(\d{1,3})\s*[・•]\s*とくこう\s*(\d{1,3})\s*[・•]\s*とくぼう\s*(\d{1,3})\s*[・•]\s*すばやさ\s*(\d{1,3})",
+        # Bracket format
+        r"\[HP(\d{1,3})\]\s*\[A(\d{1,3})\]\s*\[B(\d{1,3})\]\s*\[C(\d{1,3})\]\s*\[D(\d{1,3})\]\s*\[S(\d{1,3})\]",
+        # Line break separated with Japanese stats
+        r"ＨＰ\s*[:：]?\s*(\d{1,3}).*?こうげき\s*[:：]?\s*(\d{1,3}).*?ぼうぎょ\s*[:：]?\s*(\d{1,3}).*?とくこう\s*[:：]?\s*(\d{1,3}).*?とくぼう\s*[:：]?\s*(\d{1,3}).*?すばやさ\s*[:：]?\s*(\d{1,3})",
+    ]
+    
+    for pattern in additional_japanese_patterns:
+        matches = re.finditer(pattern, image_analysis, re.IGNORECASE | re.DOTALL)
+        for match in matches:
+            ev_values = [int(x) for x in match.groups()]
+            if len(ev_values) == 6:
+                spread_dict = _create_ev_spread_dict(ev_values, "japanese_table_format", match.group())
                 if spread_dict:
                     ev_spreads.append(spread_dict)
     
@@ -912,29 +936,49 @@ def _create_ev_spread_dict(ev_values: List[int], format_type: str, raw_match: st
     if any(ev > 252 for ev in ev_values):
         return None
     
-    # ANTI-GENERATION: Reject suspicious patterns
-    if total == 508 and sum(1 for ev in ev_values if ev in [252, 4]) >= 3:
-        # Suspiciously perfect competitive spread - likely generated
-        return None
-        
-    if all(ev in [0, 4, 252] for ev in ev_values):
-        # Only uses basic competitive values - suspicious
-        return None
-    
-    # Check for realistic variation
+    # BALANCED ANTI-GENERATION: Allow legitimate competitive patterns while catching obvious AI generation
     non_zero_values = [ev for ev in ev_values if ev > 0]
+    
+    # Only reject if ALL of these suspicious conditions are met:
+    suspicious_indicators = 0
+    
+    # Indicator 1: Perfect 508 total with only basic competitive values
+    if total == 508 and all(ev in [0, 4, 252] for ev in ev_values):
+        suspicious_indicators += 1
+    
+    # Indicator 2: Multiple identical non-zero values (very unusual in real spreads)
     if len(non_zero_values) >= 3 and all(ev == non_zero_values[0] for ev in non_zero_values):
-        # Multiple identical non-zero values - suspicious
+        suspicious_indicators += 1
+    
+    # Indicator 3: Exactly 6 investment stats all at 252 (impossible due to EV limit)
+    if ev_values.count(252) >= 3:  # More than 2 maxed stats is very unusual
+        suspicious_indicators += 1
+    
+    # Only reject if multiple suspicious indicators (legitimate spreads can trigger 1)
+    if suspicious_indicators >= 2:
         return None
     
-    # Determine confidence level (more conservative)
+    # Determine confidence level (balanced approach)
     confidence = "low"
-    if total >= 480 and format_type in ["japanese_format", "calculated_stat_format"]:  # Good format + substantial investment
-        confidence = "medium"
-    elif total >= 400 and format_type == "slash_format":  # Standard format with good investment
-        confidence = "medium"
-    elif total >= 500 and format_type in ["slash_format", "japanese_format"]:  # High investment + good format
+    
+    # High confidence: Good format + high investment
+    if total >= 500 and format_type in ["slash_format", "japanese_format"]:
         confidence = "high"
+    elif total == 508 and format_type in ["slash_format", "japanese_format"]:  # Perfect competitive total
+        confidence = "high"
+    
+    # Medium confidence: Decent format + substantial investment
+    elif total >= 400 and format_type in ["japanese_format", "calculated_stat_format", "slash_format"]:
+        confidence = "medium"
+    elif total >= 300 and format_type == "slash_format":  # Standard format is reliable
+        confidence = "medium"
+    
+    # Bonus for realistic spreads (common competitive patterns)
+    if total in [500, 504, 508] and ev_values.count(252) <= 2:  # Common totals with reasonable distribution
+        if confidence == "medium":
+            confidence = "high"
+        elif confidence == "low":
+            confidence = "medium"
     
     return {
         "hp": ev_values[0],
