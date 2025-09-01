@@ -165,8 +165,8 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
         unsafe_allow_html=True,
     )
 
-    # Modern layout with improved spacing and visual hierarchy
-    sprite_col, info_col, stats_col = st.columns([1.2, 2.5, 2.3])
+    # Optimized layout with better content distribution and spacing
+    sprite_col, info_col, stats_col = st.columns([1.5, 3.0, 2.5])
 
     with sprite_col:
         # Enhanced sprite display with proper error handling
@@ -192,8 +192,8 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     with info_col:
         st.markdown('<div class="info-section">', unsafe_allow_html=True)
         
-        # Core information with modern styling
-        st.markdown("#### ⚔️ Battle Ready Details")
+        # Core information with modern styling and improved spacing
+        st.markdown('<div class="section-header">#### ⚔️ Battle Ready Details</div>', unsafe_allow_html=True)
         
         # Clean single-column info display (no nested columns to prevent overlapping)
         info_items = [
@@ -214,8 +214,8 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
             """
             st.markdown(info_html, unsafe_allow_html=True)
         
-        # Enhanced moveset display
-        st.markdown("#### 🎮 Combat Moveset")
+        # Enhanced moveset display with better spacing
+        st.markdown('<div class="section-header">#### 🎮 Combat Moveset</div>', unsafe_allow_html=True)
         
         if moves and any(move != "Not specified" for move in moves):
             moves_html = '<div class="moveset-container">'
@@ -234,8 +234,8 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     with stats_col:
         st.markdown('<div class="stats-section">', unsafe_allow_html=True)
         
-        # Enhanced EV display with visual bars
-        st.markdown("#### 📊 EV Distribution")
+        # Enhanced EV display with visual bars and better spacing
+        st.markdown('<div class="section-header">#### 📊 EV Distribution</div>', unsafe_allow_html=True)
         
         if evs != "Not specified":
             # Display EV spread in code block
@@ -1147,12 +1147,25 @@ def apply_custom_css():
         padding-bottom: 0.5rem;
     }
     
+    /* Section Headers with Improved Spacing */
+    .section-header {
+        margin: 1.5rem 0 1.0rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+    }
+    
+    .section-header h4 {
+        margin: 0 !important;
+        color: #4f46e5 !important;
+        font-weight: 700 !important;
+    }
+    
     .info-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 0.9rem 1.1rem;
-        margin-bottom: 0.6rem;
+        gap: 15px;
+        padding: 1.1rem 1.3rem;
+        margin-bottom: 1.0rem;
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         border-radius: 12px;
         border-left: 4px solid #6366f1;
@@ -1197,16 +1210,17 @@ def apply_custom_css():
     /* Moveset Styling */
     .moveset-container {
         display: grid;
-        gap: 0.6rem;
-        margin-top: 1rem;
+        gap: 0.9rem;
+        margin-top: 1.2rem;
+        margin-bottom: 1.5rem;
         width: 100%;
     }
     
     .move-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 0.8rem 1rem;
+        gap: 15px;
+        padding: 1.0rem 1.2rem;
         background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%);
         border-radius: 12px;
         border-left: 4px solid #0ea5e9;
@@ -1601,6 +1615,52 @@ def apply_custom_css():
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .info-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 1.0rem;
+        }
+        
+        .move-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 0.9rem;
+        }
+        
+        .section-header {
+            margin: 1.0rem 0 0.8rem 0;
+        }
+        
+        .moveset-container {
+            gap: 0.7rem;
+            margin-top: 1.0rem;
+            margin-bottom: 1.2rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .info-item, .move-item {
+            padding: 0.8rem;
+            border-radius: 8px;
+        }
+        
+        .info-icon, .move-number {
+            font-size: 1.0rem;
+        }
+        
+        .section-header h4 {
+            font-size: 1.0rem !important;
+        }
+        
+        .ev-spread-display {
+            font-size: 0.9rem;
+        }
     }
     
     .slide-up {

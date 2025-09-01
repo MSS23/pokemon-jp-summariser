@@ -403,14 +403,37 @@ def parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
 
     ev_dict = {"HP": 0, "Atk": 0, "Def": 0, "SpA": 0, "SpD": 0, "Spe": 0}
 
-    # Try slash-separated format first (252/0/0/252/4/0)
+    # Try "Number StatName" format first (44 HP / 4 Def / 252 SpA / 28 SpD / 180 Spe)
+    if any(stat in ev_string for stat in ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]):
+        stat_name_patterns = {
+            r"(\d+)\s*HP": "HP",
+            r"(\d+)\s*Atk": "Atk",
+            r"(\d+)\s*Def": "Def", 
+            r"(\d+)\s*SpA": "SpA",
+            r"(\d+)\s*SpD": "SpD",
+            r"(\d+)\s*Spe": "Spe",
+        }
+        
+        for pattern, stat in stat_name_patterns.items():
+            matches = re.findall(pattern, ev_string, re.IGNORECASE)
+            if matches:
+                ev_dict[stat] = int(matches[0])
+        
+        # If we found any valid stats, return the result
+        if any(v > 0 for v in ev_dict.values()):
+            return validate_and_fix_evs(ev_dict)
+
+    # Try slash-separated format (252/0/0/252/4/0)
     if "/" in ev_string:
         parts = ev_string.split("/")
         if len(parts) == 6:
             try:
                 stats = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
                 for i, value in enumerate(parts):
-                    ev_dict[stats[i]] = int(value.strip())
+                    # Clean the value - remove any non-numeric characters except leading/trailing spaces
+                    clean_value = re.sub(r'[^\d]', '', value.strip())
+                    if clean_value:
+                        ev_dict[stats[i]] = int(clean_value)
                 return validate_and_fix_evs(ev_dict)
             except ValueError:
                 pass

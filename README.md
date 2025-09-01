@@ -60,7 +60,7 @@ The application will open in your browser at `http://localhost:8501`
 ## Features in Detail 🔧
 
 ### AI-Powered Analysis
-- Uses Google Gemini 2.5 Flash-Lite with specialized VGC prompts (optimized for higher quota)
+- Uses Google Gemini 2.5 Pro for VGC analysis (premium quality) and Flash-Lite for vision tasks (cost-effective)
 - Accurate translation of Pokemon names, moves, and abilities
 - EV spread validation and explanation
 - Team composition and meta analysis
