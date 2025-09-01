@@ -38,7 +38,9 @@
       "Bash(del test_note_com_fixes.py simple_note_com_test.py)",
       "Bash(git check-ignore:*)",
       "Bash(git filter-branch:*)",
-      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --force --index-filter \"git rm --cached --ignore-unmatch config/.streamlit/secrets.toml\" --prune-empty --tag-name-filter cat -- --all)"
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --force --index-filter \"git rm --cached --ignore-unmatch config/.streamlit/secrets.toml\" --prune-empty --tag-name-filter cat -- --all)",
+      "Bash(git reflog:*)",
+      "Bash(git gc:*)"
     ],
     "defaultMode": "acceptEdits"
   }
