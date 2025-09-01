@@ -143,7 +143,7 @@ try:
             render_pokemon_team(result)
 
         # Export section
-        render_export_section(result, st.session_state.current_url)
+        render_export_section(result)
 
     # Page routing
     if current_page == "🏠 Analysis Home":

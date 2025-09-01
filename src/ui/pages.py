@@ -1,8 +1,19 @@
 """
-Additional page methods for the VGC Analysis App
+Additional page functions for the VGC Analysis App
 """
 
-def render_saved_teams_page(self):
+import streamlit as st
+
+# Import database components if available
+try:
+    from database.models import init_database
+    from database.crud import TeamCRUD
+    DATABASE_AVAILABLE = True
+except ImportError:
+    DATABASE_AVAILABLE = False
+
+
+def render_saved_teams_page():
     """Render the saved teams page"""
     st.header("📚 Saved Teams")
     
@@ -47,7 +58,7 @@ def render_saved_teams_page(self):
     except Exception as e:
         st.error(f"Error loading saved teams: {e}")
         
-def render_team_search_page(self):
+def render_team_search_page():
     """Render the team search page"""
     st.header("🔍 Team Search")
     st.info("🚧 Team search functionality coming soon!")
@@ -64,7 +75,7 @@ def render_team_search_page(self):
         """
     )
     
-def render_settings_page(self):
+def render_settings_page():
     """Render the settings page"""
     st.header("⚙️ Settings")
     
@@ -99,7 +110,7 @@ def render_settings_page(self):
     st.subheader("🎨 Display Preferences")
     st.info("🚧 Display preferences coming soon!")
     
-def render_help_page(self):
+def render_help_page():
     """Render the help and guide page"""
     st.header("📖 Help & User Guide")
     
@@ -165,3 +176,50 @@ def render_help_page(self):
             - Check your internet connection
             """
         )
+
+
+def render_switch_translation_page():
+    """Render the Nintendo Switch team translation page"""
+    st.header("🎮 Switch Team Translation")
+    
+    st.info("🚧 Nintendo Switch team screenshot translation functionality coming soon!")
+    
+    st.markdown(
+        """
+        **Planned Features:**
+        - Upload Nintendo Switch team screenshots
+        - Automatic Pokemon identification from sprites
+        - Team composition extraction
+        - Export to analysis format
+        
+        **Supported Screenshots:**
+        - Team builder screens
+        - Battle box displays
+        - Rental team views
+        - Tournament team cards
+        """
+    )
+    
+    # Placeholder upload section
+    st.subheader("📤 Upload Team Screenshot")
+    
+    uploaded_file = st.file_uploader(
+        "Choose a Nintendo Switch screenshot...",
+        type=['png', 'jpg', 'jpeg'],
+        help="Upload a clear screenshot of your Pokemon team from Nintendo Switch"
+    )
+    
+    if uploaded_file is not None:
+        st.image(uploaded_file, caption="Uploaded Team Screenshot", use_column_width=True)
+        st.info("🔧 Image processing functionality will be implemented soon!")
+        
+    st.markdown("---")
+    st.markdown("**💡 Tips for Best Results:**")
+    st.markdown(
+        """
+        - Use high-resolution screenshots (1080p or higher)
+        - Ensure Pokemon sprites are clearly visible
+        - Avoid blurry or cropped images
+        - Include the full team of 6 Pokemon when possible
+        """
+    )
