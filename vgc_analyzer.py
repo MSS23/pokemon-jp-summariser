@@ -64,7 +64,7 @@ class GeminiVGCAnalyzer:
 
     def scrape_article(self, url: str) -> Optional[str]:
         """
-        Scrape article content from URL
+        Scrape article content from URL with enhanced Japanese text handling
 
         Args:
             url: URL to scrape
@@ -81,54 +81,283 @@ class GeminiVGCAnalyzer:
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                     "AppleWebKit/537.36 (KHTML, like Gecko) "
                     "Chrome/91.0.4472.124 Safari/537.36"
-                )
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Accept-Charset": "utf-8, iso-8859-1;q=0.5"
             }
 
             response = requests.get(url, headers=headers, timeout=15)
             response.raise_for_status()
+            
+            # Enhanced encoding detection and handling
+            if response.encoding is None or response.encoding.lower() in ['iso-8859-1', 'ascii']:
+                # Force UTF-8 for Japanese content
+                response.encoding = 'utf-8'
+            
+            # Use response.text to get properly decoded content
+            html_content = response.text
 
-            soup = BeautifulSoup(response.content, "html.parser")
+            soup = BeautifulSoup(html_content, "html.parser", from_encoding='utf-8')
 
             # Remove unwanted elements
             for element in soup(
-                ["script", "style", "nav", "header", "footer", "aside"]
+                ["script", "style", "nav", "header", "footer", "aside", "noscript", "iframe"]
             ):
                 element.decompose()
 
-            # Try to find main content
+            # ULTRA-ENHANCED content selectors for note.com and Japanese sites
             main_content = None
-            content_selectors = [
-                "main",
-                "article",
-                ".content",
-                ".post-content",
-                ".entry-content",
-                "#content",
-                ".main-content",
-                ".article-body",
-                ".post-body",
+            
+            # PHASE 1: Try note.com-specific selectors with multiple strategies
+            note_selectors = [
+                # Primary note.com content containers
+                ".note-common-styles__textnote-body",
+                ".o-noteContentText", 
+                ".note-post__body",
+                "div[data-module='TextModule']",  # Note.com text module
+                ".note-common-styles__textnote",
+                ".js-textBody", 
+                ".p-article__body",
+                "section[data-testid='article-body']",
+                
+                # Secondary note.com patterns
+                "article .note-common-styles",
+                "main .note-common-styles", 
+                ".note__body",
+                ".article__body", 
+                ".post__content",
             ]
+            
+            for selector in note_selectors:
+                try:
+                    elements = soup.select(selector)
+                    if elements:
+                        # Try to find the one with the most meaningful content
+                        for element in elements:
+                            text_content = element.get_text(strip=True)
+                            # Check if this element has substantial content
+                            if len(text_content) > 200 and any(char for char in text_content if ord(char) > 127):
+                                main_content = element
+                                break
+                        if main_content:
+                            break
+                except Exception:
+                    continue
+            
+            # PHASE 2: If note.com selectors failed, try generic content selectors
+            if not main_content:
+                generic_selectors = [
+                    "main",
+                    "article", 
+                    ".content",
+                    ".post-content", 
+                    ".entry-content",
+                    "#content",
+                    ".main-content",
+                    ".article-body",
+                    ".post-body",
+                    ".entry-body",
+                    "#main-content",
+                    ".main",
+                    ".post",          # Common blog selector
+                    ".entry",         # Common blog selector
+                    "#post",          # ID-based content
+                    "#entry",         # ID-based content
+                ]
+                
+                for selector in generic_selectors:
+                    try:
+                        candidate = soup.select_one(selector)
+                        if candidate:
+                            text_preview = candidate.get_text(strip=True)
+                            # More flexible content detection - don't require Japanese characters for all sites
+                            if len(text_preview) > 200:  # Lowered threshold but require more content
+                                # Check if it's likely to be main content vs navigation
+                                content_indicators = ['pokemon', 'vgc', 'team', 'battle', 'hp', 'attack', 'defense', 
+                                                     'ポケモン', '構築', 'チーム', 'バトル', 'ダブル']
+                                if (any(indicator.lower() in text_preview.lower() for indicator in content_indicators) or
+                                    len(text_preview) > 1000):  # Very long content is likely main content
+                                    main_content = candidate
+                                    break
+                    except Exception:
+                        continue
+            
+            # PHASE 3: Last resort - scan all divs for meaningful content
+            if not main_content:
+                all_divs = soup.find_all('div')
+                best_candidate = None
+                best_score = 0
+                
+                for div in all_divs:
+                    try:
+                        text = div.get_text(strip=True)
+                        if len(text) > 500:  # Must have substantial content
+                            # Score based on content characteristics
+                            score = 0
+                            score += len(text) // 100  # Length bonus
+                            score += text.count('ポケモン') * 10  # Pokemon mentions
+                            score += text.count('構築') * 8   # Team building mentions
+                            score += text.count('調整') * 5   # Adjustment mentions
+                            score += sum(1 for char in text[:1000] if ord(char) > 127) // 10  # Japanese character bonus
+                            
+                            if score > best_score:
+                                best_score = score
+                                best_candidate = div
+                    except Exception:
+                        continue
+                        
+                if best_candidate and best_score > 20:
+                    main_content = best_candidate
 
-            for selector in content_selectors:
-                main_content = soup.select_one(selector)
-                if main_content:
-                    break
-
+            # Final fallback
             if not main_content:
                 main_content = soup.find("body")
 
             if main_content:
+                # Enhanced text extraction with better Japanese handling
                 text = main_content.get_text(separator=" ", strip=True)
-                # Clean up excessive whitespace
-                text = re.sub(r"\s+", " ", text)
-                return text[:8000]  # Limit content length
+                
+                # Remove common boilerplate content
+                text = self._clean_note_com_boilerplate(text)
+                
+                # Normalize Unicode text (important for Japanese)
+                import unicodedata
+                text = unicodedata.normalize('NFKC', text)
+                
+                # Clean up excessive whitespace while preserving Japanese spacing
+                text = re.sub(r'\s+', ' ', text)
+                text = re.sub(r'\n\s*\n', '\n', text)
+                
+                # Enhanced content filtering - remove obvious non-content
+                lines = text.split('\n')
+                filtered_lines = []
+                for line in lines:
+                    line = line.strip()
+                    # Skip empty lines and likely navigation/UI elements
+                    if (len(line) > 10 and 
+                        not line.lower().startswith(('login', 'sign up', 'menu', 'navigation', 'follow', 'share')) and
+                        not re.match(r'^[\s\d\-\/\(\)]*$', line)):  # Skip lines with only numbers/symbols
+                        filtered_lines.append(line)
+                
+                text = '\n'.join(filtered_lines)
+                
+                # Limit content length but be smarter about Japanese text
+                if len(text) > 8000:
+                    # Try to cut at sentence boundaries for Japanese text
+                    sentences = text.split('。')  # Japanese sentence marker
+                    if len(sentences) > 1:
+                        result = ""
+                        for sentence in sentences:
+                            if len(result + sentence + '。') > 8000:
+                                break
+                            result += sentence + '。'
+                        text = result if result else text[:8000]
+                    else:
+                        text = text[:8000]
+                
+                return text
 
         except requests.RequestException as e:
             raise ValueError(f"Failed to fetch article: {str(e)}")
+        except UnicodeDecodeError as e:
+            raise ValueError(f"Failed to decode article text (encoding issue): {str(e)}")
         except Exception as e:
             raise ValueError(f"Failed to parse article: {str(e)}")
 
         return None
+
+    def _clean_note_com_boilerplate(self, text: str) -> str:
+        """
+        Clean common note.com boilerplate text and navigation elements
+        
+        Args:
+            text: Raw scraped text
+            
+        Returns:
+            Cleaned text with boilerplate removed
+        """
+        if not text:
+            return text
+            
+        # Common note.com boilerplate patterns to remove
+        boilerplate_patterns = [
+            # Navigation and UI elements
+            r'ログイン.*?新規登録',
+            r'フォロー.*?フォロワー',
+            r'いいね.*?コメント.*?リツイート',
+            r'この記事が気に入ったら.*?サポートをしてみませんか',
+            r'記事への応援.*?感謝です',
+            r'サポートする',
+            r'記事をシェア',
+            r'Twitterでシェア',
+            r'Facebookでシェア',
+            r'はてなブックマーク',
+            r'Pocketに保存',
+            r'LINEに送る',
+            
+            # Header/Footer elements
+            r'^.*?note.*?マガジン.*?つくる.*?',
+            r'おすすめ.*?新着記事.*?人気記事.*?',
+            r'もっと見る.*?',
+            r'続きを読む.*?',
+            r'全て表示.*?',
+            
+            # User interface elements
+            r'アカウントをお持ちでない方.*?',
+            r'すでにアカウントをお持ちの方.*?',
+            r'メールアドレス.*?パスワード.*?',
+            r'利用規約.*?プライバシーポリシー.*?',
+            
+            # Date/time stamps (preserve content, remove UI formatting)
+            r'^\d{4}/\d{1,2}/\d{1,2}\s+\d{1,2}:\d{2}\s*',
+            r'最終更新.*?\d{4}/\d{1,2}/\d{1,2}',
+            
+            # Common note.com sidebar/recommendation content
+            r'おすすめの記事.*?',
+            r'関連記事.*?',
+            r'この著者の.*?記事.*?',
+            r'.*?をフォロー.*?',
+        ]
+        
+        # Apply pattern-based cleaning
+        for pattern in boilerplate_patterns:
+            try:
+                text = re.sub(pattern, '', text, flags=re.IGNORECASE | re.DOTALL)
+            except re.error:
+                continue  # Skip invalid patterns
+        
+        # Remove excessive repetitive elements
+        lines = text.split('\n')
+        cleaned_lines = []
+        prev_line = ""
+        
+        for line in lines:
+            line = line.strip()
+            
+            # Skip empty lines
+            if not line:
+                continue
+                
+            # Skip repetitive lines (common in scraped content)
+            if line == prev_line and len(line) < 50:
+                continue
+                
+            # Skip lines that are likely UI elements
+            if (len(line) < 100 and 
+                any(ui_word in line.lower() for ui_word in 
+                    ['follow', 'like', 'share', 'login', 'register', 'menu', 'home', 'profile', 'settings'])):
+                continue
+                
+            # Keep lines that seem to be actual content
+            if (len(line) > 20 or  # Longer lines are likely content
+                any(content_indicator in line for content_indicator in 
+                    ['ポケモン', '構築', 'VGC', 'ダブル', 'バトル', '調整', '努力値', 'とくこう', 'すばやさ'])):
+                cleaned_lines.append(line)
+                prev_line = line
+        
+        return '\n'.join(cleaned_lines)
 
     def _get_analysis_prompt(self) -> str:
         """Get the comprehensive VGC analysis prompt with enhanced Pokemon identification"""
@@ -1211,3 +1440,199 @@ Please analyze the following content and provide your response in the exact JSON
                 }
         
         return text_result
+    
+    def analyze_screenshot(self, image_data: str, image_format: str, filename: str = "screenshot") -> Dict[str, Any]:
+        """
+        Analyze a Pokemon team screenshot directly
+        
+        Args:
+            image_data: Base64 encoded image data
+            image_format: Image format (png, jpg, jpeg)
+            filename: Optional filename for reference
+            
+        Returns:
+            Analysis result in same format as article analysis
+        """
+        try:
+            # Use the enhanced vision analysis specifically for screenshots
+            from image_analyzer import get_screenshot_analysis_prompt
+            
+            # Prepare image for Gemini Vision
+            image_part = {
+                "mime_type": f"image/{image_format.lower()}",
+                "data": image_data,
+            }
+            
+            # Get screenshot-specific prompt
+            screenshot_prompt = get_screenshot_analysis_prompt()
+            
+            # Generate response using vision model with screenshot-specific prompt
+            response = self.vision_model.generate_content([screenshot_prompt, image_part])
+            
+            if response and response.text:
+                vision_analysis = response.text
+            else:
+                vision_analysis = "No analysis results from vision model"
+            
+            if not vision_analysis or "error" in vision_analysis.lower():
+                return {
+                    "error": "Failed to analyze screenshot",
+                    "success": False
+                }
+            
+            # Parse the vision analysis to extract structured team data
+            team_data = self._parse_screenshot_analysis(vision_analysis)
+            
+            # Format result similar to article analysis
+            result = {
+                "success": True,
+                "source_type": "screenshot",
+                "filename": filename,
+                "team_name": team_data.get("team_name", "Screenshot Team"),
+                "author": "Screenshot Analysis",
+                "regulation": team_data.get("regulation", "Not specified"),
+                "pokemon_team": team_data.get("pokemon_team", []),
+                "strategy_summary": "Team extracted from screenshot - strategy analysis not available",
+                "tournament_result": "",
+                "translated_content": f"Team analysis from screenshot: {filename}",
+                "translation_notes": "Extracted from screenshot - EVs may not be available",
+                "screenshot_analysis": {
+                    "raw_vision_output": vision_analysis,
+                    "pokemon_count": len(team_data.get("pokemon_team", [])),
+                    "extraction_confidence": team_data.get("confidence", "medium")
+                }
+            }
+            
+            return result
+            
+        except Exception as e:
+            return {
+                "error": f"Screenshot analysis failed: {str(e)}",
+                "success": False
+            }
+    
+    def _parse_screenshot_analysis(self, vision_analysis: str) -> Dict[str, Any]:
+        """
+        Parse the vision analysis output to extract structured Pokemon team data
+        
+        Args:
+            vision_analysis: Raw text output from vision model
+            
+        Returns:
+            Structured team data
+        """
+        import re
+        
+        team_data = {
+            "team_name": "Screenshot Team",
+            "regulation": "Not specified", 
+            "pokemon_team": [],
+            "confidence": "medium"
+        }
+        
+        # Extract individual Pokemon data
+        pokemon_blocks = re.findall(r'POKEMON #(\d+):(.*?)(?=POKEMON #\d+:|FINAL SUMMARY:|$)', vision_analysis, re.DOTALL | re.IGNORECASE)
+        
+        for pokemon_num, pokemon_text in pokemon_blocks:
+            pokemon = self._extract_pokemon_from_block(pokemon_text)
+            if pokemon:
+                team_data["pokemon_team"].append(pokemon)
+        
+        # If no structured blocks found, try alternative parsing
+        if not team_data["pokemon_team"]:
+            team_data["pokemon_team"] = self._extract_pokemon_fallback(vision_analysis)
+        
+        return team_data
+    
+    def _extract_pokemon_from_block(self, pokemon_text: str) -> Dict[str, Any]:
+        """Extract Pokemon data from a structured analysis block"""
+        import re
+        
+        pokemon = {
+            "name": "Unknown",
+            "ability": "Not specified",
+            "held_item": "Not specified", 
+            "nature": "Not specified",
+            "moves": [],
+            "evs": "Not specified",
+            "ev_explanation": "Not specified",
+            "role": "Not specified",
+            "tera_type": "Not specified"
+        }
+        
+        # Extract Pokemon name
+        name_match = re.search(r'^\s*(.+?)(?:\n|-|:)', pokemon_text.strip())
+        if name_match:
+            pokemon["name"] = name_match.group(1).strip()
+        
+        # Extract EV spread
+        ev_patterns = [
+            r'EV Spread[:\s]+([0-9/\-\s]+)',
+            r'Validated[:\s]+([0-9/\-\s]+)',
+            r'([0-9]{1,3}/[0-9]{1,3}/[0-9]{1,3}/[0-9]{1,3}/[0-9]{1,3}/[0-9]{1,3})'
+        ]
+        
+        for pattern in ev_patterns:
+            match = re.search(pattern, pokemon_text, re.IGNORECASE)
+            if match:
+                pokemon["evs"] = match.group(1).strip()
+                break
+        
+        # Extract nature
+        nature_match = re.search(r'Nature[:\s]+(\w+)', pokemon_text, re.IGNORECASE)
+        if nature_match:
+            pokemon["nature"] = nature_match.group(1)
+        
+        # Extract item
+        item_match = re.search(r'Item[:\s]+(.+?)(?:\n|$)', pokemon_text, re.IGNORECASE)
+        if item_match:
+            pokemon["held_item"] = item_match.group(1).strip()
+        
+        # Extract ability  
+        ability_match = re.search(r'Ability[:\s]+(.+?)(?:\n|$)', pokemon_text, re.IGNORECASE)
+        if ability_match:
+            pokemon["ability"] = ability_match.group(1).strip()
+        
+        # Extract moves
+        moves_match = re.search(r'Moves[:\s]+(.+?)(?:\n|$)', pokemon_text, re.IGNORECASE | re.DOTALL)
+        if moves_match:
+            moves_text = moves_match.group(1).strip()
+            moves = [move.strip() for move in re.split(r'[,\[\]]', moves_text) if move.strip()]
+            pokemon["moves"] = moves[:4]  # Max 4 moves
+        
+        return pokemon
+    
+    def _extract_pokemon_fallback(self, vision_analysis: str) -> list:
+        """Fallback method to extract Pokemon if structured parsing fails"""
+        # Simple fallback - look for Pokemon names mentioned in the text
+        # This would be expanded based on common patterns found in vision analysis
+        import re
+        
+        # Look for common Pokemon name patterns
+        pokemon_patterns = [
+            r'(?:Pokemon|ポケモン)[:\s]*([A-Za-z\-\s]+)',
+            r'([A-Z][a-z]+(?:\-[A-Z][a-z]+)*)'  # Capitalized words that could be Pokemon names
+        ]
+        
+        found_pokemon = []
+        for pattern in pokemon_patterns:
+            matches = re.findall(pattern, vision_analysis, re.IGNORECASE)
+            for match in matches[:6]:  # Max 6 Pokemon
+                if isinstance(match, tuple):
+                    match = match[0]
+                
+                pokemon_name = match.strip()
+                if len(pokemon_name) > 2:  # Avoid false positives
+                    found_pokemon.append({
+                        "name": pokemon_name,
+                        "ability": "Not specified",
+                        "held_item": "Not specified",
+                        "nature": "Not specified", 
+                        "moves": [],
+                        "evs": "Not specified",
+                        "ev_explanation": "Not specified",
+                        "role": "Not specified",
+                        "tera_type": "Not specified"
+                    })
+        
+        return found_pokemon[:6]  # Max 6 Pokemon

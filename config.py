@@ -333,10 +333,167 @@ POKEMON_NAME_TRANSLATIONS = {
     "プリズム": "Prism",
 }
 
-# Move name translations (add more as needed)
+# Japanese EV and stat terminology translations
+EV_STAT_TRANSLATIONS = {
+    # Primary Japanese stat names
+    "ＨＰ": "HP",
+    "HP": "HP",
+    "ヒットポイント": "HP",
+    "体力": "HP",
+    
+    "こうげき": "Attack",
+    "攻撃": "Attack", 
+    "アタック": "Attack",
+    "物理攻撃": "Attack",
+    "A": "Attack",
+    
+    "ぼうぎょ": "Defense",
+    "防御": "Defense",
+    "ディフェンス": "Defense", 
+    "物理防御": "Defense",
+    "B": "Defense",
+    
+    "とくこう": "Special Attack",
+    "特攻": "Special Attack",
+    "特殊攻撃": "Special Attack",
+    "とくしゅこうげき": "Special Attack", 
+    "C": "Special Attack",
+    
+    "とくぼう": "Special Defense",
+    "特防": "Special Defense",
+    "特殊防御": "Special Defense",
+    "とくしゅぼうぎょ": "Special Defense",
+    "D": "Special Defense",
+    
+    "すばやさ": "Speed",
+    "素早さ": "Speed",
+    "素早": "Speed",
+    "スピード": "Speed",
+    "速さ": "Speed",
+    "S": "Speed",
+    
+    # EV-specific terminology
+    "努力値": "EVs",
+    "個体値": "IVs", 
+    "調整": "EV training/tuning",
+    "振り": "EV distribution",
+    "努力": "effort",
+    "極振り": "max investment",
+    "無振り": "no investment",
+}
+
+# Japanese Pokemon nature translations
+NATURE_TRANSLATIONS = {
+    # Attack-boosting natures
+    "いじっぱり": "Adamant",
+    "やんちゃ": "Naughty",
+    "ゆうかん": "Brave", 
+    "さみしがり": "Lonely",
+    
+    # Defense-boosting natures  
+    "ずぶとい": "Bold",
+    "わんぱく": "Impish",
+    "のうてんき": "Lax",
+    "のんき": "Relaxed",
+    
+    # Special Attack-boosting natures
+    "ひかえめ": "Modest",
+    "おっとり": "Mild",
+    "れいせい": "Quiet", 
+    "うっかりや": "Rash",
+    
+    # Special Defense-boosting natures
+    "おだやか": "Calm",
+    "おとなしい": "Gentle",
+    "しんちょう": "Careful",
+    "なまいき": "Sassy",
+    
+    # Speed-boosting natures
+    "おくびょう": "Timid",
+    "せっかち": "Hasty",
+    "ようき": "Jolly",
+    "むじゃき": "Naive",
+    
+    # Neutral natures
+    "がんばりや": "Hardy",
+    "すなお": "Docile",
+    "てれや": "Bashful",
+    "きまぐれ": "Quirky",
+    "まじめ": "Serious",
+}
+
+# Japanese ability translations (common VGC abilities)
+ABILITY_TRANSLATIONS = {
+    "いかく": "Intimidate",
+    "もうか": "Blaze",
+    "しんりょく": "Overgrow", 
+    "げきりゅう": "Torrent",
+    "かそく": "Speed Boost",
+    "テクニシャン": "Technician",
+    "てんのめぐみ": "Serene Grace",
+    "プレッシャー": "Pressure",
+    "マルチスケイル": "Multiscale",
+    "ふゆう": "Levitate",
+    "ばけのかわ": "Disguise",
+    "ビーストブースト": "Beast Boost",
+    "クリアボディ": "Clear Body",
+    "しろのいななき": "White Smoke",
+    "マジックガード": "Magic Guard",
+    "さいせいりょく": "Regenerator",
+    "しぜんかいふく": "Natural Cure",
+    "いたずらごころ": "Prankster",
+    "すなおこし": "Sand Stream",
+    "ひでり": "Drought",
+    "あめふらし": "Drizzle",
+    "ゆきふらし": "Snow Warning",
+    "でんきエンジン": "Motor Drive",
+    "もらいび": "Flash Fire",
+    "ちょすい": "Water Absorb",
+    "かんそうはだ": "Dry Skin",
+}
+
+# Move name translations (expanded)
 MOVE_NAME_TRANSLATIONS = {
     "10まんボルト": "Thunderbolt",
-    "かえんほうしゃ": "Flamethrower",
+    "かえんほうしゃ": "Flamethrower", 
     "なみのり": "Surf",
+    "じしん": "Earthquake",
+    "かみなり": "Thunder",
+    "ふぶき": "Blizzard",
+    "だいもんじ": "Fire Blast",
+    "ハイドロポンプ": "Hydro Pump",
+    "りゅうのはどう": "Dragon Pulse",
+    "きあいだま": "Focus Blast",
+    "エアスラッシュ": "Air Slash",
+    "いわなだれ": "Rock Slide",
+    "アイアンヘッド": "Iron Head",
+    "とんぼがえり": "U-turn",
+    "ボルトチェンジ": "Volt Switch",
+    "ねこだまし": "Fake Out",
+    "まもる": "Protect",
+    "みがわり": "Substitute",
+    "はねやすめ": "Roost",
+    "おにび": "Will-O-Wisp",
+    "でんじは": "Thunder Wave",
+    "どくどく": "Toxic",
+    "ステルスロック": "Stealth Rock",
+    "みずしゅりけん": "Water Shuriken",
+    "かげうち": "Shadow Sneak",
+    "しんそく": "Extreme Speed",
+    "でんこうせっか": "Quick Attack",
+    "マッハパンチ": "Mach Punch",
+    "バレットパンチ": "Bullet Punch",
+    "こおりのつぶて": "Ice Shard",
+    "かみくだく": "Crunch",
+    "じゃれつく": "Play Rough",
+    "ムーンフォース": "Moonblast",
+    "マジカルシャイン": "Dazzling Gleam",
+    "テラバースト": "Tera Blast",
+    "ワイドフォース": "Expanding Force",
+    "ライジングボルト": "Rising Voltage",
+    "オーラウィング": "Aura Wing",
+    "ダブルウィング": "Dual Wingbeat",
+    "グラススライダー": "Grassy Glide",
+    "ウェーブタックル": "Wave Crash",
     # Add more as needed...
 }

@@ -11,6 +11,7 @@ from PIL import Image
 from typing import Dict, List, Optional, Any
 from urllib.parse import urljoin
 import google.generativeai as genai
+from config import EV_STAT_TRANSLATIONS, NATURE_TRANSLATIONS, ABILITY_TRANSLATIONS, MOVE_NAME_TRANSLATIONS
 
 
 def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, Any]]:
@@ -139,146 +140,161 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
 
 
 def is_potentially_vgc_image(image_info: Dict[str, Any]) -> bool:
-    """Enhanced VGC image detection with 2025 improvements"""
+    """Ultra-enhanced VGC image detection optimized for note.com team cards"""
 
-    # Enhanced scoring system for better accuracy
+    # Advanced scoring system with note.com specialization
     relevance_score = 0
+    confidence_multipliers = 1.0
 
-    # Priority 1: note.com assets (highest priority)
+    # PRIORITY 1: Note.com assets (ULTRA HIGH PRIORITY - these are almost always team cards)
     if image_info.get("is_note_com_asset", False):
         width, height = image_info.get("size", (0, 0))
         file_size = image_info.get("file_size", 0)
-        if width > 300 and height > 200 and file_size > 10000:  # 10KB+
-            relevance_score += 8  # Very high score for note.com assets
-
-    # Priority 2: Image dimensions analysis
+        url = image_info.get("url", "").lower()
+        
+        # Note.com team cards have very specific characteristics
+        if width >= 400 and height >= 300 and file_size > 15000:  # 15KB+ minimum for team cards
+            relevance_score += 12  # ULTRA HIGH base score for note.com
+            
+            # Bonus for ideal team card dimensions
+            if 600 <= width <= 1200 and 400 <= height <= 800:
+                relevance_score += 3  # Perfect team card size
+                
+            # Bonus for large file size (indicates detailed content)
+            if file_size > 50000:  # 50KB+
+                relevance_score += 2
+            if file_size > 100000:  # 100KB+
+                relevance_score += 2
+                
+            # Note.com URL pattern analysis
+            if "uploads/images" in url:  # User-uploaded content
+                relevance_score += 2
+            if any(pattern in url for pattern in ["rectangle", "large", "medium"]):
+                relevance_score += 1
+                
+    # PRIORITY 2: Advanced dimension analysis for VGC content
     width, height = image_info.get("size", (0, 0))
-    if width > 600 and height > 400:  # Team card likely dimensions
-        relevance_score += 3
-    elif width > 800 and height > 600:  # Screenshot dimensions
-        relevance_score += 4
-    elif width > 1200:  # Wide format (rental team screenshots)
-        relevance_score += 5
-
-    # Priority 3: File size indicators
+    aspect_ratio = width / height if height > 0 else 0
+    
+    # Team card optimal dimensions
+    if 0.8 <= aspect_ratio <= 2.0:  # Reasonable aspect ratios for team cards
+        if width >= 600 and height >= 400:
+            relevance_score += 4  # Good team card dimensions
+        if width >= 800 and height >= 600:
+            relevance_score += 5  # Excellent screenshot/team card size
+        if width >= 1000 and height >= 600:
+            relevance_score += 6  # Premium team display size
+            
+    # Wide format detection (rental team screenshots)
+    if aspect_ratio >= 1.5 and width >= 1200:
+        relevance_score += 5  # Wide rental team format
+        
+    # PRIORITY 3: Enhanced file size intelligence
     file_size = image_info.get("file_size", 0)
-    if file_size > 50000:  # Large images likely contain detailed data
+    if file_size > 20000:  # 20KB+ likely has meaningful content
         relevance_score += 2
-    elif file_size > 100000:  # Very large images
+    if file_size > 60000:  # 60KB+ definitely has detailed data
         relevance_score += 3
-
-    # Priority 4: Already flagged as likely team card
+    if file_size > 150000:  # 150KB+ premium content
+        relevance_score += 4
+        confidence_multipliers *= 1.2
+        
+    # PRIORITY 4: Team card indicators
     if image_info.get("is_likely_team_card", False):
-        relevance_score += 6
+        relevance_score += 8  # High confidence team card flag
+        confidence_multipliers *= 1.3
 
-    # Priority 5: Text content analysis (enhanced keywords)
+    # PRIORITY 5: Advanced text analysis with Japanese specialization
     text_content = (
-        image_info.get("alt_text", "")
-        + " "
-        + image_info.get("title", "")
-        + " "
-        + image_info.get("url", "")
+        image_info.get("alt_text", "") + " " +
+        image_info.get("title", "") + " " + 
+        image_info.get("url", "")
     ).lower()
 
-    enhanced_vgc_keywords = [
-        # English keywords
-        "pokemon",
-        "vgc",
-        "team",
-        "ev",
-        "iv",
-        "stats",
-        "competitive",
-        "doubles",
-        "battle",
-        "rental",
-        "pokepaste",
-        "regulation",
-        "tournament",
-        "worlds",
-        "regional",
-        "championship",
-        "movesets",
-        "nature",
-        "ability",
-        "item",
-        "tera",
-        "sprite",
-        "showdown",
-        # Japanese keywords
-        "ポケモン",
-        "チーム",
-        "ダブル",
-        "バトル",
-        "大会",
-        "構築",
-        "調整",
-        "技構成",
-        "持ち物",
-        "性格",
-        "特性",
-        "テラス",
-        "ランクマ",
-        "レンタル",
-        "努力値",
-        "個体値",
-        # Common Pokemon names that indicate team content
-        "ガブリアス",
-        "ガオガエン",
-        "ウインディ",
-        "モロバレル",
-        "エルフーン",
-        "ランドロス",
-        "カイリュー",
-        "ハリテヤマ",
-        "クレッフィ",
-        "トリトドン",
-        "ニンフィア",
-        "リザードン",
+    # Ultra-comprehensive VGC keywords with scoring
+    ultra_high_value_keywords = [
+        "pokemon", "ポケモン", "vgc", "team", "チーム", 
+        "rental", "レンタル", "party", "パーティ"
     ]
-
-    # Enhanced keyword scoring
+    
     high_value_keywords = [
-        "pokemon",
-        "ポケモン",
-        "vgc",
-        "team",
-        "チーム",
-        "rental",
-        "レンタル",
+        "構築", "調整", "努力値", "個体値", "battle", "バトル",
+        "competitive", "tournament", "大会", "doubles", "ダブル"
     ]
+    
     medium_value_keywords = [
-        "ev",
-        "努力値",
-        "battle",
-        "バトル",
-        "regulation",
-        "tournament",
+        "ev", "iv", "stats", "movesets", "nature", "性格",
+        "ability", "特性", "item", "持ち物", "tera", "テラス"
     ]
-
-    for keyword in enhanced_vgc_keywords:
+    
+    # Legendary/popular Pokemon names (strong indicators)
+    pokemon_indicators = [
+        "ガブリアス", "ガオガエン", "ウインディ", "モロバレル", "エルフーン",
+        "ランドロス", "カイリュー", "ハリテヤマ", "クレッフィ", "トリトドン",
+        "ニンフィア", "リザードン", "フラッター", "テツノ", "パオジアン",
+        "チオンジェン", "ディンルー", "イーユイ", "コライドン", "ミライドン"
+    ]
+    
+    # Score keywords
+    for keyword in ultra_high_value_keywords:
         if keyword in text_content:
-            if keyword in high_value_keywords:
-                relevance_score += 3
-            elif keyword in medium_value_keywords:
-                relevance_score += 2
-            else:
-                relevance_score += 1
+            relevance_score += 4
+            confidence_multipliers *= 1.1
+            
+    for keyword in high_value_keywords:
+        if keyword in text_content:
+            relevance_score += 3
+            
+    for keyword in medium_value_keywords:
+        if keyword in text_content:
+            relevance_score += 2
+            
+    # Pokemon name bonus
+    pokemon_count = sum(1 for pokemon in pokemon_indicators if pokemon in text_content)
+    if pokemon_count >= 2:  # Multiple Pokemon names = likely team content
+        relevance_score += pokemon_count * 2
+        confidence_multipliers *= 1.2
 
-    # Priority 6: URL-based detection
+    # PRIORITY 6: Enhanced URL pattern analysis
     src_url = image_info.get("url", "").lower()
-    if any(
-        domain in src_url
-        for domain in ["note.com", "assets.st-note.com", "pbs.twimg.com"]
-    ):
-        relevance_score += 2
+    
+    # Domain-based scoring
+    if "assets.st-note.com" in src_url:
+        relevance_score += 4  # Note.com assets are premium
+    elif "note.com" in src_url:
+        relevance_score += 3
+    elif "pbs.twimg.com" in src_url:
+        relevance_score += 2  # Twitter images often have team cards
+    elif "gyazo.com" in src_url or "imgur.com" in src_url:
+        relevance_score += 1  # Screenshot hosting services
 
-    # Priority 7: File format preferences
-    if src_url.endswith((".png", ".jpg", ".jpeg")):
+    # File format preferences with quality indicators
+    if src_url.endswith(".png"):
+        relevance_score += 2  # PNG often used for high-quality team cards
+    elif src_url.endswith((".jpg", ".jpeg")):
         relevance_score += 1
 
-    # Return True if score meets threshold (adjustable based on testing)
-    return relevance_score >= 5  # Threshold for "potentially VGC-relevant"
+    # Apply confidence multipliers
+    final_score = int(relevance_score * confidence_multipliers)
+    
+    # PRIORITY 7: Special note.com override
+    # If it's a note.com asset with reasonable size, prioritize it heavily
+    if (image_info.get("is_note_com_asset", False) and 
+        width >= 400 and height >= 300 and file_size > 10000):
+        return True  # Force inclusion for note.com assets
+    
+    # Standard threshold with dynamic adjustment
+    base_threshold = 8
+    
+    # Lower threshold for note.com content
+    if "note.com" in src_url:
+        base_threshold = 6
+        
+    # Lower threshold if multiple Pokemon indicators
+    if pokemon_count >= 2:
+        base_threshold = 7
+    
+    return final_score >= base_threshold
 
 
 def encode_image_for_gemini(
@@ -289,99 +305,234 @@ def encode_image_for_gemini(
 
 
 def get_vision_analysis_prompt() -> str:
-    """Get the comprehensive vision analysis prompt"""
+    """Get the comprehensive vision analysis prompt optimized for Japanese Pokemon team cards"""
     return '''
-🎯 ENHANCED 2025 POKEMON VGC IMAGE ANALYSIS MISSION:
-Perform comprehensive Pokemon team identification and data extraction with confidence scoring.
+🎯 ULTRA-ENHANCED JAPANESE POKEMON TEAM CARD ANALYSIS (2025):
+Extract complete Pokemon team data from Japanese VGC team cards with maximum precision on EV spreads.
 
-**MULTI-OBJECTIVE ANALYSIS (Execute ALL):**
+**🚨 CRITICAL PRIORITY: EV SPREAD EXTRACTION 🚨**
+This is your PRIMARY objective. Every Pokemon team card contains EV data - you MUST find it.
 
-**OBJECTIVE 1: POKEMON SPRITE IDENTIFICATION & VALIDATION**
-- Identify each Pokemon by visual appearance (sprites, artwork, models)
-- Cross-reference visual identification with any text labels
-- Note Pokemon forms, regional variants, shiny status if visible
-- Rate identification confidence for each Pokemon (High/Medium/Low)
-- Flag any Pokemon that are visually ambiguous or unclear
+**OBJECTIVE 1: SYSTEMATIC EV DETECTION (HIGHEST PRIORITY)**
+SCAN EVERY pixel for EV patterns in these EXACT formats:
 
-**OBJECTIVE 2: POKEMON NAME VALIDATION**  
-- Look for Japanese Pokemon names in text labels
-- Cross-reference with comprehensive name database
-- Validate sprite matches expected Pokemon name
-- Flag any mismatches between visual and textual identification
+**A. Calculated Stat Format (PRIORITY - liberty-note.com style):**
+- "H181(148)-A×↓-B131(124)-C184↑(116)-D112(4)-S119(116)"
+- Format: [StatLetter][CalculatedValue]([EVValue])[NatureSymbol]
+- Extract ONLY the numbers in parentheses (148, 124, 116, 4, 116)
+- Nature symbols: ↑ = boost, ↓ = reduce, × = neutral/no investment
+- IGNORE the first number (calculated stat), focus on parentheses
 
-**OBJECTIVE 3: EV SPREAD DETECTION (Enhanced)**
-SCAN METHODICALLY for numerical EV patterns in ALL these formats:
-- Standard: "252/0/4/252/0/0" or "252-0-4-252-0-0" (HP/Atk/Def/SpA/SpD/Spe)
-- Japanese: "H252 A0 B4 C252 D0 S0" or "ＨＰ252 こうげき0 ぼうぎょ4..."
-- Grid layout: Numbers in rows/columns next to stat abbreviations
-- Individual entries: "HP: 252", "Attack: 0", "Defense: 4"...
-- Compact: "252HP/4Def/252SpA" or "H252/B4/C252"
-- Note.com style: May use Japanese stat names with numbers
+**B. Standard Slash Format:**
+- "252/0/4/252/0/0" or "252-0-4-252-0-0" (HP/Atk/Def/SpA/SpD/Spe order)
+- "H252/A0/B4/C252/D0/S0" (with stat prefixes)
+- Look for 6 numbers separated by slashes or dashes
 
-**EV VALIDATION RULES:**
-- Total EVs must be ≤508 (if >508, these are likely actual stats, not EVs)
-- Valid individual values: 0, 4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 92, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 188, 196, 204, 212, 220, 228, 236, 244, 252
-- Common patterns: 252/252/4, 252/0/0/252/4/0, 252/0/4/0/0/252
+**C. Japanese Grid/Table Format (MOST COMMON in note.com):**
+- ＨＰ: 252    こうげき: 0     ぼうぎょ: 4
+- とくこう: 252  とくぼう: 0   すばやさ: 0
+- Search for Japanese stat names with numbers next to them
 
-**JAPANESE STAT TRANSLATIONS:**
-- ＨＰ/HP/H = HP
-- こうげき/攻撃/A = Attack  
-- ぼうぎょ/防御/B = Defense
-- とくこう/特攻/C = Special Attack
-- とくぼう/特防/D = Special Defense
-- すばやさ/素早/S = Speed
+**D. Abbreviated Format:**
+- "H252 A0 B4 C252 D0 S0" (single line with spaces)
+- "252HP 4Def 252SpA" (mixed format)
+- Any combination of stat letters (H/A/B/C/D/S) with numbers
 
-**TEAM LAYOUT PARSING (Note.com Format):**
-1. Pokemon Name/Sprite (top of each card)
-2. Pokemon Types (colored type indicators)
-3. Ability (below name, before moves)
-4. Held Item (icon/text near sprite)
-5. Nature (stat arrows: ↑=boost, ↓=reduction)
-6. MOVES (exactly 4, listed vertically)
-7. **EV SPREAD** (most critical - look for number patterns)
-8. Tera Type (if shown)
+**E. Individual Stat Lines:**
+- HP: 252 (or ＨＰ：252)
+- Attack: 0 (or こうげき：0)
+- Defense: 4 (or ぼうぎょ：4)
+- Sp. Atk: 252 (or とくこう：252)
+- Sp. Def: 0 (or とくぼう：0)
+- Speed: 0 (or すばやさ：0)
 
-**EV EXTRACTION PRIORITY AREAS:**
-1. Dedicated EV section/table within each Pokemon card
-2. Numbers next to stat abbreviations (H/A/B/C/D/S)
-3. Small text below Pokemon data
-4. Side panels or secondary info areas
-5. Overlaid text on Pokemon cards
-6. Separate EV summary section
+**🔍 ADVANCED JAPANESE EV DETECTION:**
 
-**NATURE DETECTION - STAT ARROW ANALYSIS:**
-Look for colored arrows next to stat abbreviations:
-- RED/Pink arrows (↑) = stat INCREASE (+10%)
-- BLUE/Navy arrows (↓) = stat DECREASE (-10%)
-- Example: Blue "A" + Red "S" = Timid nature (-Attack, +Speed)
+**COMPREHENSIVE JAPANESE STAT VOCABULARY:**
+- HP: ＨＰ, HP, H, ヒットポイント, 体力
+- Attack: こうげき, 攻撃, A, アタック, 物理攻撃
+- Defense: ぼうぎょ, 防御, B, ディフェンス, 物理防御
+- Sp.Attack: とくこう, 特攻, 特殊攻撃, C, 特攻, とくしゅこうげき
+- Sp.Defense: とくぼう, 特防, 特殊防御, D, 特防, とくしゅぼうぎょ
+- Speed: すばやさ, 素早さ, S, スピード, 速さ
 
-**ITEM TRANSLATIONS (Japanese ↔ English):**
-- しんぴのしずく = Mystic Water, たべのこし = Leftovers
-- きあいのタスキ = Focus Sash, いのちのたま = Life Orb
-- こだわりハチマキ = Choice Band, こだわりメガネ = Choice Specs
-- こだわりスカーフ = Choice Scarf, とつげきチョッキ = Assault Vest
-- オボンのみ = Sitrus Berry, ラムのみ = Lum Berry
+**JAPANESE LAYOUT PATTERNS TO CHECK:**
+1. **Vertical stat lists** (most common in note.com team cards)
+2. **Horizontal stat rows** with numbers aligned
+3. **Grid format** with stat names on left, values on right
+4. **Compact format** within Pokemon description boxes
+5. **Small text** overlaid on Pokemon sprites/cards
+6. **Side panel** information areas
 
-**ENHANCED OUTPUT FORMAT (2025 STANDARDS):**
-Provide detailed analysis for each Pokemon found:
+**EV VALIDATION (CRITICAL):**
+- Total must be ≤508 (if >508, these are likely battle stats, not EVs)
+- Valid EV values: 0, 4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 92, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 188, 196, 204, 212, 220, 228, 236, 244, 252
+- Common competitive patterns: 252/252/4, 252/0/0/252/4/0, 244/0/12/252/0/0
+
+**OBJECTIVE 2: POKEMON IDENTIFICATION & VALIDATION**
+- Identify Pokemon by sprites/artwork
+- Read Japanese Pokemon names in text
+- Cross-reference visual and textual identification
+- Note forms, regional variants, shiny status
+
+**OBJECTIVE 3: ADDITIONAL DATA EXTRACTION**
+- Nature (look for ↑↓ arrows or Japanese nature names)
+- Held Items (icons + Japanese item names)
+- Abilities (Japanese ability names)
+- Moves (4 moves listed in Japanese)
+- Tera Types (type icons or テラス text)
+
+**🗾 JAPANESE ITEM TRANSLATIONS:**
+- たべのこし=Leftovers, きあいのタスキ=Focus Sash, いのちのたま=Life Orb
+- こだわりハチマキ=Choice Band, こだわりメガネ=Choice Specs, こだわりスカーフ=Choice Scarf
+- とつげきチョッキ=Assault Vest, オボンのみ=Sitrus Berry, ラムのみ=Lum Berry
+- ヨプのみ=Yache Berry, カムラのみ=Salac Berry, ひかりのこな=BrightPowder
+
+**🌟 JAPANESE NATURE TRANSLATIONS:**
+- いじっぱり=Adamant, ようき=Jolly, おくびょう=Timid, ひかえめ=Modest
+- ずぶとい=Bold, わんぱく=Impish, おだやか=Calm, しんちょう=Careful
+
+**REQUIRED OUTPUT FORMAT:**
+For EACH Pokemon found, provide:
+```
+POKEMON #[X]: [Name]
+- Japanese Name: [Japanese text if visible]
+- EV Spread: [EXACT format found] → Validated: [HP/Atk/Def/SpA/SpD/Spe]
+- EV Total: [number] (Valid: Yes/No)
+- EV Confidence: High/Medium/Low
+- Nature: [nature name]
+- Item: [item name]
+- Ability: [ability name]
+- Moves: [move1, move2, move3, move4]
+- Additional Notes: [any issues or observations]
+```
+
+**FINAL SUMMARY:**
+```
+=== EV EXTRACTION RESULTS ===
+Total Pokemon: [X]
+EVs Successfully Extracted: [X/X]
+High Confidence EVs: [X]
+Medium/Low Confidence: [X]
+Failed Extractions: [X] (reasons)
+
+CRITICAL ISSUES: [List any major problems]
+```
+
+**🚨 REMEMBER: If you don't find EV spreads, the analysis has FAILED. Look harder - they're always there in team cards!**
+'''
+
+
+def get_screenshot_analysis_prompt() -> str:
+    """Get the vision analysis prompt optimized for Nintendo Switch team screenshots"""
+    return '''
+🎯 NINTENDO SWITCH POKEMON TEAM SCREENSHOT ANALYSIS (2025):
+Extract Pokemon team data from Nintendo Switch team screenshots with focus on basic team composition.
+
+**🎮 SWITCH SCREENSHOT IDENTIFICATION:**
+You are analyzing a Nintendo Switch Pokemon team screenshot (typically blue background with 6 Pokemon sprites).
+These screenshots show basic team composition but typically DO NOT contain detailed EV spreads.
+
+**PRIMARY OBJECTIVES:**
+
+**OBJECTIVE 1: POKEMON IDENTIFICATION (HIGHEST PRIORITY)**
+- Identify each Pokemon by their sprites/models
+- Read any visible Japanese Pokemon names
+- Note Pokemon forms, regional variants (Galar, Hisui, etc.)
+- Identify Paradox Pokemon correctly (Iron Valiant, Flutter Mane, etc.)
+- Count total Pokemon (should be 6 for complete team)
+
+**OBJECTIVE 2: HELD ITEMS DETECTION**
+- Look for held item icons next to Pokemon sprites
+- Read Japanese item names if visible as text
+- Common items to recognize:
+  • きあいのタスキ (Focus Sash) - red/white sash icon
+  • いのちのたま (Life Orb) - purple orb icon
+  • こだわりスカーフ (Choice Scarf) - blue scarf icon
+  • とつげきチョッキ (Assault Vest) - green vest icon
+  • たべのこし (Leftovers) - apple icon
+
+**OBJECTIVE 3: BASIC MOVE/ABILITY INFO (IF VISIBLE)**
+- Look for any visible Japanese move names
+- Check for ability names if displayed
+- Note: Switch screenshots often don't show full movesets
+
+**CRITICAL LIMITATIONS TO ACKNOWLEDGE:**
+❌ EV spreads are typically NOT visible in Switch screenshots
+❌ Detailed move explanations are usually not available
+❌ Strategic analysis requires article context not available in screenshots
+
+**🗾 ESSENTIAL JAPANESE TRANSLATIONS:**
+
+**POKEMON NAMES (Key ones to recognize):**
+- ガブリアス = Garchomp
+- ランドロス = Landorus
+- ガオガエン = Incineroar  
+- ウインディ = Arcanine
+- モロバレル = Amoonguss
+- エルフーン = Whimsicott
+- カイリュー = Dragonite
+- リザードン = Charizard
+- ニンフィア = Sylveon
+- パオジアン = Chien-Pao
+- チオンジェン = Chi-Yu
+- ディンルー = Ting-Lu
+- イーユイ = Wo-Chien
+
+**ITEM NAMES:**
+- たべのこし = Leftovers
+- きあいのタスキ = Focus Sash
+- いのちのたま = Life Orb
+- こだわりハチマキ = Choice Band
+- こだわりメガネ = Choice Specs
+- こだわりスカーフ = Choice Scarf
+- とつげきチョッキ = Assault Vest
+- オボンのみ = Sitrus Berry
+- ラムのみ = Lum Berry
+
+**FORMS AND VARIANTS:**
+- テリジオン = Terrakion
+- コバルオン = Cobalion  
+- ビリジオン = Virizion
+- ザマゼンタ = Zamazenta
+- ザシアン = Zacian
+- カラマネロ = Malamar
+- イルカマン = Palafin
+
+**REQUIRED OUTPUT FORMAT:**
 
 ```
-=== POKEMON ANALYSIS SUMMARY ===
-Total Pokemon Identified: X
-Data Quality Score: X/10
-Overall Confidence: High/Medium/Low
+=== NINTENDO SWITCH TEAM SCREENSHOT ANALYSIS ===
 
 TEAM COMPOSITION:
-[List each Pokemon with all available data]
+Pokemon #1: [Name] ([Japanese name if visible])
+- Held Item: [Item name or "Not visible"]
+- Notes: [Any form/variant info]
 
-EV SPREADS DETECTED:
-[List EV patterns found with validation status]
+Pokemon #2: [Name] ([Japanese name if visible])
+- Held Item: [Item name or "Not visible"]
+- Notes: [Any form/variant info]
 
-ADDITIONAL NOTES:
-[Any important observations or data quality issues]
+[Continue for all 6 Pokemon]
+
+ANALYSIS SUMMARY:
+- Total Pokemon Identified: X/6
+- Held Items Detected: X/6
+- Screenshot Quality: Good/Fair/Poor
+- Confidence Level: High/Medium/Low
+
+LIMITATIONS NOTED:
+- EV spreads: Not available in screenshot format
+- Detailed movesets: Not visible in this screenshot type
+- Strategy analysis: Requires article context
+
+POKEPASTE READINESS:
+✅ Pokemon names available for basic pokepaste
+❌ EV spreads not available (user must add manually)
+❌ Complete movesets not available (user must add manually)
 ```
 
-Please analyze this image thoroughly and provide comprehensive Pokemon team data extraction.
+**🚨 REMEMBER: Switch screenshots provide basic team composition only. Focus on accurate Pokemon identification and visible items. Do not attempt to guess EVs or detailed strategies.**
 '''
 
 
@@ -409,38 +560,199 @@ def analyze_image_with_vision(image_data: str, image_format: str, vision_model) 
 
 
 def extract_ev_spreads_from_image_analysis(image_analysis: str) -> List[Dict[str, Any]]:
-    """Extract EV spread data from image analysis text"""
+    """Enhanced EV spread extraction with comprehensive Japanese pattern recognition and calculated stat format"""
     ev_spreads = []
     
-    # Look for various EV patterns in the analysis
-    ev_patterns = [
-        r"(\d{1,3})[\/\-](\d{1,3})[\/\-](\d{1,3})[\/\-](\d{1,3})[\/\-](\d{1,3})[\/\-](\d{1,3})",  # 252/0/4/252/0/0
-        r"H(\d{1,3})\s*A(\d{1,3})\s*B(\d{1,3})\s*C(\d{1,3})\s*D(\d{1,3})\s*S(\d{1,3})",  # H252 A0 B4...
-        r"HP:\s*(\d{1,3}).*?Attack:\s*(\d{1,3}).*?Defense:\s*(\d{1,3}).*?Sp\.?\s*Attack:\s*(\d{1,3}).*?Sp\.?\s*Defense:\s*(\d{1,3}).*?Speed:\s*(\d{1,3})",  # HP: 252, Attack: 0...
+    # PRIORITY 1: Calculated stat format (liberty-note.com style) - NEW!
+    calc_stat_patterns = [
+        r"([HABCDS])(?:\d+)?\((\d+)\)([↑↓×]?)",  # H181(148)↑ or H(148)
+        r"([HABCDS])\((\d+)\)([↑↓×]?)",  # H(148)×
+        r"([HABCDS])(\d+)([↑↓×])",  # H148↑ (without parentheses)
     ]
     
-    for pattern in ev_patterns:
+    for pattern in calc_stat_patterns:
+        matches = re.finditer(pattern, image_analysis, re.UNICODE | re.IGNORECASE)
+        stat_groups = []
+        
+        for match in matches:
+            stat_groups.append(match.groups())
+        
+        # If we found multiple stat groups, try to form a complete EV spread
+        if len(stat_groups) >= 4:  # Need at least 4 stats for reasonable confidence
+            ev_values = [0, 0, 0, 0, 0, 0]
+            stat_mapping = {'H': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'S': 5}
+            
+            valid_stats = 0
+            for stat_letter, ev_value, nature_symbol in stat_groups:
+                if stat_letter.upper() in stat_mapping:
+                    try:
+                        ev_int = int(ev_value)
+                        if 0 <= ev_int <= 252:
+                            ev_values[stat_mapping[stat_letter.upper()]] = ev_int
+                            valid_stats += 1
+                    except (ValueError, IndexError):
+                        continue
+            
+            if valid_stats >= 4:
+                spread_dict = _create_ev_spread_dict(ev_values, "calculated_stat_format", f"calc_format_{len(stat_groups)}_stats")
+                if spread_dict:
+                    ev_spreads.append(spread_dict)
+    
+    # PRIORITY 2: Standard slash-separated format (most reliable)
+    slash_patterns = [
+        r"(\d{1,3})[\/\-](\d{1,3})[\/\-](\d{1,3})[\/\-](\d{1,3})[\/\-](\d{1,3})[\/\-](\d{1,3})",  # 252/0/4/252/0/0
+        r"H(\d{1,3})[\/\-]A(\d{1,3})[\/\-]B(\d{1,3})[\/\-]C(\d{1,3})[\/\-]D(\d{1,3})[\/\-]S(\d{1,3})",  # H252/A0/B4...
+    ]
+    
+    for pattern in slash_patterns:
+        matches = re.finditer(pattern, image_analysis, re.IGNORECASE)
+        for match in matches:
+            ev_values = [int(x) for x in match.groups()]
+            if len(ev_values) == 6:
+                spread_dict = _create_ev_spread_dict(ev_values, "slash_format", match.group())
+                if spread_dict:
+                    ev_spreads.append(spread_dict)
+    
+    # PRIORITY 2: Space-separated format with stat abbreviations
+    space_patterns = [
+        r"H(\d{1,3})\s+A(\d{1,3})\s+B(\d{1,3})\s+C(\d{1,3})\s+D(\d{1,3})\s+S(\d{1,3})",  # H252 A0 B4 C252 D0 S0
+        r"(\d{1,3})HP\s+(\d{1,3})Atk?\s+(\d{1,3})Def?\s+(\d{1,3})SpA?\s+(\d{1,3})SpD?\s+(\d{1,3})Spe?",  # 252HP 0Atk 4Def...
+    ]
+    
+    for pattern in space_patterns:
+        matches = re.finditer(pattern, image_analysis, re.IGNORECASE)
+        for match in matches:
+            ev_values = [int(x) for x in match.groups()]
+            if len(ev_values) == 6:
+                spread_dict = _create_ev_spread_dict(ev_values, "space_format", match.group())
+                if spread_dict:
+                    ev_spreads.append(spread_dict)
+    
+    # PRIORITY 3: Japanese stat name patterns (CRITICAL for note.com)
+    japanese_patterns = [
+        # Full Japanese stat names with colons/spaces
+        r"(?:ＨＰ|HP)[:\s]*(\d{1,3}).*?(?:こうげき|攻撃)[:\s]*(\d{1,3}).*?(?:ぼうぎょ|防御)[:\s]*(\d{1,3}).*?(?:とくこう|特攻|特殊攻撃)[:\s]*(\d{1,3}).*?(?:とくぼう|特防|特殊防御)[:\s]*(\d{1,3}).*?(?:すばやさ|素早さ|素早)[:\s]*(\d{1,3})",
+        
+        # Compact Japanese format
+        r"ＨＰ(\d{1,3})\s*こうげき(\d{1,3})\s*ぼうぎょ(\d{1,3})\s*とくこう(\d{1,3})\s*とくぼう(\d{1,3})\s*すばやさ(\d{1,3})",
+        
+        # Mixed Japanese/English
+        r"(?:HP|ＨＰ)(\d{1,3})\s*(?:A|こうげき)(\d{1,3})\s*(?:B|ぼうぎょ)(\d{1,3})\s*(?:C|とくこう)(\d{1,3})\s*(?:D|とくぼう)(\d{1,3})\s*(?:S|すばやさ)(\d{1,3})",
+    ]
+    
+    for pattern in japanese_patterns:
         matches = re.finditer(pattern, image_analysis, re.IGNORECASE | re.DOTALL)
         for match in matches:
             ev_values = [int(x) for x in match.groups()]
             if len(ev_values) == 6:
-                total = sum(ev_values)
-                # Validate EV spread
-                if total <= 508 and all(ev % 4 == 0 for ev in ev_values):
-                    spread_dict = {
-                        "hp": ev_values[0],
-                        "attack": ev_values[1],
-                        "defense": ev_values[2],
-                        "special_attack": ev_values[3],
-                        "special_defense": ev_values[4],
-                        "speed": ev_values[5],
-                        "total": total,
-                        "format": "/".join(map(str, ev_values)),
-                        "confidence": "high" if total in [508, 504, 500, 496] else "medium"
-                    }
+                spread_dict = _create_ev_spread_dict(ev_values, "japanese_format", match.group())
+                if spread_dict:
                     ev_spreads.append(spread_dict)
     
+    # PRIORITY 4: Individual stat line parsing (flexible order)
+    individual_stats = {}
+    stat_patterns = {
+        'hp': [r"(?:HP|ＨＰ|ヒットポイント)[:\s]*(\d{1,3})", r"体力[:\s]*(\d{1,3})"],
+        'attack': [r"(?:Attack|こうげき|攻撃|A)[:\s]*(\d{1,3})", r"(?:アタック|物理攻撃)[:\s]*(\d{1,3})"],
+        'defense': [r"(?:Defense|ぼうぎょ|防御|B)[:\s]*(\d{1,3})", r"(?:ディフェンス|物理防御)[:\s]*(\d{1,3})"],
+        'special_attack': [r"(?:Sp\.?\s*Attack|とくこう|特攻|特殊攻撃|C)[:\s]*(\d{1,3})", r"(?:とくしゅこうげき)[:\s]*(\d{1,3})"],
+        'special_defense': [r"(?:Sp\.?\s*Defense|とくぼう|特防|特殊防御|D)[:\s]*(\d{1,3})", r"(?:とくしゅぼうぎょ)[:\s]*(\d{1,3})"],
+        'speed': [r"(?:Speed|すばやさ|素早さ|素早|S)[:\s]*(\d{1,3})", r"(?:スピード|速さ)[:\s]*(\d{1,3})"]
+    }
+    
+    for stat, patterns in stat_patterns.items():
+        for pattern in patterns:
+            matches = re.finditer(pattern, image_analysis, re.IGNORECASE)
+            for match in matches:
+                value = int(match.group(1))
+                if 0 <= value <= 252:  # Basic validation
+                    individual_stats[stat] = value
+                    break  # Take first valid match for this stat
+    
+    # If we found all 6 individual stats, create EV spread
+    if len(individual_stats) == 6:
+        ev_values = [
+            individual_stats['hp'],
+            individual_stats['attack'], 
+            individual_stats['defense'],
+            individual_stats['special_attack'],
+            individual_stats['special_defense'],
+            individual_stats['speed']
+        ]
+        spread_dict = _create_ev_spread_dict(ev_values, "individual_stats", str(individual_stats))
+        if spread_dict:
+            ev_spreads.append(spread_dict)
+    
+    # Remove duplicates (keep highest confidence)
+    ev_spreads = _remove_duplicate_ev_spreads(ev_spreads)
+    
     return ev_spreads
+
+
+def _create_ev_spread_dict(ev_values: List[int], format_type: str, raw_match: str) -> Dict[str, Any]:
+    """Create and validate EV spread dictionary"""
+    if len(ev_values) != 6:
+        return None
+    
+    total = sum(ev_values)
+    
+    # Enhanced validation
+    if total > 508:  # Definitely not EVs
+        return None
+    
+    # Check if all values are multiples of 4 (EV requirement)
+    if not all(ev % 4 == 0 for ev in ev_values):
+        return None
+    
+    # Check for reasonable EV patterns (no single stat > 252)
+    if any(ev > 252 for ev in ev_values):
+        return None
+    
+    # Determine confidence level
+    confidence = "low"
+    if total >= 500:  # Near-max investment
+        confidence = "high"
+    elif total >= 400:  # Substantial investment
+        confidence = "medium"
+    elif format_type == "slash_format":  # Standard format gets bonus
+        confidence = "high"
+    
+    return {
+        "hp": ev_values[0],
+        "attack": ev_values[1],
+        "defense": ev_values[2],
+        "special_attack": ev_values[3],
+        "special_defense": ev_values[4],
+        "speed": ev_values[5],
+        "total": total,
+        "format": "/".join(map(str, ev_values)),
+        "confidence": confidence,
+        "format_type": format_type,
+        "raw_match": raw_match[:100],  # Store first 100 chars of original match
+        "is_valid": True
+    }
+
+
+def _remove_duplicate_ev_spreads(ev_spreads: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Remove duplicate EV spreads, keeping the highest confidence ones"""
+    unique_spreads = {}
+    
+    for spread in ev_spreads:
+        # Use the actual EV values as key to identify duplicates
+        key = (spread["hp"], spread["attack"], spread["defense"], 
+               spread["special_attack"], spread["special_defense"], spread["speed"])
+        
+        if key not in unique_spreads:
+            unique_spreads[key] = spread
+        else:
+            # Keep the one with higher confidence
+            current_confidence = {"high": 3, "medium": 2, "low": 1}[spread["confidence"]]
+            existing_confidence = {"high": 3, "medium": 2, "low": 1}[unique_spreads[key]["confidence"]]
+            
+            if current_confidence > existing_confidence:
+                unique_spreads[key] = spread
+    
+    return list(unique_spreads.values())
 
 
 def filter_vgc_images(images: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

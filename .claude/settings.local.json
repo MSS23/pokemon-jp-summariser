@@ -32,7 +32,8 @@
       "Bash(mv:*)",
       "Bash(curl:*)",
       "WebFetch(domain:vgcmulticalc.com)",
-      "WebFetch(domain:ai.google.dev)"
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:x.com)"
     ],
     "defaultMode": "acceptEdits"
   }

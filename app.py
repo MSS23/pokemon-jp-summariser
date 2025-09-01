@@ -87,6 +87,8 @@ class VGCAnalysisApp:
         """Route to the appropriate page based on selection"""
         if page == "🏠 Analysis Home":
             self.render_analysis_page()
+        elif page == "🎮 Switch Translation":
+            self.render_switch_translation_page()
         elif page == "📚 Saved Teams":
             self.render_saved_teams_page()
         elif page == "🔍 Team Search":
@@ -122,8 +124,8 @@ class VGCAnalysisApp:
         Process the analysis request
 
         Args:
-            input_type: 'url' or 'text'
-            content: URL or text content to analyze
+            input_type: 'url', 'text', or 'screenshot'
+            content: URL, text content, or screenshot data to analyze
         """
         try:
             with st.spinner("Analyzing content... This may take a moment."):
@@ -147,14 +149,42 @@ class VGCAnalysisApp:
 
                     analysis_content = scraped_content
                     st.session_state.current_url = content
-                else:
+                    
+                    # Perform enhanced analysis with images
+                    result = self.analyzer.analyze_article_with_images(
+                        analysis_content, st.session_state.current_url
+                    )
+                
+                elif input_type == "screenshot":
+                    # Handle screenshot analysis
+                    if not content or not isinstance(content, dict):
+                        st.error("No screenshot uploaded or invalid screenshot data.")
+                        return
+                    
+                    # Extract screenshot data
+                    image_data = content.get("image_data")
+                    image_format = content.get("format", "png")
+                    filename = content.get("filename", "screenshot.png")
+                    
+                    if not image_data:
+                        st.error("No image data found in uploaded screenshot.")
+                        return
+                    
+                    # Analyze screenshot directly
+                    result = self.analyzer.analyze_screenshot(
+                        image_data, image_format, filename
+                    )
+                    
+                    st.session_state.current_url = None
+                
+                else:  # text input
                     analysis_content = content
                     st.session_state.current_url = None
-
-                # Perform enhanced analysis with images
-                result = self.analyzer.analyze_article_with_images(
-                    analysis_content, st.session_state.current_url
-                )
+                    
+                    # Perform enhanced analysis with images
+                    result = self.analyzer.analyze_article_with_images(
+                        analysis_content, st.session_state.current_url
+                    )
 
                 if result:
                     st.session_state.analysis_result = result
@@ -341,6 +371,203 @@ class VGCAnalysisApp:
         translation_notes = result.get("translation_notes", "")
         if translation_notes:
             st.write(f"**Translation Notes:** {translation_notes}")
+
+    def render_switch_translation_page(self):
+        """Render the dedicated Switch screenshot translation page"""
+        # Custom header for Switch translation
+        st.markdown(
+            """
+            <div style="text-align: center; padding: 2.5rem 0;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border-radius: 20px; margin-bottom: 2rem; 
+            box-shadow: 0 8px 32px rgba(79, 70, 229, 0.3);">
+                <h1 style="color: white; margin: 0; font-size: 2.8rem; font-weight: 700; 
+                          text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                    🎮 Switch Screenshot Translator
+                </h1>
+                <p style="color: rgba(255,255,255,0.9); margin: 1rem 0 0 0; 
+                          font-size: 1.2rem; font-weight: 300;">
+                    Instant Japanese → English Pokemon Team Translation
+                </p>
+                <p style="color: rgba(255,255,255,0.8); margin: 0.5rem 0 0 0; 
+                          font-size: 1rem; background: rgba(255,255,255,0.1); 
+                          padding: 0.5rem 1rem; border-radius: 25px; display: inline-block;">
+                    Upload Switch Screenshot → Get Pokepaste
+                </p>
+            </div>
+        """,
+            unsafe_allow_html=True,
+        )
+
+        # Instructions section
+        with st.expander("📋 How to Use Switch Translation", expanded=True):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown(
+                    """
+                    **✅ Perfect Screenshots:**
+                    • Nintendo Switch team builder screen
+                    • Blue background with 6 Pokemon
+                    • Japanese Pokemon names clearly visible
+                    • Held item icons visible
+                    • Good lighting and focus
+                    """
+                )
+            
+            with col2:
+                st.markdown(
+                    """
+                    **⚡ What You'll Get:**
+                    • Japanese → English name translation
+                    • Held item identification
+                    • Instant pokepaste download
+                    • Team ready for Pokemon Showdown
+                    • Basic team composition analysis
+                    """
+                )
+
+        st.divider()
+
+        # Upload section
+        st.header("📷 Upload Your Switch Screenshot")
+        
+        uploaded_file = st.file_uploader(
+            "Choose your Nintendo Switch team screenshot",
+            type=['png', 'jpg', 'jpeg'],
+            help="Nintendo Switch screenshots work best! Make sure Japanese Pokemon names are clearly visible."
+        )
+
+        if uploaded_file is not None:
+            # Display the uploaded image
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.image(uploaded_file, caption="Uploaded Screenshot", use_column_width=True)
+            
+            st.success(f"✅ Screenshot uploaded: {uploaded_file.name} ({uploaded_file.size} bytes)")
+
+            # Analyze button
+            if st.button("🔍 Translate Team", type="primary", use_container_width=True):
+                self.process_switch_translation(uploaded_file)
+
+        # Display results if available
+        if st.session_state.get("switch_translation_result"):
+            self.display_switch_translation_results()
+
+    def process_switch_translation(self, uploaded_file):
+        """Process the Switch screenshot translation"""
+        try:
+            with st.spinner("🎯 Analyzing Switch screenshot... This may take a moment."):
+                # Convert uploaded file to format needed for analysis
+                import base64
+                file_bytes = uploaded_file.getvalue()
+                encoded_image = base64.b64encode(file_bytes).decode('utf-8')
+                
+                # Get image format
+                image_format = uploaded_file.type.split('/')[-1] if uploaded_file.type else 'png'
+                
+                # Analyze screenshot directly
+                result = self.analyzer.analyze_screenshot(
+                    encoded_image, image_format, uploaded_file.name
+                )
+
+                if result and result.get("success"):
+                    st.session_state.switch_translation_result = result
+                    st.success("✅ Translation completed successfully!")
+                    st.rerun()
+                else:
+                    error_msg = result.get("error", "Unknown error occurred")
+                    st.error(f"❌ Translation failed: {error_msg}")
+                    st.info("💡 **Tips:**\n- Make sure this is a Nintendo Switch team screenshot\n- Ensure Japanese text is clear and readable\n- Try a different screenshot if this one doesn't work")
+
+        except Exception as e:
+            st.error(f"❌ **Something went wrong:** {str(e)}")
+            st.info("💡 **Try:**\n- Checking your screenshot format (PNG, JPG)\n- Using a clearer screenshot\n- Refreshing the page and trying again")
+
+    def display_switch_translation_results(self):
+        """Display the Switch translation results"""
+        result = st.session_state.switch_translation_result
+        
+        st.header("🎯 Translation Results")
+        
+        pokemon_team = result.get("pokemon_team", [])
+        
+        if not pokemon_team:
+            st.warning("⚠️ No Pokemon were detected in the screenshot. Please try a different image.")
+            return
+        
+        # Display confidence and summary
+        confidence = result.get("screenshot_analysis", {}).get("extraction_confidence", "medium")
+        pokemon_count = len(pokemon_team)
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Pokemon Detected", f"{pokemon_count}/6")
+        with col2:
+            st.metric("Confidence", confidence.title())
+        with col3:
+            st.metric("Status", "✅ Ready" if pokemon_count >= 4 else "⚠️ Partial")
+
+        st.divider()
+
+        # Translation mapping display
+        st.subheader("🔄 Japanese → English Translation")
+        
+        for i, pokemon in enumerate(pokemon_team, 1):
+            name = pokemon.get("name", "Unknown")
+            held_item = pokemon.get("held_item", "Not specified")
+            
+            col1, col2, col3 = st.columns([1, 1, 1])
+            
+            with col1:
+                st.markdown(f"**#{i}** 🎌 *Japanese Name*")
+            with col2:
+                st.markdown(f"**→ {name}**")
+            with col3:
+                if held_item != "Not specified":
+                    st.markdown(f"🎒 *{held_item}*")
+                else:
+                    st.markdown("🎒 *No item detected*")
+
+        st.divider()
+
+        # Export section
+        st.subheader("💾 Download Your Team")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Generate pokepaste
+            try:
+                from utils import create_pokepaste
+                pokepaste_content = create_pokepaste(
+                    pokemon_team, 
+                    result.get("team_name", "Switch Screenshot Team")
+                )
+                
+                st.download_button(
+                    label="📥 Download Pokepaste",
+                    data=pokepaste_content,
+                    file_name=f"switch_team_{result.get('filename', 'screenshot')}.txt",
+                    mime="text/plain",
+                    type="primary",
+                    use_container_width=True
+                )
+                
+            except Exception as e:
+                st.error(f"Error generating pokepaste: {str(e)}")
+        
+        with col2:
+            # Clear results button
+            if st.button("🔄 Translate Another Screenshot", use_container_width=True):
+                if "switch_translation_result" in st.session_state:
+                    del st.session_state.switch_translation_result
+                st.rerun()
+
+        # Raw analysis details (collapsible)
+        with st.expander("🔍 Technical Details", expanded=False):
+            raw_output = result.get("screenshot_analysis", {}).get("raw_vision_output", "No details available")
+            st.text_area("Raw Vision Analysis", raw_output, height=200)
 
     def render_saved_teams_page(self):
         """Render the saved teams page using session state"""

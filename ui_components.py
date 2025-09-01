@@ -58,7 +58,7 @@ def render_analysis_input() -> tuple[str, str]:
     Render consumer-friendly input section for article analysis
 
     Returns:
-        Tuple of (input_type, content) where input_type is 'url' or 'text'
+        Tuple of (input_type, content) where input_type is 'url', 'text', or 'screenshot'
     """
     st.header("🚀 Start Your Analysis")
     
@@ -68,26 +68,33 @@ def render_analysis_input() -> tuple[str, str]:
         st.markdown(
             """
             **🚀 Quick Start:**
-            1. Paste a Japanese VGC article URL or copy the text directly
+            1. Choose your input method: Article URL, Article Text, or Team Screenshot
             2. Click "Analyze" for instant AI-powered translation and team analysis
             3. Teams are automatically saved for searching and future reference
             
             **💡 Pro Tips:**
-            - **Best results**: Use articles from note.com, Japanese Pokemon blogs, tournament reports
+            - **Articles**: Use note.com, Japanese Pokemon blogs, tournament reports for best results
+            - **Screenshots**: Nintendo Switch team screenshots work great for quick pokepaste generation
             - **Speed boost**: Recently analyzed content is cached for faster loading
-            - **Team building**: Use the export features to get pokepaste format for easy importing
+            - **Team building**: Use export features to get pokepaste format for easy importing
             
             **🔍 What we analyze:**
             • Pokemon names, abilities, items, movesets
-            • EV spreads with strategic explanations  
+            • EV spreads with strategic explanations (articles)
             • Team synergies and roles
             • Tournament context and author insights
+            
+            **📷 Screenshot Mode:**
+            • Perfect for Nintendo Switch team screenshots
+            • Automatically translates Japanese Pokemon/item names
+            • Generates instant pokepaste for Showdown import
+            • Note: EVs cannot be extracted from screenshots
             """
         )
 
     input_method = st.radio(
         "**Choose your input method:**", 
-        ["🔗 Article URL", "📄 Article Text"], 
+        ["🔗 Article URL", "📄 Article Text", "📷 Team Screenshot"], 
         horizontal=True
     )
 
@@ -106,7 +113,8 @@ def render_analysis_input() -> tuple[str, str]:
                 st.info("ℹ️ URL detected - we'll try to extract the content")
         
         return "url", url
-    else:
+        
+    elif input_method == "📄 Article Text":
         text = st.text_area(
             "📝 **Paste your article text here:**",
             height=200,
@@ -125,6 +133,45 @@ def render_analysis_input() -> tuple[str, str]:
                 st.warning("⚠️ Content seems short - consider adding more text for better analysis")
         
         return "text", text
+        
+    else:  # Team Screenshot
+        st.markdown("📷 **Upload your Pokemon team screenshot:**")
+        uploaded_file = st.file_uploader(
+            "Choose a team screenshot",
+            type=['png', 'jpg', 'jpeg'],
+            help="💡 Nintendo Switch screenshots work best! Make sure Pokemon names and items are clearly visible.",
+        )
+        
+        # Additional instructions for better results
+        st.info(
+            """
+            📋 **For best results:**
+            • Use Nintendo Switch team screenshots (blue background with 6 Pokemon)
+            • Ensure Japanese text is clear and readable
+            • Make sure all Pokemon sprites are visible
+            • Team builder screens work better than battle screenshots
+            """
+        )
+        
+        if uploaded_file is not None:
+            # Display the uploaded image for user confirmation
+            st.image(uploaded_file, caption="Uploaded team screenshot", use_column_width=True)
+            st.success(f"✅ Screenshot uploaded: {uploaded_file.name} ({uploaded_file.size} bytes)")
+            
+            # Convert uploaded file to format needed for analysis
+            import base64
+            file_bytes = uploaded_file.getvalue()
+            encoded_image = base64.b64encode(file_bytes).decode('utf-8')
+            
+            # Return the image data in a format that can be processed
+            return "screenshot", {
+                "image_data": encoded_image,
+                "format": uploaded_file.type.split('/')[-1],  # png, jpg, jpeg
+                "filename": uploaded_file.name,
+                "size": uploaded_file.size
+            }
+        
+        return "screenshot", None
 
 
 def render_pokemon_card(pokemon: Dict[str, Any], index: int):
@@ -764,6 +811,7 @@ def render_sidebar():
             "**Navigate to:**",
             [
                 "🏠 Analysis Home",
+                "🎮 Switch Translation",
                 "📚 Saved Teams", 
                 "🔍 Team Search",
                 "⚙️ Settings",

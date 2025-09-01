@@ -383,10 +383,10 @@ def safe_parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
 
 def parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
     """
-    Parse EV spread from various string formats
+    Parse EV spread from various string formats including calculated stat formats
 
     Args:
-        ev_string: EV spread in format like "252/0/0/252/4/0" or "H252 A0 B0 C252 D4 S0"
+        ev_string: EV spread in format like "252/0/0/252/4/0" or "H252 A0 B0 C252 D4 S0" or "H181(148)-A×↓-B131(124)"
 
     Returns:
         Tuple of (EV dictionary, source type)
@@ -403,7 +403,12 @@ def parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
 
     ev_dict = {"HP": 0, "Atk": 0, "Def": 0, "SpA": 0, "SpD": 0, "Spe": 0}
 
-    # Try "Number StatName" format first (44 HP / 4 Def / 252 SpA / 28 SpD / 180 Spe)
+    # PRIORITY 1: Try calculated stat format (H181(148)-A×↓-B131(124)-C184↑(116)-D112(4)-S119(116))
+    calculated_format_result = parse_calculated_stat_format(ev_string)
+    if calculated_format_result[1] != "default_empty":
+        return calculated_format_result
+
+    # PRIORITY 2: Try "Number StatName" format (44 HP / 4 Def / 252 SpA / 28 SpD / 180 Spe)
     if any(stat in ev_string for stat in ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]):
         stat_name_patterns = {
             r"(\d+)\s*HP": "HP",
@@ -423,7 +428,7 @@ def parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
         if any(v > 0 for v in ev_dict.values()):
             return validate_and_fix_evs(ev_dict)
 
-    # Try slash-separated format (252/0/0/252/4/0)
+    # PRIORITY 3: Try slash-separated format (252/0/0/252/4/0)
     if "/" in ev_string:
         parts = ev_string.split("/")
         if len(parts) == 6:
@@ -438,7 +443,7 @@ def parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
             except ValueError:
                 pass
 
-    # Try format with stat labels (H252 A0 B0 C252 D4 S0)
+    # PRIORITY 4: Try format with stat labels (H252 A0 B0 C252 D4 S0)
     stat_patterns = {
         r"H(\d+)": "HP",
         r"A(\d+)": "Atk",
@@ -456,31 +461,230 @@ def parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
     return validate_and_fix_evs(ev_dict)
 
 
+def parse_calculated_stat_format(ev_string: str) -> Tuple[Dict[str, int], str]:
+    """
+    Parse calculated stat format used by liberty-note.com and similar sites
+    
+    Format: H181(148)-A×↓-B131(124)-C184↑(116)-D112(4)-S119(116)
+    Where: [StatLetter][CalculatedValue]([EVValue])[NatureSymbol]
+    
+    Args:
+        ev_string: EV string in calculated stat format
+        
+    Returns:
+        Tuple of (EV dictionary, source type)
+    """
+    if not ev_string or ev_string.strip() == "":
+        return {
+            "HP": 0,
+            "Atk": 0,
+            "Def": 0,
+            "SpA": 0,
+            "SpD": 0,
+            "Spe": 0,
+        }, "default_empty"
+
+    ev_dict = {"HP": 0, "Atk": 0, "Def": 0, "SpA": 0, "SpD": 0, "Spe": 0}
+    nature_info = {"boosts": [], "reductions": []}
+    
+    # Enhanced regex pattern for calculated stat format
+    # Pattern explanation:
+    # ([HABCDS]) - Stat abbreviation
+    # (\d+) - Calculated stat value (we ignore this)
+    # \((\d+)\) - EV investment in parentheses (we extract this)
+    # ([↑↓×]?) - Optional nature symbol
+    calc_pattern = r'([HABCDS])(?:\d+)?\((\d+)\)([↑↓×]?)'
+    
+    matches = re.findall(calc_pattern, ev_string, re.UNICODE)
+    
+    if not matches:
+        # Try alternative pattern without calculated values
+        # Pattern: H(148)-A×-B(124)-C(116)-D(4)-S(116)
+        alt_pattern = r'([HABCDS])\((\d+)\)([↑↓×]?)'
+        matches = re.findall(alt_pattern, ev_string, re.UNICODE)
+    
+    if not matches:
+        # Try even more flexible pattern
+        # Pattern: H148-A×↓-B124-C116↑-D4-S116
+        flexible_pattern = r'([HABCDS])(\d+)([↑↓×]?)'
+        matches = re.findall(flexible_pattern, ev_string, re.UNICODE)
+    
+    if matches:
+        stat_mapping = {
+            'H': 'HP',
+            'A': 'Atk', 
+            'B': 'Def',
+            'C': 'SpA',
+            'D': 'SpD',
+            'S': 'Spe'
+        }
+        
+        found_stats = 0
+        for stat_letter, ev_value, nature_symbol in matches:
+            if stat_letter in stat_mapping:
+                try:
+                    ev_int = int(ev_value)
+                    # Validate EV value is reasonable
+                    if 0 <= ev_int <= 252:
+                        ev_dict[stat_mapping[stat_letter]] = ev_int
+                        found_stats += 1
+                        
+                        # Process nature symbols
+                        if nature_symbol == '↑':
+                            nature_info["boosts"].append(stat_mapping[stat_letter])
+                        elif nature_symbol == '↓':
+                            nature_info["reductions"].append(stat_mapping[stat_letter])
+                        # '×' means no investment or neutral
+                        
+                except ValueError:
+                    continue
+        
+        # If we found at least 4 stats, consider it a successful parse
+        if found_stats >= 4:
+            # Additional validation for calculated stat format
+            validated_evs, status = validate_and_fix_evs(ev_dict)
+            return validated_evs, f"calculated_stat_{status}"
+    
+    # No matches found
+    return {
+        "HP": 0,
+        "Atk": 0,
+        "Def": 0,
+        "SpA": 0,
+        "SpD": 0,
+        "Spe": 0,
+    }, "default_empty"
+
+
 def validate_and_fix_evs(ev_dict: Dict[str, int]) -> Tuple[Dict[str, int], str]:
     """
-    Validate and fix EV spread
+    Enhanced EV spread validation with confidence scoring and competitive analysis
 
     Args:
         ev_dict: Dictionary of EV values
 
     Returns:
-        Tuple of (validated EV dict, validation status)
+        Tuple of (validated EV dict, validation status with confidence)
     """
-    total = sum(ev_dict.values())
+    original_total = sum(ev_dict.values())
+    validation_issues = []
+    confidence_score = 100  # Start with perfect confidence
 
-    # Check if total is valid (should be <= 508 and each stat <= 252)
+    # PHASE 1: Basic value validation
     for stat in ev_dict:
+        # Check for negative values
+        if ev_dict[stat] < 0:
+            ev_dict[stat] = 0
+            validation_issues.append(f"negative_{stat}")
+            confidence_score -= 15
+
+        # Check for values too high (> 252)
         if ev_dict[stat] > 252:
             ev_dict[stat] = 252
+            validation_issues.append(f"capped_{stat}")
+            confidence_score -= 10
 
-    if total > 508:
-        # Scale down proportionally
-        factor = 508 / total
+    # PHASE 2: Total EV validation
+    current_total = sum(ev_dict.values())
+    
+    if original_total > 508:
+        if original_total > 600:
+            # Likely these are actual stats, not EVs
+            validation_issues.append("likely_stats_not_evs")
+            confidence_score -= 50
+        
+        # Scale down proportionally but preserve investment patterns
+        factor = 508 / original_total
         for stat in ev_dict:
-            ev_dict[stat] = int(ev_dict[stat] * factor)
-        return ev_dict, "adjusted_total"
+            if ev_dict[stat] > 0:  # Only scale non-zero values
+                ev_dict[stat] = max(4, int(ev_dict[stat] * factor))
+        
+        validation_issues.append("scaled_total")
+        confidence_score -= 20
+        
+    elif current_total < 100:
+        # Very low total EVs - might be incomplete data
+        validation_issues.append("low_total")
+        confidence_score -= 25
+    
+    # PHASE 3: EV multiple validation (should be multiples of 4)
+    for stat, value in ev_dict.items():
+        if value > 0 and value % 4 != 0:
+            # Round to nearest multiple of 4
+            ev_dict[stat] = (value // 4) * 4 + (4 if value % 4 >= 2 else 0)
+            validation_issues.append(f"rounded_{stat}")
+            confidence_score -= 5
 
-    return ev_dict, "valid"
+    # PHASE 4: Competitive pattern analysis
+    final_total = sum(ev_dict.values())
+    competitive_patterns = analyze_competitive_ev_pattern(ev_dict, final_total)
+    
+    if competitive_patterns["is_common_pattern"]:
+        confidence_score += 10
+    if competitive_patterns["has_max_investments"]:
+        confidence_score += 5
+    if competitive_patterns["reasonable_distribution"]:
+        confidence_score += 5
+    else:
+        confidence_score -= 10
+
+    # PHASE 5: Determine validation status
+    confidence_level = "high" if confidence_score >= 80 else "medium" if confidence_score >= 50 else "low"
+    
+    if not validation_issues:
+        status = f"valid_{confidence_level}"
+    elif len(validation_issues) == 1 and validation_issues[0].startswith("rounded"):
+        status = f"minor_fixes_{confidence_level}"
+    elif any(issue in validation_issues for issue in ["likely_stats_not_evs", "low_total"]):
+        status = f"questionable_{confidence_level}"
+    else:
+        status = f"adjusted_{confidence_level}"
+
+    return ev_dict, status
+
+
+def analyze_competitive_ev_pattern(ev_dict: Dict[str, int], total: int) -> Dict[str, bool]:
+    """
+    Analyze EV spread for competitive patterns
+    
+    Args:
+        ev_dict: Dictionary of EV values
+        total: Total EV investment
+        
+    Returns:
+        Analysis of competitive patterns
+    """
+    analysis = {
+        "is_common_pattern": False,
+        "has_max_investments": False,
+        "reasonable_distribution": False
+    }
+    
+    ev_values = list(ev_dict.values())
+    non_zero_values = [v for v in ev_values if v > 0]
+    max_investments = sum(1 for v in ev_values if v >= 252)
+    
+    # Check for max investments (common in competitive play)
+    analysis["has_max_investments"] = max_investments >= 1
+    
+    # Check for common competitive patterns
+    common_totals = [508, 504, 500, 496, 492]  # Common total investments
+    if total in common_totals and len(non_zero_values) >= 2:
+        analysis["is_common_pattern"] = True
+    
+    # Check for reasonable distribution
+    if len(non_zero_values) >= 2 and len(non_zero_values) <= 4:
+        # Most competitive builds invest in 2-4 stats
+        analysis["reasonable_distribution"] = True
+    
+    # Special patterns
+    if max_investments == 2 and total >= 500:  # 252/252/4 style builds
+        analysis["is_common_pattern"] = True
+        
+    if max_investments == 1 and 200 <= total <= 400:  # Bulky builds
+        analysis["reasonable_distribution"] = True
+    
+    return analysis
 
 
 def is_calculated_stats(numbers: List[int]) -> bool:
