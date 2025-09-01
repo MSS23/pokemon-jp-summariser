@@ -153,25 +153,33 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
         # Core information with modern styling
         st.markdown("#### ⚔️ Battle Ready Details")
         
-        # Enhanced info display with better visual hierarchy
+        # Enhanced info display in 2-column layout
         info_items = [
             ("🧬", "Ability", ability),
             ("🎒", "Held Item", item), 
             ("🌟", "Nature", nature)
         ]
         
-        for icon, label, value in info_items:
+        # Create 2-column layout for battle ready details
+        detail_col1, detail_col2 = st.columns([1, 1])
+        
+        for i, (icon, label, value) in enumerate(info_items):
             status_class = "specified" if value != "Not specified" else "not-specified"
-            st.markdown(
-                f"""
-                <div class="info-item {status_class}">
-                    <span class="info-icon">{icon}</span>
-                    <span class="info-label">{label}:</span>
-                    <span class="info-value">{value}</span>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+            info_html = f"""
+            <div class="info-item {status_class}">
+                <span class="info-icon">{icon}</span>
+                <span class="info-label">{label}:</span>
+                <span class="info-value">{value}</span>
+            </div>
+            """
+            
+            # Distribute items across columns (alternate placement)
+            if i == 0:  # Ability in first column
+                detail_col1.markdown(info_html, unsafe_allow_html=True)
+            elif i == 1:  # Held Item in second column
+                detail_col2.markdown(info_html, unsafe_allow_html=True)
+            elif i == 2:  # Nature in first column (under Ability)
+                detail_col1.markdown(info_html, unsafe_allow_html=True)
         
         # Enhanced moveset display
         st.markdown("#### 🎮 Combat Moveset")
@@ -180,19 +188,9 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
             moves_html = '<div class="moveset-container">'
             for i, move in enumerate(moves[:4], 1):
                 if move and move != "Not specified":
-                    moves_html += f'''
-                    <div class="move-item">
-                        <span class="move-number">{i}</span>
-                        <span class="move-name">{move}</span>
-                    </div>
-                    '''
+                    moves_html += f'<div class="move-item"><span class="move-number">{i}</span><span class="move-name">{move}</span></div>'
                 else:
-                    moves_html += f'''
-                    <div class="move-item empty">
-                        <span class="move-number">{i}</span>
-                        <span class="move-name">Not specified</span>
-                    </div>
-                    '''
+                    moves_html += f'<div class="move-item empty"><span class="move-number">{i}</span><span class="move-name">Not specified</span></div>'
             moves_html += '</div>'
             st.markdown(moves_html, unsafe_allow_html=True)
         else:
@@ -229,18 +227,7 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
                         for label, icon, value in zip(ev_labels, ev_icons, ev_values):
                             if value > 0:
                                 percentage = (value / 252) * 100
-                                ev_bars_html += f'''
-                                <div class="ev-bar-item">
-                                    <div class="ev-bar-label">
-                                        <span class="ev-icon">{icon}</span>
-                                        <span class="ev-stat">{label}</span>
-                                        <span class="ev-value">{value}</span>
-                                    </div>
-                                    <div class="ev-bar-track">
-                                        <div class="ev-bar-fill" style="width: {percentage}%"></div>
-                                    </div>
-                                </div>
-                                '''
+                                ev_bars_html += f'<div class="ev-bar-item"><div class="ev-bar-label"><span class="ev-icon">{icon}</span><span class="ev-stat">{label}</span><span class="ev-value">{value}</span></div><div class="ev-bar-track"><div class="ev-bar-fill" style="width: {percentage}%"></div></div></div>'
                         ev_bars_html += '</div>'
                         st.markdown(ev_bars_html, unsafe_allow_html=True)
                 except Exception:
@@ -298,23 +285,6 @@ def render_article_summary(analysis_result: Dict[str, Any]):
         """,
         unsafe_allow_html=True
     )
-    
-    # Strategy overview in a clean card
-    if overall_strategy != "Strategy not specified":
-        st.markdown("### 💡 Strategic Overview")
-        st.markdown(
-            f"""
-            <div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); 
-                        padding: 2rem; border-radius: 15px; 
-                        border-left: 5px solid #6366f1; margin: 1.5rem 0;
-                        box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
-                <p style="margin: 0; color: #1e293b; font-size: 1.1rem; line-height: 1.7;">
-                    {overall_strategy}
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
     
     # Quick team overview
     pokemon_team = analysis_result.get("pokemon_team", [])

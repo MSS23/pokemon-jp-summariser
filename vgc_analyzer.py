@@ -477,9 +477,13 @@ Please analyze the following content and provide your response in the exact JSON
         """
         # Common form notation fixes
         form_fixes = [
-            # Therian forms
-            (r'\b(\w+)[\s\-]*T\b', r'\1-Therian'),
-            (r'\b(\w+)[\s\-]*Therian\b', r'\1-Therian'),
+            # Therian forms (specific to Pokemon that actually have Therian forms)
+            (r'\b(Landorus)[\s\-]*T\b', r'\1-Therian'),
+            (r'\b(Thundurus)[\s\-]*T\b', r'\1-Therian'),  
+            (r'\b(Tornadus)[\s\-]*T\b', r'\1-Therian'),
+            (r'\b(Landorus)[\s\-]*Therian\b', r'\1-Therian'),
+            (r'\b(Thundurus)[\s\-]*Therian\b', r'\1-Therian'),
+            (r'\b(Tornadus)[\s\-]*Therian\b', r'\1-Therian'),
             
             # Shadow/Ice Calyrex
             (r'\bCalyrex[\s\-]*Shadow\b', 'Calyrex-Shadow'),
@@ -505,8 +509,10 @@ Please analyze the following content and provide your response in the exact JSON
             (r'\bAlolan[\s\-]*(\w+)', r'\1-Alola'),
             (r'\bHisuian[\s\-]*(\w+)', r'\1-Hisui'),
             
-            # Common hyphen/space issues
-            (r'\b(\w+)[\s]+(\w+)\b', r'\1-\2'),  # Space to hyphen for known compound names
+            # Specific space to hyphen fixes for known compound Pokemon names
+            (r'\bIron[\s]+Valiant\b', 'Iron Valiant'),  # Keep Iron Valiant as is
+            (r'\bFlutter[\s]+Mane\b', 'Flutter Mane'),   # Keep Flutter Mane as is
+            (r'\bIron[\s]+Moth\b', 'Iron Moth'),         # Keep Iron Moth as is
         ]
         
         import re
@@ -597,15 +603,18 @@ Please analyze the following content and provide your response in the exact JSON
         return validated
     
     def _validate_pokemon_name(self, pokemon: Dict[str, Any], index: int) -> Dict[str, Any]:
-        """Validate Pokemon name against known Pokemon list"""
+        """Enhanced Pokemon name validation with form checking"""
         name = pokemon.get("name", "")
         
         if not name or name in ["Unknown", "Unknown Pokemon", "Not specified"]:
             pokemon["name"] = "Unknown Pokemon"
             return pokemon
             
+        # First apply form validation to prevent incorrect forms
+        validated_name = self._validate_pokemon_forms(name)
+        
         # Check if name exists in our translations (indicates it's a known Pokemon)
-        name_lower = name.lower()
+        name_lower = validated_name.lower()
         known_pokemon = set(POKEMON_NAME_TRANSLATIONS.values()) | set(POKEMON_NAME_TRANSLATIONS.keys())
         
         # Add common VGC Pokemon
@@ -615,7 +624,7 @@ Please analyze the following content and provide your response in the exact JSON
             "chi-yu", "koraidon", "miraidon", "calyrex-shadow", "urshifu-rapid-strike",
             "zamazenta", "zacian", "dragonite", "charizard", "salamence", "metagross",
             "tyranitar", "excadrill", "ferrothorn", "rotom-heat", "rotom-wash",
-            "indeedee", "arcanine", "torkoal", "venusaur", "rillaboom"
+            "indeedee", "arcanine", "torkoal", "venusaur", "rillaboom", "iron-valiant"
         }
         
         all_known_pokemon = known_pokemon | common_vgc_pokemon
@@ -627,11 +636,82 @@ Please analyze the following content and provide your response in the exact JSON
                 return pokemon
                 
         # If not found, apply additional fuzzy validation
-        best_match = self._find_best_pokemon_match(name, all_known_pokemon)
+        best_match = self._find_best_pokemon_match(validated_name, all_known_pokemon)
         if best_match:
             pokemon["name"] = best_match
+        else:
+            pokemon["name"] = validated_name
         
         return pokemon
+    
+    def _validate_pokemon_forms(self, name: str) -> str:
+        """
+        Validate and correct Pokemon forms to prevent incorrect form application
+        
+        Args:
+            name: Pokemon name to validate
+            
+        Returns:
+            Corrected Pokemon name with proper forms
+        """
+        name_lower = name.lower()
+        
+        # Define Pokemon that can have specific forms
+        valid_forms = {
+            # Therian forms (only these 3 Pokemon can have Therian forms)
+            'therian': ['landorus', 'thundurus', 'tornadus'],
+            
+            # Shadow/Ice forms (only Calyrex)
+            'shadow': ['calyrex'],
+            'ice': ['calyrex'],
+            
+            # Strike forms (only Urshifu)
+            'rapid-strike': ['urshifu'],
+            'single-strike': ['urshifu'],
+            
+            # Regional forms
+            'galar': ['zapdos', 'moltres', 'articuno', 'slowking', 'slowbro', 'mr-mime', 
+                     'ponyta', 'rapidash', 'farfetchd', 'weezing', 'corsola', 'zigzagoon',
+                     'linoone', 'darumaka', 'darmanitan', 'yamask', 'stunfisk'],
+            'alola': ['rattata', 'raticate', 'raichu', 'sandshrew', 'sandslash', 'vulpix',
+                     'ninetales', 'diglett', 'dugtrio', 'meowth', 'persian', 'geodude',
+                     'graveler', 'golem', 'grimer', 'muk', 'exeggutor', 'marowak'],
+            'hisui': ['growlithe', 'arcanine', 'voltorb', 'electrode', 'typhlosion', 
+                     'qwilfish', 'sneasel', 'samurott', 'lilligant', 'zorua', 'zoroark',
+                     'braviary', 'sliggoo', 'goodra', 'avalugg', 'decidueye'],
+            
+            # Other forms
+            'heat': ['rotom'], 'wash': ['rotom'], 'frost': ['rotom'], 'fan': ['rotom'], 'mow': ['rotom'],
+            'crowned': ['zacian', 'zamazenta']
+        }
+        
+        # Check for incorrect form applications
+        for form_name, valid_pokemon in valid_forms.items():
+            if form_name in name_lower or f'-{form_name}' in name_lower:
+                # Extract base Pokemon name
+                base_name = name_lower.replace(f'-{form_name}', '').replace(f' {form_name}', '').strip()
+                
+                # Check if this Pokemon can actually have this form
+                if base_name not in valid_pokemon:
+                    # Remove the invalid form
+                    corrected_name = name.replace(f'-{form_name.title()}', '').replace(f' {form_name.title()}', '').strip()
+                    corrected_name = corrected_name.replace(f'-{form_name}', '').replace(f' {form_name}', '').strip()
+                    return corrected_name
+        
+        # Special cases for Paradox Pokemon (they should never have forms)
+        paradox_pokemon = ['iron-valiant', 'iron-moth', 'flutter-mane', 'sandy-shocks', 
+                          'roaring-moon', 'brute-bonnet', 'great-tusk', 'scream-tail',
+                          'iron-treads', 'iron-bundle', 'iron-hands', 'iron-jugulis',
+                          'iron-thorns', 'slither-wing', 'walking-wake', 'iron-leaves']
+        
+        for paradox in paradox_pokemon:
+            if paradox in name_lower:
+                # Remove any incorrectly applied forms from Paradox Pokemon
+                base_paradox_name = paradox.replace('-', ' ').title()
+                if 'therian' in name_lower or 'shadow' in name_lower or 'galar' in name_lower:
+                    return base_paradox_name
+        
+        return name
     
     def _validate_pokemon_ability(self, pokemon: Dict[str, Any], index: int) -> Dict[str, Any]:
         """Validate Pokemon ability"""
