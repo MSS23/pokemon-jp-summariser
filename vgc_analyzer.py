@@ -12,6 +12,12 @@ import google.generativeai as genai
 from config import Config
 from cache_manager import cache
 from utils import validate_url
+from image_analyzer import (
+    extract_images_from_url,
+    filter_vgc_images,
+    analyze_image_with_vision,
+    extract_ev_spreads_from_image_analysis
+)
 
 
 class GeminiVGCAnalyzer:
@@ -22,8 +28,11 @@ class GeminiVGCAnalyzer:
         self.api_key = Config.get_google_api_key()
         genai.configure(api_key=self.api_key)
 
-        # Configure the model
+        # Configure the text model
         self.model = genai.GenerativeModel("gemini-2.0-flash-exp")
+        
+        # Configure the vision model
+        self.vision_model = genai.GenerativeModel("gemini-2.0-flash-exp")
 
         # Generation config for consistent output
         self.generation_config = {
@@ -308,3 +317,104 @@ Please analyze the following content and provide your response in the exact JSON
             pokemon["moves"].append("Not specified")
 
         return pokemon
+
+    def extract_and_analyze_images(self, url: str) -> Dict[str, Any]:
+        """
+        Extract images from URL and analyze them for VGC content
+        
+        Args:
+            url: URL to extract images from
+            
+        Returns:
+            Dictionary containing image analysis results
+        """
+        try:
+            # Extract images from URL
+            all_images = extract_images_from_url(url)
+            if not all_images:
+                return {"images_found": 0, "analysis": "No images found"}
+                
+            # Filter for VGC-relevant images
+            vgc_images = filter_vgc_images(all_images)
+            if not vgc_images:
+                return {
+                    "images_found": len(all_images), 
+                    "vgc_images": 0,
+                    "analysis": "No VGC-relevant images found"
+                }
+            
+            # Analyze images with vision model
+            image_analyses = []
+            for i, image in enumerate(vgc_images[:3]):  # Limit to 3 images
+                analysis = analyze_image_with_vision(
+                    image["data"], 
+                    image.get("format", "jpeg"), 
+                    self.vision_model
+                )
+                
+                image_analyses.append({
+                    "image_index": i,
+                    "image_url": image["url"],
+                    "image_size": image["size"],
+                    "file_size": image["file_size"],
+                    "is_note_com_asset": image.get("is_note_com_asset", False),
+                    "analysis": analysis,
+                    "ev_spreads": extract_ev_spreads_from_image_analysis(analysis)
+                })
+            
+            return {
+                "images_found": len(all_images),
+                "vgc_images": len(vgc_images),
+                "analyzed_images": len(image_analyses),
+                "image_analyses": image_analyses,
+                "success": True
+            }
+            
+        except Exception as e:
+            return {
+                "images_found": 0,
+                "error": str(e),
+                "success": False
+            }
+
+    def analyze_article_with_images(self, content: str, url: str = None) -> Dict[str, Any]:
+        """
+        Enhanced analysis combining text and image analysis
+        
+        Args:
+            content: Article content to analyze
+            url: Optional URL for image extraction
+            
+        Returns:
+            Combined analysis result
+        """
+        # First perform standard text analysis
+        text_result = self.analyze_article(content, url)
+        
+        # If URL provided, also analyze images
+        if url:
+            try:
+                image_result = self.extract_and_analyze_images(url)
+                
+                # Merge image analysis into text result
+                text_result["image_analysis"] = image_result
+                
+                # If we found additional Pokemon or EV data in images, note it
+                if image_result.get("success") and image_result.get("image_analyses"):
+                    additional_info = []
+                    for img_analysis in image_result["image_analyses"]:
+                        if img_analysis.get("ev_spreads"):
+                            additional_info.append(f"Found {len(img_analysis['ev_spreads'])} EV spreads in image")
+                    
+                    if additional_info:
+                        if "translation_notes" not in text_result:
+                            text_result["translation_notes"] = ""
+                        text_result["translation_notes"] += f" Image analysis: {'; '.join(additional_info)}"
+                        
+            except Exception as e:
+                text_result["image_analysis"] = {
+                    "error": f"Image analysis failed: {str(e)}",
+                    "success": False
+                }
+        
+        return text_result

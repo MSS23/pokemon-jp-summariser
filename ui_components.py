@@ -508,6 +508,101 @@ def render_sidebar():
         return page
 
 
+def render_image_analysis_section(analysis_result: Dict[str, Any]):
+    """Render image analysis results section"""
+    image_analysis = analysis_result.get("image_analysis")
+    
+    if not image_analysis:
+        return
+        
+    st.header("🖼️ Image Analysis Results")
+    
+    if not image_analysis.get("success", False):
+        if "error" in image_analysis:
+            st.error(f"Image analysis failed: {image_analysis['error']}")
+        else:
+            st.info("No image analysis performed for this article.")
+        return
+    
+    # Display image statistics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Images Found", image_analysis.get("images_found", 0))
+    with col2:
+        st.metric("VGC Relevant", image_analysis.get("vgc_images", 0))
+    with col3:
+        st.metric("Analyzed", image_analysis.get("analyzed_images", 0))
+    with col4:
+        # Count total EV spreads found
+        total_ev_spreads = 0
+        for img_analysis in image_analysis.get("image_analyses", []):
+            total_ev_spreads += len(img_analysis.get("ev_spreads", []))
+        st.metric("EV Spreads Found", total_ev_spreads)
+    
+    # Display detailed analysis for each image
+    image_analyses = image_analysis.get("image_analyses", [])
+    
+    if image_analyses:
+        st.subheader("📊 Detailed Image Analysis")
+        
+        for i, img_analysis in enumerate(image_analyses):
+            with st.expander(f"🖼️ Image {i+1} Analysis", expanded=i==0):
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    st.write(f"**Image URL:** {img_analysis.get('image_url', 'Unknown')}")
+                    st.write(f"**Size:** {img_analysis.get('image_size', 'Unknown')}")
+                    st.write(f"**File Size:** {img_analysis.get('file_size', 0):,} bytes")
+                    
+                    if img_analysis.get('is_note_com_asset'):
+                        st.success("✅ High Priority: Note.com Asset")
+                
+                with col2:
+                    st.write("**Quality Indicators:**")
+                    quality_score = 0
+                    if img_analysis.get('is_note_com_asset'):
+                        quality_score += 3
+                        st.write("🔥 Note.com Asset (+3)")
+                    
+                    size = img_analysis.get('image_size', (0, 0))
+                    if len(size) == 2 and size[0] > 800 and size[1] > 600:
+                        quality_score += 2
+                        st.write("📏 Large Image (+2)")
+                    
+                    file_size = img_analysis.get('file_size', 0)
+                    if file_size > 50000:
+                        quality_score += 1
+                        st.write("💾 Substantial Data (+1)")
+                    
+                    st.metric("Quality Score", f"{quality_score}/6")
+                
+                # Show EV spreads found
+                ev_spreads = img_analysis.get("ev_spreads", [])
+                if ev_spreads:
+                    st.write("**🎯 EV Spreads Detected:**")
+                    for j, ev_spread in enumerate(ev_spreads):
+                        confidence = ev_spread.get("confidence", "unknown")
+                        confidence_color = "🟢" if confidence == "high" else "🟡" if confidence == "medium" else "🔴"
+                        
+                        st.code(f"Spread {j+1}: {ev_spread.get('format', 'Unknown')} (Total: {ev_spread.get('total', 'Unknown')}) {confidence_color}")
+                
+                # Show analysis text (truncated for UI)
+                analysis_text = img_analysis.get("analysis", "No analysis available")
+                if len(analysis_text) > 500:
+                    st.write("**🔍 Vision Analysis Summary:**")
+                    st.write(analysis_text[:500] + "...")
+                    
+                    with st.expander("View Full Analysis"):
+                        st.write(analysis_text)
+                else:
+                    st.write("**🔍 Vision Analysis:**")
+                    st.write(analysis_text)
+    
+    else:
+        st.info("No detailed image analysis results available.")
+
+
 def apply_custom_css():
     """Apply custom CSS styling"""
     st.markdown(
