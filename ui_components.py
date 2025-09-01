@@ -14,9 +14,22 @@ from utils import (
 
 
 def render_page_header():
-    """Render the professional main page header"""
+    """Render the professional main page header with quick stats"""
+    # Get quick stats for better UX
+    saved_count = len(st.session_state.get("saved_teams", []))
+    analysis_available = bool(st.session_state.get("analysis_result"))
+    
+    # Build stats display
+    stats_items = []
+    if saved_count > 0:
+        stats_items.append(f"📊 {saved_count} Teams Saved")
+    if analysis_available:
+        stats_items.append("✅ Analysis Ready")
+    
+    stats_text = " • ".join(stats_items) if stats_items else "🚀 Ready to analyze VGC teams"
+    
     st.markdown(
-        """
+        f"""
         <div style="text-align: center; padding: 3rem 0;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 20px; margin-bottom: 2rem; 
@@ -29,9 +42,10 @@ def render_page_header():
                       font-size: 1.3rem; font-weight: 300;">
                 Instant Japanese VGC Article Translation & Team Analysis
             </p>
-            <p style="color: rgba(255,255,255,0.7); margin: 0.5rem 0 0 0; 
-                      font-size: 1rem;">
-                ✨ Professional tool for competitive Pokemon players and analysts
+            <p style="color: rgba(255,255,255,0.8); margin: 0.5rem 0 0 0; 
+                      font-size: 1rem; background: rgba(255,255,255,0.1); 
+                      padding: 0.5rem 1rem; border-radius: 25px; display: inline-block;">
+                {stats_text}
             </p>
         </div>
     """,
@@ -48,19 +62,28 @@ def render_analysis_input() -> tuple[str, str]:
     """
     st.header("🚀 Start Your Analysis")
     
-    st.markdown(
-        """
-        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); 
-                    padding: 1.5rem; border-radius: 15px; border-left: 4px solid #667eea; 
-                    margin-bottom: 1.5rem;">
-            <p style="margin: 0; color: #2c3e50; font-size: 16px;">
-                <strong>📝 How it works:</strong> Paste a Japanese VGC article URL or copy the article text directly. 
-                Our AI will instantly translate and analyze the team data for you.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # Enhanced help section with performance tips
+    help_expand = st.expander("📝 How it works & Pro Tips", expanded=False)
+    with help_expand:
+        st.markdown(
+            """
+            **🚀 Quick Start:**
+            1. Paste a Japanese VGC article URL or copy the text directly
+            2. Click "Analyze" for instant AI-powered translation and team analysis
+            3. Teams are automatically saved for searching and future reference
+            
+            **💡 Pro Tips:**
+            - **Best results**: Use articles from note.com, Japanese Pokemon blogs, tournament reports
+            - **Speed boost**: Recently analyzed content is cached for faster loading
+            - **Team building**: Use the export features to get pokepaste format for easy importing
+            
+            **🔍 What we analyze:**
+            • Pokemon names, abilities, items, movesets
+            • EV spreads with strategic explanations  
+            • Team synergies and roles
+            • Tournament context and author insights
+            """
+        )
 
     input_method = st.radio(
         "**Choose your input method:**", 
@@ -74,6 +97,14 @@ def render_analysis_input() -> tuple[str, str]:
             placeholder="https://note.com/example/article",
             help="✅ Supported: note.com, Japanese Pokemon blogs, tournament reports",
         )
+        
+        # Visual feedback for URL input
+        if url and url.strip():
+            if "note.com" in url or "hatenablog" in url or "pokemon" in url.lower():
+                st.success("✅ Great! This looks like a supported VGC article URL")
+            else:
+                st.info("ℹ️ URL detected - we'll try to extract the content")
+        
         return "url", url
     else:
         text = st.text_area(
@@ -82,6 +113,17 @@ def render_analysis_input() -> tuple[str, str]:
             placeholder="Copy the article content and paste it here for instant analysis...",
             help="💡 Tip: This works great if the URL method doesn't work for your article",
         )
+        
+        # Character count and feedback for text input
+        if text and text.strip():
+            char_count = len(text.strip())
+            if char_count > 100:
+                st.success(f"✅ {char_count:,} characters detected - ready for analysis!")
+            elif char_count > 20:
+                st.info(f"📝 {char_count} characters - you can add more content if needed")
+            else:
+                st.warning("⚠️ Content seems short - consider adding more text for better analysis")
+        
         return "text", text
 
 
@@ -461,6 +503,42 @@ def render_team_showcase(analysis_result: Dict[str, Any]):
             unsafe_allow_html=True
         )
 
+    # Enhanced user experience: Quick actions and team save notification
+    st.markdown("---")
+    team_count = len(st.session_state.get("saved_teams", []))
+    
+    # Show save status and quick navigation
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        if team_count > 0:
+            st.success(f"✅ **Team automatically saved!** You now have {team_count} teams in your collection.")
+        else:
+            st.info("💾 Team will be saved automatically for future searching.")
+    
+    with col2:
+        if st.button("🔍 Search Similar Teams", help="Find similar teams in your collection", key="quick_search"):
+            st.session_state.current_page = "🔍 Team Search"
+            st.rerun()
+    
+    # Quick navigation options
+    st.markdown("**⚡ What's next?**")
+    nav_col1, nav_col2, nav_col3 = st.columns(3)
+    
+    with nav_col1:
+        if st.button("📚 View All Teams", help="Browse your complete team collection", key="view_all_teams"):
+            st.session_state.current_page = "📚 Saved Teams"
+            st.rerun()
+    
+    with nav_col2:
+        if st.button("🆕 New Analysis", help="Analyze another VGC article", key="new_analysis_quick"):
+            st.session_state.analysis_result = None
+            st.session_state.current_url = None
+            st.session_state.analysis_complete = False
+            st.rerun()
+    
+    with nav_col3:
+        st.button("📊 Export Team", help="Use the export options below", disabled=True)
+
 
 def render_pokemon_team(pokemon_team: List[Dict[str, Any]]):
     """
@@ -507,9 +585,22 @@ def render_pokemon_team(pokemon_team: List[Dict[str, Any]]):
     
     st.divider()
 
-    # Render each Pokemon individually with full width
-    for i, pokemon in enumerate(pokemon_team):
-        render_pokemon_card(pokemon, i)
+    # Render Pokemon cards in 2-column layout to reduce scrolling
+    for i in range(0, len(pokemon_team), 2):
+        col1, col2 = st.columns([1, 1])
+        
+        # Render first Pokemon of the pair
+        with col1:
+            render_pokemon_card(pokemon_team[i], i)
+        
+        # Render second Pokemon of the pair (if it exists)
+        if i + 1 < len(pokemon_team):
+            with col2:
+                render_pokemon_card(pokemon_team[i + 1], i + 1)
+        else:
+            # If odd number of Pokemon, leave second column empty
+            with col2:
+                st.empty()
         
     # Team analysis summary
     st.markdown(
@@ -659,165 +750,78 @@ def create_translation_export(analysis_result: Dict[str, Any]) -> str:
 
 
 def render_sidebar():
-    """Render enhanced sidebar with organized sections and scroll functionality"""
+    """Clean and user-friendly sidebar with essential navigation"""
     with st.sidebar:
-        # Modern sidebar header with style
+        # Clean sidebar header
         st.markdown(
             """
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                         padding: 1.5rem; margin: -1rem -1rem 1.5rem -1rem; border-radius: 0 0 15px 15px;">
-                <h2 style="color: white; margin: 0; text-align: center; font-size: 1.4rem;">
-                    🎯 VGC Analyzer
+                <h2 style="color: white; margin: 0; text-align: center; font-size: 1.5rem;">
+                    ⚔️ VGC Analyzer
                 </h2>
-                <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; text-align: center; font-size: 0.9rem;">
-                    Professional Analysis Tools
+                <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; text-align: center; font-size: 0.95rem;">
+                    Pokemon Team Analysis
                 </p>
             </div>
             """,
             unsafe_allow_html=True
         )
         
-        # Navigation Section
-        with st.expander("📊 Navigation", expanded=True):
-            page = st.selectbox(
-                "Choose Page:",
-                [
-                    "🏠 Analysis Home",
-                    "📚 Saved Teams", 
-                    "🔍 Team Search",
-                    "⚙️ Settings",
-                    "📖 Help & Guide"
-                ],
-                index=0,
-                label_visibility="collapsed"
-            )
+        # Clean navigation
+        page = st.selectbox(
+            "**Navigate to:**",
+            [
+                "🏠 Analysis Home",
+                "📚 Saved Teams", 
+                "🔍 Team Search",
+                "⚙️ Settings",
+                "📖 Help & Guide"
+            ],
+            index=0
+        )
         
-        # Quick Actions Section
-        with st.expander("⚡ Quick Actions", expanded=True):
-            if st.button("🆕 New Analysis", use_container_width=True, type="primary"):
-                st.session_state.analysis_result = None
-                st.session_state.current_url = None
-                st.session_state.analysis_complete = False
-                st.rerun()
-                
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("🗑️ Clear Cache", use_container_width=True):
-                    from cache_manager import cache
-                    cache.clear_all()
-                    st.success("Cache cleared!", icon="✅")
-            with col2:
-                if st.button("🔄 Refresh", use_container_width=True):
-                    st.rerun()
+        st.markdown("---")
         
-        # Analysis Status (if analysis is available)
+        # Essential actions only
+        if st.button("🆕 New Analysis", use_container_width=True, type="primary"):
+            st.session_state.analysis_result = None
+            st.session_state.current_url = None
+            st.session_state.analysis_complete = False
+            st.rerun()
+        
+        # Current analysis status (only if available)
         if st.session_state.get("analysis_result"):
-            with st.expander("📈 Current Analysis", expanded=True):
-                result = st.session_state.analysis_result
-                pokemon_count = len(result.get("pokemon_team", []))
-                regulation = result.get("regulation", "Unknown")
-                
-                st.markdown(
-                    f"""
-                    <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; 
-                               border-left: 4px solid #0ea5e9; margin: 0.5rem 0;">
-                        <div style="font-size: 0.9rem; color: #0f172a;">
-                            <strong>🏆 Team:</strong> {pokemon_count} Pokemon<br>
-                            <strong>📊 Regulation:</strong> {regulation}
-                        </div>
+            st.markdown("---")
+            result = st.session_state.analysis_result
+            pokemon_count = len(result.get("pokemon_team", []))
+            regulation = result.get("regulation", "Unknown")
+            
+            st.markdown(
+                f"""
+                <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
+                           padding: 1rem; border-radius: 10px; border-left: 4px solid #0ea5e9; margin: 0.5rem 0;">
+                    <div style="font-size: 0.9rem; color: #0f172a;">
+                        <strong>📊 Current Team</strong><br>
+                        🏆 {pokemon_count} Pokemon<br>
+                        📋 Regulation {regulation}
                     </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-        
-        # Team Building Resources
-        with st.expander("🛠️ Team Building Tools", expanded=False):
-            st.markdown(
-                """
-                **Essential Tools:**
-                
-                🎮 [Pokemon Showdown](https://play.pokemonshowdown.com/)
-                *Team building & testing*
-                
-                📊 [Pikalytics](https://www.pikalytics.com/)
-                *Usage statistics & trends*
-                
-                📈 [VGC Stats](https://www.trainertower.com/vgc-stats/)
-                *Tournament results*
-                
-                🏆 [Victory Road](https://victoryroadvgc.com/)
-                *Strategy guides*
-                """
+                </div>
+                """,
+                unsafe_allow_html=True
             )
         
-        # Analysis Tools
-        with st.expander("🔬 Analysis Resources", expanded=False):
-            st.markdown(
-                """
-                **Meta Analysis:**
-                
-                📋 [Trainer Tower](https://www.trainertower.com/)
-                *In-depth articles*
-                
-                🎯 [Smogon VGC](https://www.smogon.com/forums/forums/vgc/)
-                *Community discussion*
-                
-                📺 [VGC Guide](https://www.vgcguide.com/)
-                *Video content*
-                
-                📱 [Pokemon HOME](https://home.pokemon.com/)
-                *Team management*
-                """
-            )
-        
-        # Settings & Preferences
-        with st.expander("⚙️ App Settings", expanded=False):
-            # Cache info
-            try:
-                from cache_manager import cache
-                cache_stats = cache.get_stats()
-                
-                st.markdown("**Cache Status:**")
-                st.markdown(f"📁 Files: {cache_stats['total_files']}")
-                st.markdown(f"💾 Size: {cache_stats['total_size_mb']} MB")
-                
-                if cache_stats['total_files'] > 0:
-                    if st.button("🧹 Clear Expired", use_container_width=True):
-                        cleared = cache.clear_expired()
-                        st.success(f"Cleared {cleared} files!")
-                        
-            except Exception:
-                st.markdown("*Cache info unavailable*")
-        
-        # About & Help
-        with st.expander("ℹ️ About", expanded=False):
-            st.markdown(
-                """
-                **VGC Analysis Tool**
-                
-                ✨ Instant Japanese translation
-                🏆 Professional team analysis
-                📊 EV spread explanations
-                📋 Export formats
-                
-                **Perfect for:**
-                • Competitive players
-                • Content creators  
-                • Tournament prep
-                • Research & analysis
-                
-                *Powered by Google Gemini AI*
-                """
-            )
-        
-        # Footer
+        # Minimal about section
+        st.markdown("---")
         st.markdown(
             """
-            <div style="margin-top: 2rem; padding: 1rem; background: #f8fafc; 
-                       border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
+            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; text-align: center;">
                 <small style="color: #64748b;">
-                    💼 Professional VGC Analysis<br>
-                    🚀 Powered by AI Technology
+                    <strong>✨ VGC Analysis Tool</strong><br>
+                    Powered by Google Gemini 2.5<br><br>
+                    🎯 Instant Japanese Translation<br>
+                    📊 Professional Team Analysis<br>
+                    📋 Export Ready Formats
                 </small>
             </div>
             """,

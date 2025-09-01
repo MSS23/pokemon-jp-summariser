@@ -68,6 +68,8 @@ class VGCAnalysisApp:
             st.session_state.analysis_complete = False
         if "current_page" not in st.session_state:
             st.session_state.current_page = "🏠 Analysis Home"
+        if "saved_teams" not in st.session_state:
+            st.session_state.saved_teams = []
 
     def run(self):
         """Run the main application"""
@@ -158,6 +160,9 @@ class VGCAnalysisApp:
                     st.session_state.analysis_result = result
                     st.session_state.analysis_complete = True
 
+                    # Save team to session state for search functionality
+                    self.save_team_to_session(result, content, st.session_state.current_url)
+
                     # Save to database if available
                     if DATABASE_AVAILABLE and st.session_state.current_url:
                         self.save_analysis_to_database(
@@ -193,6 +198,40 @@ class VGCAnalysisApp:
                 st.info("Team saved to database for future reference!")
         except Exception as e:
             st.warning(f"Could not save to database: {e}")
+
+    def save_team_to_session(self, result: Dict[str, Any], content: str, url: Optional[str] = None):
+        """
+        Save team to session state for search functionality
+        
+        Args:
+            result: Analysis result dictionary
+            content: Original content analyzed
+            url: Optional source URL
+        """
+        from datetime import datetime
+        import uuid
+        
+        # Create team entry for session state
+        team_entry = {
+            "id": str(uuid.uuid4())[:8],
+            "timestamp": datetime.now().isoformat(),
+            "team_name": result.get("team_name", "Unnamed Team"),
+            "regulation": result.get("regulation", "Unknown"),
+            "pokemon_team": result.get("pokemon_team", []),
+            "strategy_summary": result.get("strategy_summary", ""),
+            "author": result.get("author", "Unknown"),
+            "tournament_result": result.get("tournament_result", ""),
+            "url": url,
+            "pokemon_names": [p.get("name", "Unknown") for p in result.get("pokemon_team", [])],
+            "analysis_result": result  # Store full result for display
+        }
+        
+        # Add to saved teams (newest first)
+        st.session_state.saved_teams.insert(0, team_entry)
+        
+        # Limit to 50 teams to prevent excessive memory usage
+        if len(st.session_state.saved_teams) > 50:
+            st.session_state.saved_teams = st.session_state.saved_teams[:50]
 
     def display_analysis_results(self):
         """Display the analysis results"""
@@ -304,66 +343,215 @@ class VGCAnalysisApp:
             st.write(f"**Translation Notes:** {translation_notes}")
 
     def render_saved_teams_page(self):
-        """Render the saved teams page"""
+        """Render the saved teams page using session state"""
         st.header("📚 Saved Teams")
 
-        if not DATABASE_AVAILABLE:
-            st.warning("⚠️ Database not available. Teams cannot be saved or retrieved.")
-            st.info("💡 Teams are still cached during your current session.")
+        # Check if there are saved teams
+        if not st.session_state.saved_teams:
+            st.info("📝 No saved teams yet. Analyze some articles to build your collection!")
+            st.markdown(
+                """
+                **How to save teams:**
+                1. Go to Analysis Home
+                2. Analyze Japanese VGC articles
+                3. Teams are automatically saved here
+                4. Use Team Search to find specific teams
+                """
+            )
             return
 
-        try:
-            teams = TeamCRUD.get_recent_teams(limit=20)
-            if teams:
-                st.success(f"Found {len(teams)} saved teams")
+        st.success(f"🏆 Found {len(st.session_state.saved_teams)} saved teams")
+        
+        # Add management options
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("**📋 Recent Teams (newest first):**")
+        with col2:
+            if st.button("🗑️ Clear All Teams", help="Remove all saved teams"):
+                st.session_state.saved_teams = []
+                st.success("All teams cleared!")
+                st.rerun()
 
-                for i, team in enumerate(teams):
-                    with st.expander(f"🏆 {team.name} - {team.created_at.strftime('%Y-%m-%d %H:%M')}"):
-                        col1, col2, col3 = st.columns(3)
+        st.markdown("---")
 
-                        with col1:
-                            st.metric("Regulation", team.regulation or "Not specified")
-                            st.metric("Rating", f"{team.rating:.1f}/5.0" if team.rating else "Not rated")
+        # Display saved teams
+        for i, team in enumerate(st.session_state.saved_teams):
+            with st.expander(
+                f"🏆 {team.get('team_name', 'Unnamed Team')} - "
+                f"{team.get('regulation', 'Unknown')} - "
+                f"{team.get('timestamp', '')[:10]}"
+            ):
+                col1, col2, col3 = st.columns(3)
 
-                        with col2:
-                            if team.tournament_result:
-                                st.write(f"**Result:** {team.tournament_result}")
-                            if team.author:
-                                st.write(f"**Author:** {team.author}")
+                with col1:
+                    st.metric("📊 Regulation", team.get('regulation', 'Unknown'))
+                    st.metric("⚔️ Pokemon", len(team.get('pokemon_names', [])))
 
-                        with col3:
-                            if team.article_url:
-                                st.write(f"**[View Original Article]({team.article_url})**")
+                with col2:
+                    if team.get("tournament_result"):
+                        st.write(f"**🏆 Result:** {team.get('tournament_result')}")
+                    if team.get("author"):
+                        st.write(f"**👤 Author:** {team.get('author')}")
 
-                        if team.strategy_summary:
-                            st.write(f"**Strategy:** {team.strategy_summary}")
+                with col3:
+                    st.write(f"**📅 Saved:** {team.get('timestamp', '')[:16]}")
+                    if team.get("url"):
+                        st.write(f"**🔗 [View Original]({team.get('url')})**")
 
-                        # Show Pokemon names
-                        pokemon_names = [p.name for p in team.pokemon]
-                        if pokemon_names:
-                            st.write(f"**Team:** {', '.join(pokemon_names)}")
-            else:
-                st.info("📝 No saved teams found. Analyze some articles to build your collection!")
+                if team.get("strategy_summary"):
+                    st.write(f"**🎯 Strategy:** {team.get('strategy_summary')}")
 
-        except Exception as e:
-            st.error(f"Error loading saved teams: {e}")
+                # Show Pokemon names
+                pokemon_names = team.get("pokemon_names", [])
+                if pokemon_names:
+                    st.write(f"**⚔️ Team:** {' • '.join(pokemon_names)}")
+
+                # Action buttons
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    if st.button(f"📖 View Analysis", key=f"view_{team.get('id')}"):
+                        st.session_state.analysis_result = team.get("analysis_result")
+                        st.session_state.current_url = team.get("url")
+                        st.session_state.analysis_complete = True
+                        st.session_state.current_page = "🏠 Analysis Home"
+                        st.rerun()
+                
+                with col2:
+                    if st.button(f"🗑️ Delete Team", key=f"delete_{team.get('id')}"):
+                        st.session_state.saved_teams.remove(team)
+                        st.success("Team deleted!")
+                        st.rerun()
 
     def render_team_search_page(self):
-        """Render the team search page"""
+        """Render the team search page with full functionality"""
         st.header("🔍 Team Search")
-        st.info("🚧 Team search functionality coming soon!")
-
-        # Placeholder for future search functionality
-        st.markdown(
-            """
-            **Planned Features:**
-            - Search by Pokemon name
-            - Filter by regulation (A, B, C)
-            - Search by author
-            - Filter by tournament results
-            - Advanced team archetype filtering
-            """
+        
+        # Check if there are saved teams
+        if not st.session_state.saved_teams:
+            st.info("📝 No saved teams yet. Analyze some articles to build your team collection!")
+            st.markdown(
+                """
+                **How to build your collection:**
+                1. Go to Analysis Home
+                2. Input a Japanese VGC article URL or text
+                3. Teams will automatically be saved here for searching
+                """
+            )
+            return
+        
+        st.success(f"🏆 Found {len(st.session_state.saved_teams)} saved teams")
+        
+        # Search and filter controls
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            search_term = st.text_input(
+                "🔍 Search Pokemon/Team Name",
+                placeholder="Enter Pokemon name...",
+                help="Search for specific Pokemon in teams"
+            )
+        
+        with col2:
+            regulations = ["All"] + list(set([
+                team.get("regulation", "Unknown") 
+                for team in st.session_state.saved_teams
+            ]))
+            selected_regulation = st.selectbox("📊 Filter by Regulation", regulations)
+        
+        with col3:
+            authors = ["All"] + list(set([
+                team.get("author", "Unknown") 
+                for team in st.session_state.saved_teams
+            ]))
+            selected_author = st.selectbox("👤 Filter by Author", authors)
+        
+        # Apply filters
+        filtered_teams = self.filter_teams(
+            st.session_state.saved_teams, 
+            search_term, 
+            selected_regulation, 
+            selected_author
         )
+        
+        st.markdown("---")
+        
+        if not filtered_teams:
+            st.warning("🔍 No teams found matching your search criteria.")
+            return
+        
+        st.markdown(f"**📋 Showing {len(filtered_teams)} teams:**")
+        
+        # Display filtered teams
+        for i, team in enumerate(filtered_teams):
+            self.render_search_result(team, i)
+    
+    def filter_teams(self, teams, search_term, regulation, author):
+        """Filter teams based on search criteria"""
+        filtered = teams
+        
+        # Filter by search term (Pokemon names)
+        if search_term:
+            search_lower = search_term.lower()
+            filtered = [
+                team for team in filtered
+                if any(search_lower in pokemon.lower() for pokemon in team.get("pokemon_names", []))
+                or search_lower in team.get("team_name", "").lower()
+            ]
+        
+        # Filter by regulation
+        if regulation != "All":
+            filtered = [
+                team for team in filtered
+                if team.get("regulation", "Unknown") == regulation
+            ]
+        
+        # Filter by author
+        if author != "All":
+            filtered = [
+                team for team in filtered
+                if team.get("author", "Unknown") == author
+            ]
+        
+        return filtered
+    
+    def render_search_result(self, team, index):
+        """Render a single team search result"""
+        with st.expander(
+            f"🏆 {team.get('team_name', 'Unnamed Team')} - {team.get('regulation', 'Unknown')} "
+            f"({len(team.get('pokemon_names', []))} Pokemon)"
+        ):
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                # Team info
+                st.markdown(f"**📊 Regulation:** {team.get('regulation', 'Unknown')}")
+                st.markdown(f"**👤 Author:** {team.get('author', 'Unknown')}")
+                
+                if team.get("tournament_result"):
+                    st.markdown(f"**🏆 Result:** {team.get('tournament_result')}")
+                
+                if team.get("strategy_summary"):
+                    st.markdown(f"**🎯 Strategy:** {team.get('strategy_summary')[:200]}...")
+                
+                # Pokemon team
+                pokemon_names = team.get("pokemon_names", [])
+                if pokemon_names:
+                    st.markdown(f"**⚔️ Team:** {' • '.join(pokemon_names)}")
+            
+            with col2:
+                # Actions
+                st.markdown(f"**📅 Saved:** {team.get('timestamp', '')[:10]}")
+                
+                if team.get("url"):
+                    st.markdown(f"**🔗 [View Original]({team.get('url')})**")
+                
+                # Load team button
+                if st.button(f"📖 View Full Analysis", key=f"load_team_{team.get('id')}"):
+                    st.session_state.analysis_result = team.get("analysis_result")
+                    st.session_state.current_url = team.get("url")
+                    st.session_state.analysis_complete = True
+                    st.session_state.current_page = "🏠 Analysis Home"
+                    st.rerun()
 
     def render_settings_page(self):
         """Render the settings page"""

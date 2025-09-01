@@ -143,6 +143,7 @@ CRITICAL REQUIREMENTS:
 4. Translate all Japanese text to English with PERFECT Pokemon identification
 5. Ensure team composition makes sense for VGC format
 6. Use EXACT Pokemon names with proper forms and spellings
+7. EXTRACT regulation information from the article content - DO NOT ASSUME
 
 POKEMON IDENTIFICATION REQUIREMENTS:
 CRITICAL: You must be extremely careful with Pokemon identification. Here are common errors to avoid:
@@ -174,6 +175,41 @@ TREASURES OF RUIN - CORRECT NAMES:
 REGIONAL FORMS:
 - Use format: "Pokemon-Region" (e.g., "Zapdos-Galar", "Marowak-Alola")
 - For Hisuian forms: "Pokemon-Hisui" (e.g., "Zoroark-Hisui")
+
+REGULATION DETECTION REQUIREMENTS:
+CRITICAL: Extract the VGC regulation directly from the article content. Look for:
+
+**Japanese Regulation Terms:**
+- "レギュレーション" (Regulation)
+- "ルール" (Rules)  
+- "シリーズ" (Series)
+- "シーズン" (Season)
+
+**English Regulation Indicators:**
+- "Regulation A", "Regulation B", "Regulation C", etc.
+- "Series 1", "Series 2", etc.
+- "VGC 2024", "VGC 2025"
+- Tournament format mentions
+
+**Context Clues:**
+- Tournament dates and event names
+- Restricted Pokemon usage (0, 1, or 2 restricted legendaries)
+- Available Pokemon generation mentions
+- DLC content availability references
+
+**Regulation Guidelines:**
+- Regulation A/B: Paldea Pokemon only
+- Regulation C+: Treasures of Ruin available
+- Regulation D+: Home integration, past generation Pokemon
+- Regulation G: Single restricted legendary allowed
+- Regulation H: No restricted legendaries ("Back to Basics")
+- Regulation I: Two restricted legendaries allowed
+
+If no clear regulation is mentioned in the article, analyze the team composition:
+- Teams with 2 restricted legendaries = likely Regulation I
+- Teams with 1 restricted legendary = likely Regulation G  
+- Teams with 0 restricted legendaries = could be Regulation H or earlier
+- Unknown if unclear = "Not specified"
 
 RESPONSE FORMAT (MUST BE VALID JSON):
 {
@@ -477,6 +513,12 @@ Please analyze the following content and provide your response in the exact JSON
         """
         # Common form notation fixes
         form_fixes = [
+            # High priority: Fix specific Paradox Pokemon with incorrect forms
+            (r'\bIron[\s\-]*Valiant[\s\-]*Therian\b', 'Iron Valiant'),
+            (r'\bIron[\s\-]*Valian[\s\-]*Therian\b', 'Iron Valiant'),
+            (r'\bFlutter[\s\-]*Mane[\s\-]*Therian\b', 'Flutter Mane'),
+            (r'\bIron[\s\-]*Moth[\s\-]*Therian\b', 'Iron Moth'),
+            
             # Therian forms (specific to Pokemon that actually have Therian forms)
             (r'\b(Landorus)[\s\-]*T\b', r'\1-Therian'),
             (r'\b(Thundurus)[\s\-]*T\b', r'\1-Therian'),  
