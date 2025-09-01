@@ -13,19 +13,35 @@ maxUploadSize = 200
 enableStaticServing = true
 runOnSave = false
 allowRunOnSave = false
+# Deployment optimization
+baseUrlPath = ""
+enableWebsocketCompression = false
 
 [browser]
 gatherUsageStats = false
+serverAddress = "0.0.0.0"
 
 [runner]
 magicEnabled = true
 installTracer = false
 fixMatplotlib = true
+# Deployment stability
+enforceSerializableSessionState = false
+postScriptGC = true
 
 [global]
 developmentMode = false
 suppressDeprecationWarnings = true
 showWarningOnDirectExecution = false
+# Module loading optimization
+disableWatchdogWarning = true
+logLevel = "warning"
 
 [logger]
-level = "info"
+level = "warning"
+
+# Streamlit Cloud specific optimizations
+[client]
+caching = true
+displayEnabled = true
+toolbarMode = "minimal"

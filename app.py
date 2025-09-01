@@ -1,30 +1,44 @@
 """
 Pokemon VGC Analysis Platform - Streamlit App
 Simple, direct entry point for Streamlit Cloud deployment
+Version 2.0.1 - Deployment Optimized
 """
 
 import sys
 import os
 from pathlib import Path
+import logging
+
+# Configure logging for deployment debugging
+logging.basicConfig(level=logging.WARNING)
 
 # Add src directory to Python path for imports
 src_path = Path(__file__).parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
+# Deployment environment detection
+IS_STREAMLIT_CLOUD = os.getenv("STREAMLIT_CLOUD", "false").lower() == "true"
+IS_PRODUCTION = os.getenv("ENVIRONMENT", "development") == "production"
+
 import streamlit as st
 
+# Set page config immediately for deployment stability
+st.set_page_config(
+    page_title="Pokemon VGC Analysis Platform",
+    page_icon="⚔️",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': "Pokemon VGC Analysis Platform - Translate and analyze Japanese VGC content"
+    }
+)
+
 # Direct imports to avoid complex import chains
-try:
-    # Configure the page first
-    st.set_page_config(
-        page_title="Pokemon VGC Analysis Platform",
-        page_icon="⚔️",
-        layout="wide",
-        initial_sidebar_state="expanded",
-    )
-    
-    # Now import the application components
+try:    
+    # Import the application components with enhanced error handling
     from core.analyzer import GeminiVGCAnalyzer
     from ui.components import (
         render_page_header,
@@ -41,14 +55,23 @@ try:
     from utils import cache
     from utils.config import Config
     
-    # Force cache invalidation for deployment (v2.0.0 - import restructure)
-    if hasattr(st, 'cache_data'):
-        st.cache_data.clear()
-    if hasattr(st, 'cache_resource'):
-        st.cache_resource.clear()
+    # Force cache invalidation for deployment (v2.0.1 - deployment optimized)
+    try:
+        if hasattr(st, 'cache_data'):
+            st.cache_data.clear()
+        if hasattr(st, 'cache_resource'):  
+            st.cache_resource.clear()
+    except Exception as e:
+        logging.warning(f"Cache clearing failed: {e}")
     
-    # Initialize the analyzer
-    analyzer = GeminiVGCAnalyzer()
+    # Initialize the analyzer with error handling
+    try:
+        analyzer = GeminiVGCAnalyzer()
+    except Exception as e:
+        st.error("⚠️ Application initialization failed. Please check your API key configuration.")
+        if not IS_PRODUCTION:
+            st.exception(e)
+        st.stop()
     
     # Initialize session state
     if "analysis_result" not in st.session_state:
@@ -200,10 +223,32 @@ try:
             display_analysis_results()
 
 except Exception as e:
-    st.error(f"Failed to initialize application: {e}")
-    st.error("Please check that all dependencies are installed correctly.")
-    st.info("This may be a temporary issue. Try refreshing the page.")
+    st.error(f"⚠️ Application Startup Failed")
+    st.error("There was an issue initializing the Pokemon VGC Analysis Platform.")
     
+    # Provide different error messages based on environment
+    if IS_STREAMLIT_CLOUD:
+        st.error("🔄 **Deployment Issue Detected**")
+        st.info("If this persists, the deployment may need to be restarted. Please try:")
+        st.info("1. Refresh the page in a few moments")
+        st.info("2. Clear your browser cache")
+        st.info("3. Try accessing the app in an incognito/private window")
+    else:
+        st.error("Please check that all dependencies are installed correctly.")
+        st.info("Try running: `pip install -r requirements.txt`")
+    
+    # Deployment diagnostic info
+    with st.expander("🔍 Diagnostic Information"):
+        st.write("**Environment:**")
+        st.write(f"- Streamlit Cloud: {IS_STREAMLIT_CLOUD}")
+        st.write(f"- Production: {IS_PRODUCTION}")
+        st.write(f"- Python Version: {sys.version}")
+        st.write(f"- Working Directory: {os.getcwd()}")
+        st.write(f"- Source Path: {src_path}")
+        
     # Show debug info in development
-    if st.checkbox("Show debug information"):
+    if not IS_PRODUCTION and st.checkbox("Show debug information"):
         st.exception(e)
+        
+    # Log error for debugging
+    logging.error(f"Application initialization failed: {e}", exc_info=True)
