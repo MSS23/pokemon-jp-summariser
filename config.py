@@ -102,13 +102,67 @@ ITEM_TRANSLATIONS = {
     "ものまねハーブ": "mirror-herb",
 }
 
-# Pokemon name translations (add more as needed)
+# Comprehensive Pokemon name translations for VGC
 POKEMON_NAME_TRANSLATIONS = {
-    # Add common translations
+    # Treasures of Ruin (Comprehensive Chien-Pao fixes)
+    "パオジアン": "Chien-Pao",
+    "パオ・ジアン": "Chien-Pao", 
+    "Pao Kai": "Chien-Pao",
+    "Pao-Kai": "Chien-Pao",
+    "kai pao": "Chien-Pao",
+    "Kai Pao": "Chien-Pao",
+    "Kai-Pao": "Chien-Pao",
+    "KaiPao": "Chien-Pao",
+    "Chien Pao": "Chien-Pao",
+    "チオンジェン": "Chi-Yu",
+    "ディンルー": "Ting-Lu",
+    "イーユイ": "Wo-Chien",
+    
+    # Popular VGC Pokemon (Gen 9)
+    "ガブリアス": "Garchomp",
+    "ガオガエン": "Incineroar", 
+    "ウインディ": "Arcanine",
+    "モロバレル": "Amoonguss",
+    "エルフーン": "Whimsicott",
+    "ランドロス": "Landorus-Therian",
+    "カイリュー": "Dragonite",
+    "ハリテヤマ": "Hariyama",
+    "クレッフィ": "Klefki",
+    "トリトドン": "Gastrodon",
+    "ニンフィア": "Sylveon",
     "リザードン": "Charizard",
     "カメックス": "Blastoise",
     "フシギバナ": "Venusaur",
-    # Add more as needed...
+    "ザマゼンタ": "Zamazenta",
+    "ザシアン": "Zacian",
+    
+    # Legendary/Restricted Pokemon
+    "コライドン": "Koraidon",
+    "ミライドン": "Miraidon", 
+    "カルネクス": "Calyrex-Shadow",
+    "レジエレキ": "Regieleki",
+    "グラードン": "Groudon",
+    "カイオーガ": "Kyogre",
+    "レックウザ": "Rayquaza",
+    
+    # Common VGC Support Pokemon
+    "トルネロス": "Tornadus",
+    "ボルトロス": "Thundurus", 
+    "サンダー": "Zapdos",
+    "ファイヤー": "Moltres",
+    "フリーザー": "Articuno",
+    "イエッサン": "Indeedee",
+    "オーロンゲ": "Grimmsnarl",
+    "ドラパルト": "Dragapult",
+    "ミミッキュ": "Mimikyu",
+    "コータス": "Torkoal",
+    "ナットレイ": "Ferrothorn",
+    "バンギラス": "Tyranitar",
+    
+    # Other common translations and variants
+    "テラ": "Tera",
+    "ダイマックス": "Dynamax",
+    "キョダイマックス": "Gigantamax",
 }
 
 # Move name translations (add more as needed)

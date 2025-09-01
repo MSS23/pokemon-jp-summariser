@@ -296,12 +296,36 @@ def create_pokepaste(pokemon_team: List[Dict], team_name: str = "VGC Team") -> s
             lines.append(f"Tera Type: {tera_type}")
 
         # EVs
-        evs = pokemon.get("evs", {})
-        if evs:
+        evs = pokemon.get("evs", "")
+        if evs and evs != "Not specified":
             ev_parts = []
-            for stat, value in evs.items():
-                if value > 0:
-                    ev_parts.append(f"{value} {stat}")
+            
+            # Handle EVs whether they're stored as string or dictionary
+            if isinstance(evs, str):
+                # Parse EV string format like "252/0/0/252/4/0"
+                try:
+                    ev_dict, _ = safe_parse_ev_spread(evs)
+                    for stat, value in ev_dict.items():
+                        if value > 0:
+                            ev_parts.append(f"{value} {stat}")
+                except:
+                    # If parsing fails, try to extract numbers directly
+                    if "/" in evs:
+                        try:
+                            ev_values = [int(x.strip()) for x in evs.split("/")]
+                            if len(ev_values) == 6:
+                                stats = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
+                                for stat, value in zip(stats, ev_values):
+                                    if value > 0:
+                                        ev_parts.append(f"{value} {stat}")
+                        except ValueError:
+                            pass
+            elif isinstance(evs, dict):
+                # Handle dictionary format
+                for stat, value in evs.items():
+                    if value > 0:
+                        ev_parts.append(f"{value} {stat}")
+                        
             if ev_parts:
                 lines.append(f"EVs: {' / '.join(ev_parts)}")
 

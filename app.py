@@ -12,6 +12,7 @@ from vgc_analyzer import GeminiVGCAnalyzer
 from ui_components import (
     render_page_header,
     render_analysis_input,
+    render_article_summary,
     render_team_showcase,
     render_pokemon_team,
     render_export_section,
@@ -196,6 +197,9 @@ class VGCAnalysisApp:
     def display_analysis_results(self):
         """Display the analysis results"""
         result = st.session_state.analysis_result
+
+        # Article summary section - NEW!
+        render_article_summary(result)
 
         # Team showcase section
         render_team_showcase(result)

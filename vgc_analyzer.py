@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from typing import Dict, Optional, Any
 import google.generativeai as genai
 
-from config import Config
+from config import Config, POKEMON_NAME_TRANSLATIONS
 from cache_manager import cache
 from utils import validate_url
 from image_analyzer import (
@@ -228,6 +228,9 @@ Please analyze the following content and provide your response in the exact JSON
 
             # Validate and clean the result
             result = self._validate_and_clean_result(result)
+            
+            # Fix Pokemon name translations
+            result = self.fix_pokemon_name_translations(result)
 
             # Cache the result
             cache.set(content, result, url)
@@ -317,6 +320,65 @@ Please analyze the following content and provide your response in the exact JSON
             pokemon["moves"].append("Not specified")
 
         return pokemon
+
+    def fix_pokemon_name_translations(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Apply post-processing to fix Pokemon name translations
+        
+        Args:
+            result: Analysis result to fix
+            
+        Returns:
+            Result with corrected Pokemon names
+        """
+        if "pokemon_team" in result:
+            for pokemon in result["pokemon_team"]:
+                if "name" in pokemon:
+                    original_name = pokemon["name"]
+                    
+                    # Check direct translation mapping
+                    if original_name in POKEMON_NAME_TRANSLATIONS:
+                        pokemon["name"] = POKEMON_NAME_TRANSLATIONS[original_name]
+                    else:
+                        # Check for partial matches and common variations
+                        for japanese_name, english_name in POKEMON_NAME_TRANSLATIONS.items():
+                            if japanese_name.lower() in original_name.lower() or original_name.lower() in japanese_name.lower():
+                                pokemon["name"] = english_name
+                                break
+                        
+                        # Fix common AI translation errors
+                        fixed_name = self._fix_common_name_errors(original_name)
+                        if fixed_name != original_name:
+                            pokemon["name"] = fixed_name
+        
+        return result
+    
+    def _fix_common_name_errors(self, name: str) -> str:
+        """Fix common Pokemon name translation errors"""
+        name_fixes = {
+            "Pao Kai": "Chien-Pao",
+            "Pao-Kai": "Chien-Pao", 
+            "Paokai": "Chien-Pao",
+            "kai pao": "Chien-Pao",
+            "Kai Pao": "Chien-Pao",
+            "Kai-Pao": "Chien-Pao",
+            "KaiPao": "Chien-Pao",
+            "Chi Yu": "Chi-Yu",
+            "Ting Lu": "Ting-Lu", 
+            "Wo Chien": "Wo-Chien",
+            "Landorus T": "Landorus-Therian",
+            "Landorus-T": "Landorus-Therian",
+            "Thundurus T": "Thundurus-Therian",
+            "Thundurus-T": "Thundurus-Therian",
+            "Tornadus T": "Tornadus-Therian",
+            "Tornadus-T": "Tornadus-Therian",
+            "Calyrex Shadow": "Calyrex-Shadow",
+            "Calyrex Ice": "Calyrex-Ice",
+            "Urshifu Rapid": "Urshifu-Rapid-Strike",
+            "Urshifu Single": "Urshifu-Single-Strike",
+        }
+        
+        return name_fixes.get(name, name)
 
     def extract_and_analyze_images(self, url: str) -> Dict[str, Any]:
         """
