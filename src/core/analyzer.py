@@ -529,6 +529,7 @@ FORME IDENTIFICATION - THERIAN vs INCARNATE:
 GENERATION 9 POKEMON - COMMON VGC NAMES:
 - サーフゴー = Gholdengo (Ghost/Steel)
 - テツノカイナ = Iron Hands (Fighting/Electric paradox)
+- テツノブジン = Iron Valiant (Fairy/Fighting paradox)
 - ハバタクカミ = Flutter Mane (Ghost/Fairy paradox)
 - コライドン = Koraidon (Fighting/Dragon legendary)
 - ミライドン = Miraidon (Electric/Dragon legendary)
@@ -537,10 +538,17 @@ GENERATION 9 POKEMON - COMMON VGC NAMES:
 **COMMON IDENTIFICATION ERRORS TO AVOID:**
 
 DO NOT CONFUSE THESE POKEMON:
-- Zamazenta ≠ Zacian (ザマゼンタ = Zamazenta, ザシアン = Zacian)
+
+🚨 ULTRA CRITICAL - LEGENDARY DOG DISTINCTION: 🚨
+- ザマゼンタ = Zamazenta (Shield legendary, often abbreviated as "ザマ")
+- ザシアン = Zacian (Sword legendary)
+NEVER confuse "ザマ" mentions with Zacian - "ザマ" ALWAYS refers to Zamazenta!
+
 - Chi-Yu ≠ Chien-Pao (チオンジェン = Chi-Yu, パオジアン = Chien-Pao)
 - Ting-Lu ≠ Wo-Chien (ディンルー = Ting-Lu, イーユイ = Wo-Chien)
 - Tornadus-Incarnate ≠ Tornadus-Therian (different forms, different stats)
+
+CRITICAL: テツノブジン = Iron Valiant (NEVER "Iron Shaman" or any other name)
 
 PARADOX POKEMON - NEVER HAVE REGIONAL FORMS:
 - Iron Valiant (NEVER "Iron-Valiant-Therian" or any other form suffix)
