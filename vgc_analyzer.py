@@ -28,8 +28,8 @@ class GeminiVGCAnalyzer:
         self.api_key = Config.get_google_api_key()
         genai.configure(api_key=self.api_key)
 
-        # Configure the text model with Gemini 2.5 Flash (optimal balance: advanced quality + 5x higher quota)
-        self.model = genai.GenerativeModel("gemini-2.5-flash")
+        # Configure the text model with Gemini 2.5 Flash lite (optimal balance: advanced quality + 5x higher quota)
+        self.model = genai.GenerativeModel("gemini-2.5-flash-lite")
         
         # Configure the vision model with Flash-Lite (cost-effective for image processing)
         self.vision_model = genai.GenerativeModel("gemini-2.5-flash-lite")
