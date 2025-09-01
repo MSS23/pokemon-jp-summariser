@@ -23,60 +23,338 @@ def ensure_cache_directory() -> str:
     return cache_dir
 
 
-def get_pokemon_sprite_url(pokemon_name: str, form: str = None) -> str:
+def get_pokemon_sprite_url(pokemon_name: str, form: str = None, use_cache: bool = True) -> str:
     """
-    Get Pokemon sprite URL from PokeAPI
+    Enhanced Pokemon sprite fetching with comprehensive form handling and caching
 
     Args:
         pokemon_name: Name of the Pokemon
         form: Form variant (optional)
+        use_cache: Whether to use cached sprite URLs
 
     Returns:
         URL to Pokemon sprite or placeholder if not found
     """
+    # Simple in-memory cache for sprite URLs
+    if not hasattr(get_pokemon_sprite_url, "_cache"):
+        get_pokemon_sprite_url._cache = {}
+    
+    cache_key = f"{pokemon_name.lower()}_{form or 'default'}"
+    
+    if use_cache and cache_key in get_pokemon_sprite_url._cache:
+        return get_pokemon_sprite_url._cache[cache_key]
+    
     try:
-        # Clean and format Pokemon name
-        name = pokemon_name.lower().replace(" ", "-").replace(".", "")
-
-        # Handle common name variations
-        name_mappings = {
-            "nidoran-f": "nidoran-female",
-            "nidoran-m": "nidoran-male",
-            "mr-mime": "mr-mime",
-            "mime-jr": "mime-jr",
-            "ho-oh": "ho-oh",
-        }
-        name = name_mappings.get(name, name)
-
-        # Add form if specified
-        if form and form.lower() not in ["normal", "default"]:
-            form_clean = form.lower().replace(" ", "-")
-            name = f"{name}-{form_clean}"
-
-        # Fetch from PokeAPI
-        url = f"https://pokeapi.co/api/v2/pokemon/{name}"
-        response = requests.get(url, timeout=5)
-
-        if response.status_code == 200:
-            data = response.json()
-            # Try to get official artwork first, fall back to front default
-            sprite_url = (
-                data.get("sprites", {})
-                .get("other", {})
-                .get("official-artwork", {})
-                .get("front_default")
-            )
-
-            if not sprite_url:
-                sprite_url = data.get("sprites", {}).get("front_default")
-
-            return sprite_url or "https://via.placeholder.com/150?text=Pokemon"
-        else:
-            return "https://via.placeholder.com/150?text=Pokemon"
+        # Enhanced name cleaning and normalization
+        sprite_url = _fetch_pokemon_sprite_with_fallbacks(pokemon_name, form)
+        
+        # Cache successful results
+        if use_cache and sprite_url and "placeholder" not in sprite_url:
+            get_pokemon_sprite_url._cache[cache_key] = sprite_url
+            
+        return sprite_url
 
     except Exception as e:
-        st.warning(f"Could not fetch sprite for {pokemon_name}: {str(e)}")
-        return "https://via.placeholder.com/150?text=Pokemon"
+        # Less intrusive error handling - only log to console, don't show user warnings
+        placeholder = _create_pokemon_placeholder(pokemon_name)
+        if use_cache:
+            get_pokemon_sprite_url._cache[cache_key] = placeholder
+        return placeholder
+
+
+def _fetch_pokemon_sprite_with_fallbacks(pokemon_name: str, form: str = None) -> str:
+    """
+    Attempt to fetch Pokemon sprite with multiple fallback strategies
+    
+    Args:
+        pokemon_name: Name of the Pokemon
+        form: Form variant (optional)
+        
+    Returns:
+        URL to Pokemon sprite or placeholder
+    """
+    # Strategy 1: Try exact name with form handling
+    sprite_url = _try_fetch_sprite(_normalize_pokemon_name(pokemon_name, form))
+    if sprite_url:
+        return sprite_url
+    
+    # Strategy 2: Try with common name fixes
+    fixed_name = _apply_pokeapi_name_fixes(pokemon_name, form)
+    if fixed_name != _normalize_pokemon_name(pokemon_name, form):
+        sprite_url = _try_fetch_sprite(fixed_name)
+        if sprite_url:
+            return sprite_url
+    
+    # Strategy 3: Try without form for Pokemon with complex forms
+    if form or "-" in pokemon_name:
+        base_name = pokemon_name.split("-")[0].lower().replace(" ", "-")
+        sprite_url = _try_fetch_sprite(base_name)
+        if sprite_url:
+            return sprite_url
+    
+    # Strategy 4: Try with alternative form naming
+    if form:
+        alt_forms = _get_alternative_form_names(pokemon_name, form)
+        for alt_name in alt_forms:
+            sprite_url = _try_fetch_sprite(alt_name)
+            if sprite_url:
+                return sprite_url
+    
+    # Strategy 5: Final fallback to placeholder
+    return _create_pokemon_placeholder(pokemon_name)
+
+
+def _normalize_pokemon_name(pokemon_name: str, form: str = None) -> str:
+    """
+    Normalize Pokemon name for PokeAPI compatibility
+    
+    Args:
+        pokemon_name: Pokemon name to normalize
+        form: Form variant
+        
+    Returns:
+        Normalized Pokemon name
+    """
+    # Clean base name
+    name = pokemon_name.lower().strip()
+    name = name.replace(" ", "-").replace(".", "").replace("'", "").replace(":", "")
+    
+    # Handle form integration
+    if form and form.lower() not in ["normal", "default", "not specified"]:
+        form_clean = form.lower().replace(" ", "-").replace(".", "")
+        
+        # Don't add form if it's already in the name
+        if form_clean not in name:
+            name = f"{name}-{form_clean}"
+    
+    return name
+
+
+def _apply_pokeapi_name_fixes(pokemon_name: str, form: str = None) -> str:
+    """
+    Apply PokeAPI-specific name fixes and mappings
+    
+    Args:
+        pokemon_name: Original Pokemon name
+        form: Form variant
+        
+    Returns:
+        Fixed Pokemon name for PokeAPI
+    """
+    name_lower = pokemon_name.lower()
+    
+    # Comprehensive PokeAPI name mappings
+    pokeapi_mappings = {
+        # Nidoran variants
+        "nidoran-f": "nidoran-female",
+        "nidoran-m": "nidoran-male",
+        "nidoran♀": "nidoran-female", 
+        "nidoran♂": "nidoran-male",
+        
+        # Mr./Ms. Pokemon
+        "mr-mime": "mr-mime",
+        "mr-rime": "mr-rime", 
+        "mime-jr": "mime-jr",
+        
+        # Legendary variants
+        "ho-oh": "ho-oh",
+        
+        # Treasures of Ruin (common issues)
+        "chien-pao": "chien-pao",
+        "chi-yu": "chi-yu",
+        "ting-lu": "ting-lu", 
+        "wo-chien": "wo-chien",
+        
+        # Paradox Pokemon
+        "flutter-mane": "flutter-mane",
+        "iron-moth": "iron-moth",
+        "sandy-shocks": "sandy-shocks",
+        "roaring-moon": "roaring-moon",
+        "brute-bonnet": "brute-bonnet",
+        
+        # Genie forms
+        "landorus-therian": "landorus-therian",
+        "thundurus-therian": "thundurus-therian", 
+        "tornadus-therian": "tornadus-therian",
+        "landorus-t": "landorus-therian",
+        "thundurus-t": "thundurus-therian",
+        "tornadus-t": "tornadus-therian",
+        
+        # Calyrex forms  
+        "calyrex-shadow": "calyrex-shadow",
+        "calyrex-ice": "calyrex-ice",
+        "calyrex-shadow-rider": "calyrex-shadow",
+        "calyrex-ice-rider": "calyrex-ice",
+        
+        # Urshifu forms
+        "urshifu-rapid-strike": "urshifu-rapid-strike",
+        "urshifu-single-strike": "urshifu-single-strike",
+        "urshifu-rapid": "urshifu-rapid-strike",
+        "urshifu-single": "urshifu-single-strike",
+        
+        # Rotom forms
+        "rotom-heat": "rotom-heat",
+        "rotom-wash": "rotom-wash",
+        "rotom-frost": "rotom-frost", 
+        "rotom-fan": "rotom-fan",
+        "rotom-mow": "rotom-mow",
+        "rotom-h": "rotom-heat",
+        "rotom-w": "rotom-wash",
+        "rotom-f": "rotom-frost",
+        "rotom-s": "rotom-fan", 
+        "rotom-c": "rotom-mow",
+        
+        # Regional forms
+        "zapdos-galar": "zapdos-galar",
+        "moltres-galar": "moltres-galar",
+        "articuno-galar": "articuno-galar",
+        "marowak-alola": "marowak-alola",
+        "slowking-galar": "slowking-galar",
+        "zoroark-hisui": "zoroark-hisui",
+        "samurott-hisui": "samurott-hisui",
+        "arcanine-hisui": "arcanine-hisui",
+        
+        # Indeedee forms
+        "indeedee-female": "indeedee-female",
+        "indeedee-male": "indeedee-male", 
+        "indeedee-f": "indeedee-female",
+        "indeedee-m": "indeedee-male",
+        
+        # Type: Null and Silvally
+        "type-null": "type-null",
+        "type:-null": "type-null",
+        
+        # Flabébé line
+        "flabebe": "flabebe",
+        "floette": "floette",
+        "florges": "florges",
+        
+        # Tapu Pokemon
+        "tapu-koko": "tapu-koko",
+        "tapu-lele": "tapu-lele",
+        "tapu-bulu": "tapu-bulu",
+        "tapu-fini": "tapu-fini",
+        
+        # Common abbreviations
+        "lando": "landorus-therian",
+        "thundy": "thundurus-therian",
+        "torn": "tornadus-therian",
+    }
+    
+    # Check for direct mapping
+    if name_lower in pokeapi_mappings:
+        return pokeapi_mappings[name_lower]
+    
+    # Apply form-specific handling
+    normalized_name = _normalize_pokemon_name(pokemon_name, form)
+    if normalized_name in pokeapi_mappings:
+        return pokeapi_mappings[normalized_name]
+    
+    return normalized_name
+
+
+def _get_alternative_form_names(pokemon_name: str, form: str) -> list:
+    """
+    Get alternative form name combinations to try
+    
+    Args:
+        pokemon_name: Base Pokemon name
+        form: Form variant
+        
+    Returns:
+        List of alternative names to try
+    """
+    alternatives = []
+    base_name = pokemon_name.lower().split("-")[0]
+    form_lower = form.lower() if form else ""
+    
+    # Try different form combinations
+    form_alternatives = {
+        "therian": ["therian", "t"],
+        "shadow": ["shadow", "shadow-rider"],
+        "ice": ["ice", "ice-rider"],
+        "rapid": ["rapid-strike", "rapid"],
+        "single": ["single-strike", "single"],
+        "galar": ["galar", "galarian"],
+        "alola": ["alola", "alolan"], 
+        "hisui": ["hisui", "hisuian"],
+    }
+    
+    for key, variants in form_alternatives.items():
+        if key in form_lower:
+            for variant in variants:
+                alternatives.append(f"{base_name}-{variant}")
+    
+    return alternatives
+
+
+def _try_fetch_sprite(pokemon_name: str) -> str:
+    """
+    Try to fetch sprite from PokeAPI for a specific name
+    
+    Args:
+        pokemon_name: Normalized Pokemon name
+        
+    Returns:
+        Sprite URL if successful, None otherwise
+    """
+    try:
+        url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_name}"
+        response = requests.get(url, timeout=8)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Priority order for sprite sources
+            sprite_sources = [
+                # Official artwork (highest quality)
+                lambda d: d.get("sprites", {}).get("other", {}).get("official-artwork", {}).get("front_default"),
+                # Dream World artwork
+                lambda d: d.get("sprites", {}).get("other", {}).get("dream_world", {}).get("front_default"),
+                # Home artwork
+                lambda d: d.get("sprites", {}).get("other", {}).get("home", {}).get("front_default"),
+                # Standard front sprite
+                lambda d: d.get("sprites", {}).get("front_default"),
+            ]
+            
+            for get_sprite in sprite_sources:
+                sprite_url = get_sprite(data)
+                if sprite_url:
+                    return sprite_url
+                    
+    except Exception:
+        pass
+    
+    return None
+
+
+def _create_pokemon_placeholder(pokemon_name: str) -> str:
+    """
+    Create a styled placeholder image URL for Pokemon
+    
+    Args:
+        pokemon_name: Pokemon name for placeholder
+        
+    Returns:
+        Placeholder image URL
+    """
+    # Create abbreviated name for placeholder (first 3-4 chars)
+    abbrev = pokemon_name[:4].upper() if len(pokemon_name) >= 4 else pokemon_name.upper()
+    
+    # Color-coded placeholders based on first letter
+    color_map = {
+        'A': 'ff6b6b', 'B': '4ecdc4', 'C': '45b7d1', 'D': '96ceb4', 'E': 'feca57',
+        'F': 'ff9ff3', 'G': '54a0ff', 'H': '5f27cd', 'I': '00d2d3', 'J': 'ff9f43',
+        'K': 'ee5253', 'L': '0abde3', 'M': '10ac84', 'N': 'f368e0', 'O': 'feca57',
+        'P': 'ff6348', 'Q': '2f3542', 'R': 'ff4757', 'S': '2d3436', 'T': '74b9ff',
+        'U': 'a29bfe', 'V': '6c5ce7', 'W': 'fd79a8', 'X': 'fdcb6e', 'Y': 'e17055',
+        'Z': '81ecec'
+    }
+    
+    bg_color = color_map.get(abbrev[0], '95a5a6')
+    text_color = 'ffffff'
+    
+    return f"https://via.placeholder.com/180x180/{bg_color}/{text_color}?text={abbrev}"
 
 
 def safe_parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:

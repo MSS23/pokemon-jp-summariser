@@ -87,7 +87,7 @@ def render_analysis_input() -> tuple[str, str]:
 
 def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     """
-    Render individual Pokemon card with enhanced formatting
+    Render individual Pokemon card with professional, modern design
 
     Args:
         pokemon: Pokemon data dictionary
@@ -103,110 +103,162 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     evs = pokemon.get("evs", "Not specified")
     ev_explanation = pokemon.get("ev_explanation", "No explanation provided")
     
-    # Enhanced card styling
+    # Professional card container with enhanced styling
     st.markdown(
         f"""
-        <div class="enhanced-pokemon-card">
-            <div class="card-header">
-                <div class="pokemon-number">#{index + 1}</div>
-                <div class="pokemon-title">
-                    <h2>{name}</h2>
-                    <span class="tera-badge {get_pokemon_type_class(tera_type)}">
-                        ⚡ {tera_type} Tera
+        <div class="professional-pokemon-card" data-pokemon="{name.lower().replace(' ', '-')}">
+            <div class="card-header-modern">
+                <div class="pokemon-number-badge">#{index + 1}</div>
+                <div class="pokemon-title-section">
+                    <h2 class="pokemon-name-title">{name}</h2>
+                    <span class="tera-badge-modern {get_pokemon_type_class(tera_type)}">
+                        <span class="tera-icon">⚡</span>
+                        <span class="tera-text">{tera_type} Tera</span>
                     </span>
                 </div>
+                <div class="card-decoration"></div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Main content in columns
-    col1, col2, col3 = st.columns([1, 2, 2])
+    # Modern layout with improved spacing and visual hierarchy
+    sprite_col, info_col, stats_col = st.columns([1.2, 2.5, 2.3])
 
-    with col1:
-        # Pokemon sprite with larger, more prominent display
+    with sprite_col:
+        # Enhanced sprite display with proper error handling
         sprite_url = get_pokemon_sprite_url(name)
-        st.image(sprite_url, width=160, caption="")
         
-        # Pokemon name prominently displayed
         st.markdown(
             f"""
-            <div class="pokemon-name-display">
-                <h3 style="text-align: center; margin: 10px 0; color: #2c3e50; font-weight: bold;">
-                    {name}
-                </h3>
+            <div class="pokemon-sprite-container">
+                <div class="sprite-frame">
+                    <img src="{sprite_url}" alt="{name}" class="pokemon-sprite" 
+                         onerror="this.src='https://via.placeholder.com/180x180/f0f0f0/999?text={name[:3]}'"/>
+                </div>
+                <div class="pokemon-name-label">{name}</div>
+                <div class="pokemon-role-badge {get_role_class(role)}">
+                    <span class="role-icon">🎯</span>
+                    <span class="role-text">{role}</span>
+                </div>
             </div>
             """,
             unsafe_allow_html=True
         )
-        
-        # Role badge with better styling
-        st.markdown(
-            f"""
-            <div class="enhanced-role-badge {get_role_class(role)}" style="text-align: center; margin: 10px 0;">
-                🎯 {role}
-            </div>
-        """,
-            unsafe_allow_html=True,
-        )
 
-    with col2:
-        # Core stats in a clean format
-        st.markdown("**⚔️ Core Information**")
+    with info_col:
+        st.markdown('<div class="info-section">', unsafe_allow_html=True)
         
-        info_data = {
-            "🧬 Ability": ability,
-            "🎒 Held Item": item, 
-            "🌟 Nature": nature
-        }
+        # Core information with modern styling
+        st.markdown("#### ⚔️ Battle Ready Details")
         
-        for label, value in info_data.items():
-            if value != "Not specified":
-                st.markdown(f"**{label}:** {value}")
-            else:
-                st.markdown(f"**{label}:** *{value}*")
+        # Enhanced info display with better visual hierarchy
+        info_items = [
+            ("🧬", "Ability", ability),
+            ("🎒", "Held Item", item), 
+            ("🌟", "Nature", nature)
+        ]
         
-        # Moves in a better format
-        st.markdown("**🎮 Moveset**")
+        for icon, label, value in info_items:
+            status_class = "specified" if value != "Not specified" else "not-specified"
+            st.markdown(
+                f"""
+                <div class="info-item {status_class}">
+                    <span class="info-icon">{icon}</span>
+                    <span class="info-label">{label}:</span>
+                    <span class="info-value">{value}</span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        
+        # Enhanced moveset display
+        st.markdown("#### 🎮 Combat Moveset")
+        
         if moves and any(move != "Not specified" for move in moves):
+            moves_html = '<div class="moveset-container">'
             for i, move in enumerate(moves[:4], 1):
                 if move and move != "Not specified":
-                    st.markdown(f"**{i}.** {move}")
+                    moves_html += f'''
+                    <div class="move-item">
+                        <span class="move-number">{i}</span>
+                        <span class="move-name">{move}</span>
+                    </div>
+                    '''
                 else:
-                    st.markdown(f"**{i}.** *Not specified*")
+                    moves_html += f'''
+                    <div class="move-item empty">
+                        <span class="move-number">{i}</span>
+                        <span class="move-name">Not specified</span>
+                    </div>
+                    '''
+            moves_html += '</div>'
+            st.markdown(moves_html, unsafe_allow_html=True)
         else:
-            st.markdown("*Moves not specified*")
+            st.markdown('<div class="moveset-empty">*Moves not specified*</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    with col3:
-        # EV spread with visual representation
-        st.markdown("**📊 EV Investment**")
+    with stats_col:
+        st.markdown('<div class="stats-section">', unsafe_allow_html=True)
+        
+        # Enhanced EV display with visual bars
+        st.markdown("#### 📊 EV Distribution")
         
         if evs != "Not specified":
-            st.code(evs, language=None)
+            # Display EV spread in code block
+            st.markdown(
+                f'''
+                <div class="ev-spread-display">
+                    <code class="ev-code">{evs}</code>
+                </div>
+                ''',
+                unsafe_allow_html=True
+            )
             
-            # Parse and visualize EV spread if possible
+            # Parse and create visual EV bars
             if "/" in str(evs):
                 try:
                     ev_values = [int(x.strip()) for x in str(evs).split("/")]
                     if len(ev_values) == 6:
                         ev_labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
-                        for label, value in zip(ev_labels, ev_values):
+                        ev_icons = ["❤️", "⚔️", "🛡️", "✨", "💫", "💨"]
+                        
+                        ev_bars_html = '<div class="ev-bars-container">'
+                        for label, icon, value in zip(ev_labels, ev_icons, ev_values):
                             if value > 0:
-                                st.markdown(f"**{label}:** {value}")
-                except:
-                    pass
+                                percentage = (value / 252) * 100
+                                ev_bars_html += f'''
+                                <div class="ev-bar-item">
+                                    <div class="ev-bar-label">
+                                        <span class="ev-icon">{icon}</span>
+                                        <span class="ev-stat">{label}</span>
+                                        <span class="ev-value">{value}</span>
+                                    </div>
+                                    <div class="ev-bar-track">
+                                        <div class="ev-bar-fill" style="width: {percentage}%"></div>
+                                    </div>
+                                </div>
+                                '''
+                        ev_bars_html += '</div>'
+                        st.markdown(ev_bars_html, unsafe_allow_html=True)
+                except Exception:
+                    st.markdown('<div class="ev-parse-error">*EV format could not be parsed*</div>', unsafe_allow_html=True)
         else:
-            st.markdown("*EV spread not specified*")
+            st.markdown('<div class="ev-not-specified">*EV spread not specified*</div>', unsafe_allow_html=True)
         
-        # EV explanation in expander
-        with st.expander("💡 EV Strategy", expanded=False):
+        # Enhanced EV strategy explanation
+        with st.expander("💡 Strategic Reasoning", expanded=False):
             if ev_explanation != "No explanation provided":
-                st.write(ev_explanation)
+                st.markdown(f'<div class="ev-explanation">{ev_explanation}</div>', unsafe_allow_html=True)
             else:
-                st.write("*No strategic explanation provided*")
+                st.markdown('<div class="ev-explanation empty">*No strategic explanation provided*</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    st.divider()
+    # Modern divider
+    st.markdown('<div class="card-divider"></div>', unsafe_allow_html=True)
 
 
 def render_article_summary(analysis_result: Dict[str, Any]):
@@ -948,66 +1000,447 @@ def apply_custom_css():
         box-shadow: var(--shadow-lg);
     }
     
-    /* Enhanced Pokemon card styling */
-    .enhanced-pokemon-card {
+    /* Professional Pokemon Card Styling */
+    .professional-pokemon-card {
         background: var(--surface);
-        border-radius: var(--border-radius-xl);
-        padding: 2rem;
-        margin: 2rem 0;
-        box-shadow: var(--shadow-lg);
-        border: 1px solid var(--border-color);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 20px;
+        padding: 0;
+        margin: 3rem 0;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        border: 1px solid rgba(99, 102, 241, 0.1);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
+        backdrop-filter: blur(10px);
     }
     
-    .enhanced-pokemon-card:hover {
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: var(--shadow-xl);
-        border-color: rgba(102, 126, 234, 0.3);
+    .professional-pokemon-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 60px rgba(99, 102, 241, 0.25);
+        border-color: rgba(99, 102, 241, 0.3);
     }
     
-    .enhanced-pokemon-card::before {
+    .professional-pokemon-card::before {
         content: '';
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        height: 4px;
-        background: var(--primary-gradient);
+        height: 5px;
+        background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
     }
     
-    .card-header {
+    .card-header-modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2.5rem 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .card-header-modern::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20px;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    
+    .pokemon-number-badge {
+        background: rgba(255,255,255,0.25);
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: white;
+        margin-bottom: 1rem;
+        backdrop-filter: blur(15px);
+        border: 2px solid rgba(255,255,255,0.3);
+    }
+    
+    .pokemon-title-section h2.pokemon-name-title {
+        color: white;
+        margin: 0.5rem 0 1rem 0;
+        font-size: 2.2rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .tera-badge-modern {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0.6rem 1.2rem;
+        border-radius: 25px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: white;
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255,255,255,0.2);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .tera-icon {
+        font-size: 1rem;
+    }
+    
+    .tera-text {
+        font-weight: 700;
+    }
+    
+    .card-decoration {
+        position: absolute;
+        bottom: -30px;
+        right: -30px;
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        opacity: 0.6;
+    }
+    
+    /* Sprite Container Styling */
+    .pokemon-sprite-container {
+        text-align: center;
+        padding: 1.5rem;
+    }
+    
+    .sprite-frame {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 20px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 2px solid rgba(99, 102, 241, 0.1);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+    }
+    
+    .sprite-frame:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+    }
+    
+    .pokemon-sprite {
+        width: 160px;
+        height: 160px;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+    }
+    
+    .pokemon-name-label {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--on-surface);
+        margin-bottom: 0.8rem;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .pokemon-role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.8rem 1.2rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.2s ease;
+        border: 2px solid rgba(255,255,255,0.2);
+    }
+    
+    .pokemon-role-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }
+    
+    .role-icon {
+        font-size: 1rem;
+    }
+    
+    .role-text {
+        font-weight: 700;
+    }
+    
+    /* Info Section Styling */
+    .info-section {
+        padding: 1.5rem;
+    }
+    
+    .info-section h4 {
+        color: var(--on-surface);
+        margin-bottom: 1.5rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-item {
         display: flex;
         align-items: center;
-        margin-bottom: 1.5rem;
-        background: var(--primary-gradient);
-        padding: 1.5rem;
-        border-radius: var(--border-radius-md);
-        color: white;
-        margin: -2rem -2rem 1.5rem -2rem;
-        box-shadow: var(--shadow-md);
+        gap: 12px;
+        padding: 0.8rem;
+        margin-bottom: 0.8rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 12px;
+        border-left: 4px solid #6366f1;
+        transition: all 0.2s ease;
     }
     
-    .pokemon-number {
-        background: rgba(255,255,255,0.2);
+    .info-item:hover {
+        background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+        transform: translateX(4px);
+    }
+    
+    .info-item.not-specified {
+        border-left-color: #94a3b8;
+        opacity: 0.7;
+    }
+    
+    .info-icon {
+        font-size: 1.2rem;
+        min-width: 20px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--on-surface);
+        min-width: 80px;
+    }
+    
+    .info-value {
+        font-weight: 500;
+        color: #475569;
+        font-style: italic;
+    }
+    
+    .info-item.specified .info-value {
+        font-style: normal;
+        color: var(--on-surface);
+        font-weight: 600;
+    }
+    
+    /* Moveset Styling */
+    .moveset-container {
+        display: grid;
+        gap: 0.8rem;
+        margin-top: 1rem;
+    }
+    
+    .move-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0.8rem;
+        background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%);
+        border-radius: 12px;
+        border-left: 4px solid #0ea5e9;
+        transition: all 0.2s ease;
+    }
+    
+    .move-item:hover {
+        background: linear-gradient(135deg, #b3e5fc 0%, #81d4fa 100%);
+        transform: translateX(4px);
+    }
+    
+    .move-item.empty {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-left-color: #94a3b8;
+        opacity: 0.6;
+    }
+    
+    .move-number {
+        background: rgba(14, 165, 233, 0.2);
         border-radius: 50%;
-        width: 44px;
-        height: 44px;
+        width: 28px;
+        height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 600;
-        font-size: 1.1rem;
-        margin-right: 1rem;
-        backdrop-filter: blur(10px);
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #0369a1;
     }
     
-    .pokemon-title h2 {
-        margin: 0;
-        font-size: 1.5rem;
+    .move-item.empty .move-number {
+        background: rgba(148, 163, 184, 0.2);
+        color: #64748b;
+    }
+    
+    .move-name {
+        font-weight: 600;
+        color: #0369a1;
+    }
+    
+    .move-item.empty .move-name {
+        color: #64748b;
+        font-style: italic;
+    }
+    
+    .moveset-empty {
+        text-align: center;
+        padding: 2rem;
+        color: #64748b;
+        font-style: italic;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 12px;
+        margin-top: 1rem;
+    }
+    
+    /* Stats Section Styling */
+    .stats-section {
+        padding: 1.5rem;
+    }
+    
+    .stats-section h4 {
+        color: var(--on-surface);
+        margin-bottom: 1.5rem;
         font-weight: 700;
-        letter-spacing: -0.025em;
+        font-size: 1.1rem;
+        border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+        padding-bottom: 0.5rem;
+    }
+    
+    .ev-spread-display {
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    .ev-code {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        color: #f1f5f9;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        border: 2px solid rgba(99, 102, 241, 0.2);
+    }
+    
+    .ev-bars-container {
+        margin-top: 1.5rem;
+        display: grid;
+        gap: 1rem;
+    }
+    
+    .ev-bar-item {
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 0.8rem;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .ev-bar-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .ev-icon {
+        font-size: 1rem;
+    }
+    
+    .ev-stat {
+        font-weight: 600;
+        color: var(--on-surface);
+        flex: 1;
+        margin-left: 8px;
+    }
+    
+    .ev-value {
+        font-weight: 700;
+        color: #6366f1;
+        font-size: 1rem;
+    }
+    
+    .ev-bar-track {
+        background: #e2e8f0;
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .ev-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+        border-radius: 4px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+    
+    .ev-bar-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+        animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    .ev-parse-error, .ev-not-specified {
+        text-align: center;
+        padding: 2rem;
+        color: #64748b;
+        font-style: italic;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 12px;
+        margin-top: 1rem;
+        border: 1px dashed #cbd5e1;
+    }
+    
+    .ev-explanation {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        padding: 1.2rem;
+        border-radius: 12px;
+        border-left: 4px solid #22c55e;
+        color: #166534;
+        line-height: 1.6;
+        margin-top: 0.5rem;
+    }
+    
+    .ev-explanation.empty {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-left-color: #94a3b8;
+        color: #64748b;
+        font-style: italic;
+    }
+    
+    /* Card Divider */
+    .card-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
+        margin: 3rem 0;
+        position: relative;
+    }
+    
+    .card-divider::before {
+        content: '⚡';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--surface);
+        padding: 0 1rem;
+        color: #6366f1;
+        font-size: 1.2rem;
     }
     
     /* Team preview cards */

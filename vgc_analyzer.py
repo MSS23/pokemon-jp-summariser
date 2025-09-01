@@ -28,11 +28,11 @@ class GeminiVGCAnalyzer:
         self.api_key = Config.get_google_api_key()
         genai.configure(api_key=self.api_key)
 
-        # Configure the text model
-        self.model = genai.GenerativeModel("gemini-2.0-flash-exp")
+        # Configure the text model with latest Gemini 2.5 Flash
+        self.model = genai.GenerativeModel("gemini-2.5-flash")
         
         # Configure the vision model
-        self.vision_model = genai.GenerativeModel("gemini-2.0-flash-exp")
+        self.vision_model = genai.GenerativeModel("gemini-2.5-flash")
 
         # Generation config for consistent output
         self.generation_config = {
@@ -131,19 +131,49 @@ class GeminiVGCAnalyzer:
         return None
 
     def _get_analysis_prompt(self) -> str:
-        """Get the comprehensive VGC analysis prompt"""
+        """Get the comprehensive VGC analysis prompt with enhanced Pokemon identification"""
         return '''
-You are a Pokemon VGC expert analyst.
-Your task is to analyze Japanese Pokemon VGC articles and provide
-comprehensive analysis including team composition, strategy explanation,
-and accurate translations.
+You are a Pokemon VGC expert analyst with extensive knowledge of Pokemon identification and naming conventions.
+Your task is to analyze Japanese Pokemon VGC articles and provide comprehensive analysis including team composition, strategy explanation, and accurate translations.
 
 CRITICAL REQUIREMENTS:
 1. ALWAYS provide a valid JSON response
 2. Include EV spreads for ALL Pokemon (use "Not specified" if missing)
 3. Provide strategic explanations for EV choices
-4. Translate all Japanese text to English
+4. Translate all Japanese text to English with PERFECT Pokemon identification
 5. Ensure team composition makes sense for VGC format
+6. Use EXACT Pokemon names with proper forms and spellings
+
+POKEMON IDENTIFICATION REQUIREMENTS:
+CRITICAL: You must be extremely careful with Pokemon identification. Here are common errors to avoid:
+
+DO NOT CONFUSE THESE POKEMON:
+- Zamazenta ≠ Zacian (ザマゼンタ = Zamazenta, ザシアン = Zacian)
+- Chi-Yu ≠ Chien-Pao (チオンジェン = Chi-Yu, パオジアン = Chien-Pao)
+- Ting-Lu ≠ Wo-Chien (ディンルー = Ting-Lu, イーユイ = Wo-Chien)
+
+CORRECT POKEMON FORMS:
+- Landorus-Therian (not "Landorus-T" or "Landorus T")
+- Thundurus-Therian (not "Thundurus-T" or "Thundurus T")  
+- Tornadus-Therian (not "Tornadus-T" or "Tornadus T")
+- Calyrex-Shadow (not "Shadow Calyrex" or "Calyrex Shadow")
+- Calyrex-Ice (not "Ice Calyrex" or "Calyrex Ice")
+- Urshifu-Rapid-Strike (not "Urshifu Rapid" or "Rapid Strike Urshifu")
+- Urshifu-Single-Strike (not "Urshifu Single" or "Single Strike Urshifu")
+- Flutter Mane (not "Flutter-Mane")
+- Iron Moth (not "Iron-Moth")
+- Sandy Shocks (not "Sandy-Shocks")
+- Roaring Moon (not "Roaring-Moon")
+
+TREASURES OF RUIN - CORRECT NAMES:
+- Chien-Pao (パオジアン) - The cat-like legendary
+- Chi-Yu (チオンジェン) - The fish-like legendary  
+- Ting-Lu (ディンルー) - The deer-like legendary
+- Wo-Chien (イーユイ) - The snail-like legendary
+
+REGIONAL FORMS:
+- Use format: "Pokemon-Region" (e.g., "Zapdos-Galar", "Marowak-Alola")
+- For Hisuian forms: "Pokemon-Hisui" (e.g., "Zoroark-Hisui")
 
 RESPONSE FORMAT (MUST BE VALID JSON):
 {
@@ -154,7 +184,7 @@ RESPONSE FORMAT (MUST BE VALID JSON):
   "regulation": "VGC regulation (A, B, C, etc.)",
   "pokemon_team": [
     {
-      "name": "Pokemon Name",
+      "name": "EXACT Pokemon Name with proper form",
       "ability": "Ability Name",
       "held_item": "Item Name",
       "tera_type": "Type",
@@ -181,11 +211,20 @@ EV ANALYSIS REQUIREMENTS:
 - Use "Not specified" only if absolutely no EV information is available
 
 TRANSLATION GUIDELINES:
-- Translate Pokemon names to English
+- Translate Pokemon names to English using EXACT official spellings
 - Translate move names to English
 - Translate item names to English
 - Keep ability names in standard English format
 - Preserve strategic terminology accurately
+- Double-check Pokemon identification before finalizing
+
+VALIDATION CHECKLIST:
+Before responding, verify:
+1. All Pokemon names are spelled correctly with proper forms
+2. No confusion between similar Pokemon (especially Zamazenta/Zacian)
+3. Forms are properly indicated with hyphens (e.g., "-Therian", "-Shadow")
+4. Team composition is realistic for VGC (2-6 Pokemon)
+5. JSON format is valid and complete
 
 Please analyze the following content and provide your response in the exact JSON format specified above:
 '''
@@ -231,6 +270,9 @@ Please analyze the following content and provide your response in the exact JSON
             
             # Fix Pokemon name translations
             result = self.fix_pokemon_name_translations(result)
+            
+            # Apply comprehensive Pokemon validation
+            result = self._apply_pokemon_validation(result)
 
             # Cache the result
             cache.set(content, result, url)
@@ -354,31 +396,488 @@ Please analyze the following content and provide your response in the exact JSON
         return result
     
     def _fix_common_name_errors(self, name: str) -> str:
-        """Fix common Pokemon name translation errors"""
-        name_fixes = {
-            "Pao Kai": "Chien-Pao",
-            "Pao-Kai": "Chien-Pao", 
-            "Paokai": "Chien-Pao",
-            "kai pao": "Chien-Pao",
-            "Kai Pao": "Chien-Pao",
-            "Kai-Pao": "Chien-Pao",
-            "KaiPao": "Chien-Pao",
-            "Chi Yu": "Chi-Yu",
-            "Ting Lu": "Ting-Lu", 
-            "Wo Chien": "Wo-Chien",
-            "Landorus T": "Landorus-Therian",
-            "Landorus-T": "Landorus-Therian",
-            "Thundurus T": "Thundurus-Therian",
-            "Thundurus-T": "Thundurus-Therian",
-            "Tornadus T": "Tornadus-Therian",
-            "Tornadus-T": "Tornadus-Therian",
-            "Calyrex Shadow": "Calyrex-Shadow",
-            "Calyrex Ice": "Calyrex-Ice",
-            "Urshifu Rapid": "Urshifu-Rapid-Strike",
-            "Urshifu Single": "Urshifu-Single-Strike",
+        """
+        Enhanced Pokemon name fixing with fuzzy matching and comprehensive error correction
+        
+        Args:
+            name: Pokemon name to fix
+            
+        Returns:
+            Corrected Pokemon name
+        """
+        # First check direct mapping
+        if name in POKEMON_NAME_TRANSLATIONS:
+            return POKEMON_NAME_TRANSLATIONS[name]
+        
+        # Check case-insensitive exact match
+        for key, value in POKEMON_NAME_TRANSLATIONS.items():
+            if key.lower() == name.lower():
+                return value
+                
+        # Apply fuzzy matching for similar names
+        return self._apply_fuzzy_name_matching(name)
+    
+    def _apply_fuzzy_name_matching(self, name: str) -> str:
+        """
+        Apply fuzzy matching to find the most likely correct Pokemon name
+        
+        Args:
+            name: Input Pokemon name
+            
+        Returns:
+            Best matching Pokemon name or original if no good match
+        """
+        name_lower = name.lower().strip()
+        best_match = name
+        best_score = 0
+        
+        # Check for partial matches and common patterns
+        for translation_key, correct_name in POKEMON_NAME_TRANSLATIONS.items():
+            key_lower = translation_key.lower()
+            
+            # Direct substring match (high priority)
+            if name_lower in key_lower or key_lower in name_lower:
+                if len(key_lower) >= len(name_lower) * 0.7:  # At least 70% of original length
+                    return correct_name
+            
+            # Check for word-based matching
+            name_words = set(name_lower.replace('-', ' ').split())
+            key_words = set(key_lower.replace('-', ' ').split())
+            
+            if name_words and key_words:
+                # Calculate word overlap ratio
+                overlap = len(name_words & key_words)
+                total_words = len(name_words | key_words)
+                
+                if total_words > 0:
+                    score = overlap / total_words
+                    
+                    # Bonus for exact word matches
+                    if overlap > 0 and score > 0.5:
+                        score += 0.2
+                    
+                    if score > best_score and score > 0.6:
+                        best_score = score
+                        best_match = correct_name
+        
+        # Special pattern matching for common errors
+        best_match = self._apply_pattern_fixes(best_match)
+        
+        return best_match
+    
+    def _apply_pattern_fixes(self, name: str) -> str:
+        """
+        Apply pattern-based fixes for systematic naming errors
+        
+        Args:
+            name: Pokemon name to check
+            
+        Returns:
+            Fixed Pokemon name
+        """
+        # Common form notation fixes
+        form_fixes = [
+            # Therian forms
+            (r'\b(\w+)[\s\-]*T\b', r'\1-Therian'),
+            (r'\b(\w+)[\s\-]*Therian\b', r'\1-Therian'),
+            
+            # Shadow/Ice Calyrex
+            (r'\bCalyrex[\s\-]*Shadow\b', 'Calyrex-Shadow'),
+            (r'\bCalyrex[\s\-]*Ice\b', 'Calyrex-Ice'),
+            (r'\bShadow[\s\-]*Calyrex\b', 'Calyrex-Shadow'),
+            (r'\bIce[\s\-]*Calyrex\b', 'Calyrex-Ice'),
+            
+            # Urshifu forms  
+            (r'\bUrshifu[\s\-]*Rapid\b', 'Urshifu-Rapid-Strike'),
+            (r'\bUrshifu[\s\-]*Single\b', 'Urshifu-Single-Strike'),
+            (r'\bRapid[\s\-]*Strike[\s\-]*Urshifu\b', 'Urshifu-Rapid-Strike'),
+            (r'\bSingle[\s\-]*Strike[\s\-]*Urshifu\b', 'Urshifu-Single-Strike'),
+            
+            # Treasures of Ruin common errors
+            (r'\b(?:Pao|Kai)[\s\-]*(?:Kai|Pao)\b', 'Chien-Pao'),
+            (r'\bChien[\s\-]*Pao\b', 'Chien-Pao'),
+            (r'\bChi[\s\-]*Yu\b', 'Chi-Yu'),
+            (r'\bTing[\s\-]*Lu\b', 'Ting-Lu'),
+            (r'\bWo[\s\-]*Chien\b', 'Wo-Chien'),
+            
+            # Regional forms
+            (r'\bGalarian[\s\-]*(\w+)', r'\1-Galar'),
+            (r'\bAlolan[\s\-]*(\w+)', r'\1-Alola'),
+            (r'\bHisuian[\s\-]*(\w+)', r'\1-Hisui'),
+            
+            # Common hyphen/space issues
+            (r'\b(\w+)[\s]+(\w+)\b', r'\1-\2'),  # Space to hyphen for known compound names
+        ]
+        
+        import re
+        
+        fixed_name = name
+        for pattern, replacement in form_fixes:
+            fixed_name = re.sub(pattern, replacement, fixed_name, flags=re.IGNORECASE)
+            
+        return fixed_name
+
+    def _apply_pokemon_validation(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Apply comprehensive Pokemon validation to ensure data quality
+        
+        Args:
+            result: Analysis result to validate
+            
+        Returns:
+            Validated and corrected result
+        """
+        if "pokemon_team" not in result:
+            return result
+            
+        validated_team = []
+        validation_warnings = []
+        
+        for i, pokemon in enumerate(result["pokemon_team"]):
+            try:
+                validated_pokemon = self._validate_individual_pokemon(pokemon, i)
+                if validated_pokemon:
+                    validated_team.append(validated_pokemon)
+                    
+                    # Check for validation warnings
+                    warnings = self._check_pokemon_warnings(validated_pokemon, i)
+                    validation_warnings.extend(warnings)
+                    
+            except Exception as e:
+                # Log validation error but don't fail the entire analysis
+                validation_warnings.append(f"Pokemon #{i+1} validation failed: {str(e)}")
+                # Keep the original Pokemon data if validation fails
+                validated_team.append(pokemon)
+        
+        result["pokemon_team"] = validated_team
+        
+        # Apply team-level validation
+        team_warnings = self._validate_team_composition(validated_team)
+        validation_warnings.extend(team_warnings)
+        
+        # Add validation notes if any warnings exist
+        if validation_warnings:
+            existing_notes = result.get("translation_notes", "")
+            warning_text = " | ".join(validation_warnings[:3])  # Limit to top 3 warnings
+            result["translation_notes"] = f"{existing_notes} Validation: {warning_text}".strip()
+            
+        return result
+    
+    def _validate_individual_pokemon(self, pokemon: Dict[str, Any], index: int) -> Dict[str, Any]:
+        """
+        Validate individual Pokemon data
+        
+        Args:
+            pokemon: Pokemon data to validate
+            index: Pokemon index in team
+            
+        Returns:
+            Validated Pokemon data
+        """
+        validated = pokemon.copy()
+        
+        # Validate Pokemon name
+        validated = self._validate_pokemon_name(validated, index)
+        
+        # Validate abilities
+        validated = self._validate_pokemon_ability(validated, index)
+        
+        # Validate moves
+        validated = self._validate_pokemon_moves(validated, index)
+        
+        # Validate items
+        validated = self._validate_pokemon_item(validated, index)
+        
+        # Validate EV spreads
+        validated = self._validate_pokemon_evs(validated, index)
+        
+        # Validate natures
+        validated = self._validate_pokemon_nature(validated, index)
+        
+        return validated
+    
+    def _validate_pokemon_name(self, pokemon: Dict[str, Any], index: int) -> Dict[str, Any]:
+        """Validate Pokemon name against known Pokemon list"""
+        name = pokemon.get("name", "")
+        
+        if not name or name in ["Unknown", "Unknown Pokemon", "Not specified"]:
+            pokemon["name"] = "Unknown Pokemon"
+            return pokemon
+            
+        # Check if name exists in our translations (indicates it's a known Pokemon)
+        name_lower = name.lower()
+        known_pokemon = set(POKEMON_NAME_TRANSLATIONS.values()) | set(POKEMON_NAME_TRANSLATIONS.keys())
+        
+        # Add common VGC Pokemon
+        common_vgc_pokemon = {
+            "garchomp", "incineroar", "landorus-therian", "amoonguss", "whimsicott",
+            "grimmsnarl", "dragapult", "flutter-mane", "iron-moth", "chien-pao",
+            "chi-yu", "koraidon", "miraidon", "calyrex-shadow", "urshifu-rapid-strike",
+            "zamazenta", "zacian", "dragonite", "charizard", "salamence", "metagross",
+            "tyranitar", "excadrill", "ferrothorn", "rotom-heat", "rotom-wash",
+            "indeedee", "arcanine", "torkoal", "venusaur", "rillaboom"
         }
         
-        return name_fixes.get(name, name)
+        all_known_pokemon = known_pokemon | common_vgc_pokemon
+        
+        # Check if name is in known Pokemon (case-insensitive)
+        for known_name in all_known_pokemon:
+            if known_name.lower() == name_lower:
+                pokemon["name"] = known_name.title().replace("-", "-")
+                return pokemon
+                
+        # If not found, apply additional fuzzy validation
+        best_match = self._find_best_pokemon_match(name, all_known_pokemon)
+        if best_match:
+            pokemon["name"] = best_match
+        
+        return pokemon
+    
+    def _validate_pokemon_ability(self, pokemon: Dict[str, Any], index: int) -> Dict[str, Any]:
+        """Validate Pokemon ability"""
+        ability = pokemon.get("ability", "")
+        
+        if not ability or ability == "Not specified":
+            return pokemon
+            
+        # Common ability corrections
+        ability_fixes = {
+            "intimadate": "Intimidate",
+            "protean": "Protean", 
+            "libero": "Libero",
+            "prankster": "Prankster",
+            "drought": "Drought",
+            "drizzle": "Drizzle",
+            "sand stream": "Sand Stream",
+            "snow warning": "Snow Warning",
+            "levitate": "Levitate",
+            "magic guard": "Magic Guard",
+            "regenerator": "Regenerator",
+            "natural cure": "Natural Cure",
+            "serene grace": "Serene Grace",
+            "technician": "Technician",
+            "adaptability": "Adaptability",
+            "multiscale": "Multiscale",
+            "marvel scale": "Marvel Scale",
+            "huge power": "Huge Power",
+            "pure power": "Pure Power"
+        }
+        
+        ability_lower = ability.lower()
+        for key, correct_ability in ability_fixes.items():
+            if key in ability_lower:
+                pokemon["ability"] = correct_ability
+                break
+                
+        return pokemon
+    
+    def _validate_pokemon_moves(self, pokemon: Dict[str, Any], index: int) -> Dict[str, Any]:
+        """Validate Pokemon moves"""
+        moves = pokemon.get("moves", [])
+        
+        if not moves:
+            pokemon["moves"] = ["Not specified", "Not specified", "Not specified", "Not specified"]
+            return pokemon
+            
+        # Ensure exactly 4 moves
+        if len(moves) < 4:
+            moves.extend(["Not specified"] * (4 - len(moves)))
+        elif len(moves) > 4:
+            moves = moves[:4]
+            
+        # Common move name corrections
+        move_fixes = {
+            "earthquake": "Earthquake",
+            "dragon claw": "Dragon Claw", 
+            "flamethrower": "Flamethrower",
+            "ice beam": "Ice Beam",
+            "thunderbolt": "Thunderbolt",
+            "psychic": "Psychic",
+            "shadow ball": "Shadow Ball",
+            "energy ball": "Energy Ball",
+            "air slash": "Air Slash",
+            "rock slide": "Rock Slide",
+            "iron head": "Iron Head",
+            "u-turn": "U-turn",
+            "volt switch": "Volt Switch",
+            "fake out": "Fake Out",
+            "protect": "Protect",
+            "substitute": "Substitute",
+            "roost": "Roost",
+            "will-o-wisp": "Will-O-Wisp",
+            "thunder wave": "Thunder Wave",
+            "toxic": "Toxic",
+            "stealth rock": "Stealth Rock"
+        }
+        
+        corrected_moves = []
+        for move in moves:
+            if not move or move == "Not specified":
+                corrected_moves.append("Not specified")
+                continue
+                
+            move_lower = move.lower()
+            corrected = move
+            
+            for key, correct_move in move_fixes.items():
+                if key in move_lower:
+                    corrected = correct_move
+                    break
+                    
+            corrected_moves.append(corrected)
+            
+        pokemon["moves"] = corrected_moves
+        return pokemon
+    
+    def _validate_pokemon_item(self, pokemon: Dict[str, Any], index: int) -> Dict[str, Any]:
+        """Validate Pokemon held item"""
+        item = pokemon.get("held_item", "")
+        
+        if not item or item == "Not specified":
+            return pokemon
+            
+        # Common item corrections
+        item_fixes = {
+            "leftovers": "Leftovers",
+            "focus sash": "Focus Sash",
+            "life orb": "Life Orb",
+            "choice band": "Choice Band",
+            "choice specs": "Choice Specs", 
+            "choice scarf": "Choice Scarf",
+            "assault vest": "Assault Vest",
+            "rocky helmet": "Rocky Helmet",
+            "safety goggles": "Safety Goggles",
+            "booster energy": "Booster Energy",
+            "clear amulet": "Clear Amulet",
+            "covert cloak": "Covert Cloak",
+            "sitrus berry": "Sitrus Berry",
+            "lum berry": "Lum Berry",
+            "mental herb": "Mental Herb",
+            "wide lens": "Wide Lens"
+        }
+        
+        item_lower = item.lower()
+        for key, correct_item in item_fixes.items():
+            if key in item_lower:
+                pokemon["held_item"] = correct_item
+                break
+                
+        return pokemon
+    
+    def _validate_pokemon_evs(self, pokemon: Dict[str, Any], index: int) -> Dict[str, Any]:
+        """Validate Pokemon EV spread"""
+        evs = pokemon.get("evs", "")
+        
+        if not evs or evs == "Not specified":
+            return pokemon
+            
+        # Try to parse and validate EV format
+        if "/" in str(evs):
+            try:
+                ev_parts = [int(x.strip()) for x in str(evs).split("/")]
+                if len(ev_parts) == 6:
+                    total_evs = sum(ev_parts)
+                    
+                    # Check for valid EV total (should be <= 508)
+                    if total_evs > 508:
+                        # Scale down proportionally
+                        scale_factor = 508 / total_evs
+                        ev_parts = [int(ev * scale_factor) for ev in ev_parts]
+                    
+                    # Check for valid individual EVs (should be <= 252)
+                    ev_parts = [min(252, max(0, ev)) for ev in ev_parts]
+                    
+                    # Reconstruct EV string
+                    pokemon["evs"] = "/".join(map(str, ev_parts))
+                    
+            except (ValueError, AttributeError):
+                # Keep original if parsing fails
+                pass
+                
+        return pokemon
+    
+    def _validate_pokemon_nature(self, pokemon: Dict[str, Any], index: int) -> Dict[str, Any]:
+        """Validate Pokemon nature"""
+        nature = pokemon.get("nature", "")
+        
+        if not nature or nature == "Not specified":
+            return pokemon
+            
+        # Common nature corrections
+        nature_fixes = {
+            "adamant": "Adamant",
+            "jolly": "Jolly", 
+            "timid": "Timid",
+            "modest": "Modest",
+            "bold": "Bold",
+            "impish": "Impish",
+            "calm": "Calm",
+            "careful": "Careful",
+            "brave": "Brave",
+            "quiet": "Quiet",
+            "relaxed": "Relaxed",
+            "sassy": "Sassy"
+        }
+        
+        nature_lower = nature.lower()
+        for key, correct_nature in nature_fixes.items():
+            if key in nature_lower:
+                pokemon["nature"] = correct_nature
+                break
+                
+        return pokemon
+    
+    def _check_pokemon_warnings(self, pokemon: Dict[str, Any], index: int) -> list:
+        """Check for potential issues with Pokemon data"""
+        warnings = []
+        name = pokemon.get("name", "")
+        
+        # Check for suspicious combinations
+        if "Unknown" in name:
+            warnings.append(f"Pokemon #{index+1} name uncertain")
+            
+        # Check EV spread validity
+        evs = pokemon.get("evs", "")
+        if evs != "Not specified" and "/" in str(evs):
+            try:
+                ev_parts = [int(x.strip()) for x in str(evs).split("/")]
+                total = sum(ev_parts)
+                if total > 508:
+                    warnings.append(f"Pokemon #{index+1} EV total exceeds 508")
+            except:
+                warnings.append(f"Pokemon #{index+1} EV format invalid")
+                
+        return warnings
+    
+    def _validate_team_composition(self, team: list) -> list:
+        """Validate overall team composition"""
+        warnings = []
+        
+        if len(team) < 1:
+            warnings.append("No Pokemon found in team")
+        elif len(team) > 6:
+            warnings.append("Team exceeds 6 Pokemon limit")
+            
+        # Check for duplicate Pokemon
+        names = [p.get("name", "").lower() for p in team if p.get("name")]
+        duplicates = [name for name in set(names) if names.count(name) > 1]
+        if duplicates:
+            warnings.append(f"Duplicate Pokemon detected: {', '.join(duplicates)}")
+            
+        return warnings
+    
+    def _find_best_pokemon_match(self, name: str, known_pokemon: set) -> str:
+        """Find the best matching Pokemon name from known list"""
+        name_lower = name.lower()
+        
+        # Try exact substring matches first
+        for known in known_pokemon:
+            known_lower = known.lower()
+            if name_lower in known_lower or known_lower in name_lower:
+                if abs(len(known_lower) - len(name_lower)) <= 3:  # Similar length
+                    return known.title().replace("-", "-")
+        
+        return name  # Return original if no good match found
 
     def extract_and_analyze_images(self, url: str) -> Dict[str, Any]:
         """

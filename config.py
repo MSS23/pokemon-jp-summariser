@@ -104,7 +104,7 @@ ITEM_TRANSLATIONS = {
 
 # Comprehensive Pokemon name translations for VGC
 POKEMON_NAME_TRANSLATIONS = {
-    # Treasures of Ruin (Comprehensive Chien-Pao fixes)
+    # Treasures of Ruin (Comprehensive fixes)
     "パオジアン": "Chien-Pao",
     "パオ・ジアン": "Chien-Pao", 
     "Pao Kai": "Chien-Pao",
@@ -114,17 +114,72 @@ POKEMON_NAME_TRANSLATIONS = {
     "Kai-Pao": "Chien-Pao",
     "KaiPao": "Chien-Pao",
     "Chien Pao": "Chien-Pao",
+    "Chienpao": "Chien-Pao",
     "チオンジェン": "Chi-Yu",
+    "Chi Yu": "Chi-Yu",
+    "ChiYu": "Chi-Yu",
     "ディンルー": "Ting-Lu",
+    "Ting Lu": "Ting-Lu",
+    "TingLu": "Ting-Lu",
     "イーユイ": "Wo-Chien",
+    "Wo Chien": "Wo-Chien",
+    "WoChien": "Wo-Chien",
     
-    # Popular VGC Pokemon (Gen 9)
+    # Zamazenta/Zacian (Fix common confusion)
+    "ザマゼンタ": "Zamazenta",
+    "ザシアン": "Zacian",
+    "Zacian-C": "Zacian-Crowned",
+    "Zacian-Hero": "Zacian",
+    "Zamazenta-C": "Zamazenta-Crowned", 
+    "Zamazenta-Hero": "Zamazenta",
+    "ザシアン王": "Zacian-Crowned",
+    "ザマゼンタ王": "Zamazenta-Crowned",
+    
+    # Calyrex forms (Common errors)
+    "カルネクス": "Calyrex-Shadow",
+    "Calyrex Shadow": "Calyrex-Shadow",
+    "Calyrex Ice": "Calyrex-Ice",
+    "Calyrex-Shadow Rider": "Calyrex-Shadow",
+    "Calyrex-Ice Rider": "Calyrex-Ice",
+    "Shadow Calyrex": "Calyrex-Shadow",
+    "Ice Calyrex": "Calyrex-Ice",
+    "白バドレックス": "Calyrex-Ice",
+    "黒バドレックス": "Calyrex-Shadow",
+    
+    # Urshifu forms (Common confusion)
+    "ウーラオス": "Urshifu",
+    "Urshifu Rapid": "Urshifu-Rapid-Strike",
+    "Urshifu Single": "Urshifu-Single-Strike",
+    "Urshifu-R": "Urshifu-Rapid-Strike",
+    "Urshifu-S": "Urshifu-Single-Strike",
+    "Rapid Strike Urshifu": "Urshifu-Rapid-Strike",
+    "Single Strike Urshifu": "Urshifu-Single-Strike",
+    "連撃ウーラオス": "Urshifu-Rapid-Strike",
+    "一撃ウーラオス": "Urshifu-Single-Strike",
+    
+    # Genie forms (Therian confusion)
+    "ランドロス": "Landorus-Therian",
+    "Landorus T": "Landorus-Therian",
+    "Landorus-T": "Landorus-Therian", 
+    "Landorus Therian": "Landorus-Therian",
+    "Lando-T": "Landorus-Therian",
+    "ボルトロス": "Thundurus-Therian",
+    "Thundurus T": "Thundurus-Therian",
+    "Thundurus-T": "Thundurus-Therian",
+    "Thundurus Therian": "Thundurus-Therian",
+    "トルネロス": "Tornadus-Therian",
+    "Tornadus T": "Tornadus-Therian", 
+    "Tornadus-T": "Tornadus-Therian",
+    "Tornadus Therian": "Tornadus-Therian",
+    
+    # Popular VGC Pokemon (Gen 9 comprehensive)
     "ガブリアス": "Garchomp",
     "ガオガエン": "Incineroar", 
     "ウインディ": "Arcanine",
+    "ヒスイウインディ": "Arcanine-Hisui",
+    "Arcanine-H": "Arcanine-Hisui",
     "モロバレル": "Amoonguss",
     "エルフーン": "Whimsicott",
-    "ランドロス": "Landorus-Therian",
     "カイリュー": "Dragonite",
     "ハリテヤマ": "Hariyama",
     "クレッフィ": "Klefki",
@@ -133,25 +188,36 @@ POKEMON_NAME_TRANSLATIONS = {
     "リザードン": "Charizard",
     "カメックス": "Blastoise",
     "フシギバナ": "Venusaur",
-    "ザマゼンタ": "Zamazenta",
-    "ザシアン": "Zacian",
     
     # Legendary/Restricted Pokemon
     "コライドン": "Koraidon",
     "ミライドン": "Miraidon", 
-    "カルネクス": "Calyrex-Shadow",
     "レジエレキ": "Regieleki",
+    "レジドラゴ": "Regidrago",
     "グラードン": "Groudon",
     "カイオーガ": "Kyogre",
     "レックウザ": "Rayquaza",
+    "ディアルガ": "Dialga",
+    "パルキア": "Palkia",
+    "ギラティナ": "Giratina",
     
-    # Common VGC Support Pokemon
-    "トルネロス": "Tornadus",
-    "ボルトロス": "Thundurus", 
+    # Legendary Birds
     "サンダー": "Zapdos",
     "ファイヤー": "Moltres",
     "フリーザー": "Articuno",
+    "ガラルサンダー": "Zapdos-Galar",
+    "ガラルファイヤー": "Moltres-Galar", 
+    "ガラルフリーザー": "Articuno-Galar",
+    "Galarian Zapdos": "Zapdos-Galar",
+    "Galarian Moltres": "Moltres-Galar",
+    "Galarian Articuno": "Articuno-Galar",
+    
+    # Common VGC Support Pokemon
     "イエッサン": "Indeedee",
+    "イエッサン♀": "Indeedee-Female",
+    "イエッサン♂": "Indeedee-Male",
+    "Indeedee-F": "Indeedee-Female",
+    "Indeedee-M": "Indeedee-Male",
     "オーロンゲ": "Grimmsnarl",
     "ドラパルト": "Dragapult",
     "ミミッキュ": "Mimikyu",
@@ -159,10 +225,73 @@ POKEMON_NAME_TRANSLATIONS = {
     "ナットレイ": "Ferrothorn",
     "バンギラス": "Tyranitar",
     
+    # Flutter Mane and Paradox Pokemon (common errors)
+    "ハバタクカミ": "Flutter Mane",
+    "Flutter-Mane": "Flutter Mane",
+    "テツノドクガ": "Iron Moth",
+    "Iron-Moth": "Iron Moth",
+    "スナノケガワ": "Sandy Shocks",
+    "Sandy-Shocks": "Sandy Shocks",
+    "アラブルタケ": "Brute Bonnet",
+    "Brute-Bonnet": "Brute Bonnet",
+    "サケブシッポ": "Roaring Moon",
+    "Roaring-Moon": "Roaring Moon",
+    "トドロクツキ": "Roaring Moon",
+    
+    # Popular Gen 9 Pokemon
+    "ドオー": "Dondozo",
+    "シャリタツ": "Tatsugiri",
+    "カラミンゴ": "Flamigo",
+    "オリーヴァ": "Arboliva", 
+    "マフィティフ": "Maschiff",
+    "マスカーニャ": "Meowscarada",
+    "ラウドボーン": "Skeledirge",
+    "ウェーニバル": "Quaquaval",
+    "ドラミドロ": "Dragalge",
+    "クエスパトラ": "Espathra",
+    
+    # Regional forms and variants
+    "アローラガラガラ": "Marowak-Alola",
+    "Alolan Marowak": "Marowak-Alola",
+    "ガラルヤドキング": "Slowking-Galar",
+    "Galarian Slowking": "Slowking-Galar",
+    "ヒスイゾロアーク": "Zoroark-Hisui",
+    "Hisuian Zoroark": "Zoroark-Hisui",
+    "ヒスイダイケンキ": "Samurott-Hisui", 
+    "Hisuian Samurott": "Samurott-Hisui",
+    
+    # Rotom forms (common in VGC)
+    "ロトム": "Rotom",
+    "ヒートロトム": "Rotom-Heat",
+    "ウォッシュロトム": "Rotom-Wash",
+    "フロストロトム": "Rotom-Frost",
+    "スピンロトム": "Rotom-Fan",
+    "カットロトム": "Rotom-Mow",
+    "Rotom-H": "Rotom-Heat",
+    "Rotom-W": "Rotom-Wash",
+    "Rotom-F": "Rotom-Frost",
+    "Rotom-S": "Rotom-Fan",
+    "Rotom-C": "Rotom-Mow",
+    
+    # Common abbreviations and nicknames
+    "Lando": "Landorus-Therian",
+    "Thundy": "Thundurus-Therian", 
+    "Torn": "Tornadus-Therian",
+    "Incin": "Incineroar",
+    "Amoon": "Amoonguss",
+    "Whimsi": "Whimsicott",
+    "Grimm": "Grimmsnarl",
+    "Pult": "Dragapult",
+    "Ferro": "Ferrothorn",
+    "TTar": "Tyranitar",
+    "Chomp": "Garchomp",
+    
     # Other common translations and variants
     "テラ": "Tera",
     "ダイマックス": "Dynamax",
     "キョダイマックス": "Gigantamax",
+    "メガ": "Mega",
+    "プリズム": "Prism",
 }
 
 # Move name translations (add more as needed)
