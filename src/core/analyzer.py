@@ -28,10 +28,10 @@ class GeminiVGCAnalyzer:
         genai.configure(api_key=self.api_key)
 
         # Configure the text model with Gemini 2.5 Flash (latest flash model)
-        self.model = genai.GenerativeModel("gemini-2.5-flash")
+        self.model = genai.GenerativeModel("gemini-2.0-flash")
         
         # Configure the vision model with 2.5 Flash for advanced image processing
-        self.vision_model = genai.GenerativeModel("gemini-2.5-flash")
+        self.vision_model = genai.GenerativeModel("gemini-2.0-flash")
 
         # Generation config for consistent output
         self.generation_config = {
