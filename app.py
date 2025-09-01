@@ -67,8 +67,6 @@ class VGCAnalysisApp:
             st.session_state.analysis_complete = False
         if "current_page" not in st.session_state:
             st.session_state.current_page = "🏠 Analysis Home"
-        if "sample_url" not in st.session_state:
-            st.session_state.sample_url = None
 
     def run(self):
         """Run the main application"""
@@ -105,19 +103,12 @@ class VGCAnalysisApp:
         # Input section
         input_type, content = render_analysis_input()
 
-        # Check if sample URL should be used
-        if st.session_state.sample_url:
-            if input_type == "url":
-                content = st.session_state.sample_url
-                st.info(f"📌 Using sample URL: {content}")
-                st.session_state.sample_url = None  # Clear after use
-
         # Analysis button and processing
         if st.button("🔍 Analyze", type="primary", use_container_width=True):
             if content and content.strip():
                 self.process_analysis(input_type, content)
             else:
-                st.error("Please provide content to analyze!")
+                st.warning("⚠️ Please provide a URL or paste article text to analyze!")
 
         # Display results if available
         if st.session_state.analysis_result:
@@ -172,17 +163,20 @@ class VGCAnalysisApp:
                             result, st.session_state.current_url
                         )
 
-                    st.success("Analysis complete! 🎉")
+                    # Success message is now handled in the team showcase
                     st.rerun()
                 else:
                     st.error(
-                        "Analysis failed. Please try again with different content."
+                        "❌ Analysis failed. Please check your content and try again, or contact support if the issue persists."
                     )
 
         except ValueError as e:
-            st.error(f"Analysis error: {str(e)}")
+            st.error(f"⚠️ **Content Issue:** {str(e)}")
+            st.info("💡 **Tip:** Try pasting the article text directly instead of using the URL.")
         except Exception as e:
-            st.error(f"Unexpected error: {str(e)}")
+            st.error("❌ **Something went wrong.** Please try again or contact support if the problem persists.")
+            with st.expander("Technical Details (for support)"):
+                st.code(f"Error: {str(e)}")
 
     def save_analysis_to_database(self, result: Dict[str, Any], url: str):
         """
@@ -235,24 +229,17 @@ class VGCAnalysisApp:
         Args:
             result: Analysis result
         """
-        st.header("🔧 Additional Options")
+        st.header("🔄 What's Next?")
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
 
         with col1:
-            if st.button("🔄 New Analysis", use_container_width=True):
+            if st.button("📝 Analyze Another Team", type="primary", use_container_width=True):
                 self.clear_analysis()
                 st.rerun()
 
         with col2:
-            if DATABASE_AVAILABLE and st.button(
-                "📚 View Saved Teams", use_container_width=True
-            ):
-                self.show_saved_teams()
-
-        with col3:
-            if st.button("ℹ️ Analysis Info", use_container_width=True):
-                self.show_analysis_info(result)
+            st.markdown("**Ready to build?** Use the export options above to get your team ready for Pokemon Showdown or competitive play!")
 
     def clear_analysis(self):
         """Clear current analysis from session state"""
@@ -441,16 +428,14 @@ class VGCAnalysisApp:
             """
         )
 
-        # Sample URLs
-        st.subheader("🌟 Sample Analysis")
+        # Getting Started
+        st.subheader("🚀 Getting Started")
         st.markdown(
             """
-            Try analyzing this sample article featuring:
-            - 🛡️ Zamazenta-Crowned
-            - ⚔️ Iron Valiant
-            - ⚡ Pawmot
-
-            **Sample URL:** `https://note.com/icho_poke/n/n8ffb464e9335`
+            **Step 1:** Find a Japanese VGC article or tournament report
+            **Step 2:** Copy the article URL or paste the text content
+            **Step 3:** Click Analyze to get instant translations and team analysis
+            **Step 4:** Export your results for team building or research
             """
         )
 

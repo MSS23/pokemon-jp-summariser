@@ -14,17 +14,24 @@ from utils import (
 
 
 def render_page_header():
-    """Render the main page header"""
+    """Render the professional main page header"""
     st.markdown(
         """
-        <div style="text-align: center; padding: 2rem 0;
+        <div style="text-align: center; padding: 3rem 0;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 10px; margin-bottom: 2rem;">
-            <h1 style="color: white; margin: 0; font-size: 2.5rem;">
-            ⚔️ Pokemon VGC Analysis</h1>
-            <p style="color: rgba(255,255,255,0.8);
-            margin: 0.5rem 0 0 0; font-size: 1.2rem;">
-                Japanese Article Analyzer & Team Showcase
+        border-radius: 20px; margin-bottom: 2rem; 
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);">
+            <h1 style="color: white; margin: 0; font-size: 3rem; font-weight: 700; 
+                      text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                🏆 VGC Team Analyzer
+            </h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 1rem 0 0 0; 
+                      font-size: 1.3rem; font-weight: 300;">
+                Instant Japanese VGC Article Translation & Team Analysis
+            </p>
+            <p style="color: rgba(255,255,255,0.7); margin: 0.5rem 0 0 0; 
+                      font-size: 1rem;">
+                ✨ Professional tool for competitive Pokemon players and analysts
             </p>
         </div>
     """,
@@ -34,28 +41,46 @@ def render_page_header():
 
 def render_analysis_input() -> tuple[str, str]:
     """
-    Render input section for article analysis
+    Render consumer-friendly input section for article analysis
 
     Returns:
         Tuple of (input_type, content) where input_type is 'url' or 'text'
     """
-    st.header("📖 Article Analysis")
+    st.header("🚀 Start Your Analysis")
+    
+    st.markdown(
+        """
+        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); 
+                    padding: 1.5rem; border-radius: 15px; border-left: 4px solid #667eea; 
+                    margin-bottom: 1.5rem;">
+            <p style="margin: 0; color: #2c3e50; font-size: 16px;">
+                <strong>📝 How it works:</strong> Paste a Japanese VGC article URL or copy the article text directly. 
+                Our AI will instantly translate and analyze the team data for you.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    input_method = st.radio("Choose input method:", ["URL", "Text"], horizontal=True)
+    input_method = st.radio(
+        "**Choose your input method:**", 
+        ["🔗 Article URL", "📄 Article Text"], 
+        horizontal=True
+    )
 
-    if input_method == "URL":
+    if input_method == "🔗 Article URL":
         url = st.text_input(
-            "Enter Japanese VGC article URL:",
-            placeholder="https://example.com/vgc-article",
-            help="Enter a URL to a Japanese Pokemon VGC article or team report",
+            "📎 **Paste your Japanese VGC article URL here:**",
+            placeholder="https://note.com/example/article",
+            help="✅ Supported: note.com, Japanese Pokemon blogs, tournament reports",
         )
         return "url", url
     else:
         text = st.text_area(
-            "Paste Japanese VGC article text:",
+            "📝 **Paste your article text here:**",
             height=200,
-            placeholder="Paste the Japanese article content here...",
-            help="Paste the text content from a Japanese Pokemon VGC article",
+            placeholder="Copy the article content and paste it here for instant analysis...",
+            help="💡 Tip: This works great if the URL method doesn't work for your article",
         )
         return "text", text
 
@@ -100,14 +125,26 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     col1, col2, col3 = st.columns([1, 2, 2])
 
     with col1:
-        # Pokemon sprite with better sizing
+        # Pokemon sprite with larger, more prominent display
         sprite_url = get_pokemon_sprite_url(name)
-        st.image(sprite_url, width=120, caption=f"{name}")
+        st.image(sprite_url, width=160, caption="")
         
-        # Role badge
+        # Pokemon name prominently displayed
         st.markdown(
             f"""
-            <div class="enhanced-role-badge {get_role_class(role)}">
+            <div class="pokemon-name-display">
+                <h3 style="text-align: center; margin: 10px 0; color: #2c3e50; font-weight: bold;">
+                    {name}
+                </h3>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # Role badge with better styling
+        st.markdown(
+            f"""
+            <div class="enhanced-role-badge {get_role_class(role)}" style="text-align: center; margin: 10px 0;">
                 🎯 {role}
             </div>
         """,
@@ -174,90 +211,178 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
 
 def render_team_showcase(analysis_result: Dict[str, Any]):
     """
-    Render the complete team showcase
+    Render the professional team showcase
 
     Args:
         analysis_result: Complete analysis result from VGC analyzer
     """
-    st.header("🎯 Team Analysis")
-
-    # Team overview
+    # Success message
+    st.success("🎉 **Analysis Complete!** Your Japanese VGC article has been successfully translated and analyzed.")
+    
+    # Team overview with professional styling
     title = analysis_result.get("title", "VGC Team Analysis")
-    st.subheader(title)
+    
+    st.markdown(
+        f"""
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 2rem; border-radius: 20px; color: white; margin: 1rem 0;
+                    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);">
+            <h2 style="margin: 0 0 0.5rem 0; font-size: 2rem; font-weight: 700;">
+                🏆 {title}
+            </h2>
+            <p style="margin: 0; font-size: 1.1rem; opacity: 0.9;">
+                Professional VGC team analysis and strategy breakdown
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    # Team metadata
+    # Key info in professional cards
     col1, col2, col3 = st.columns(3)
+    
     with col1:
-        st.metric("Regulation", analysis_result.get("regulation", "Not specified"))
+        regulation = analysis_result.get("regulation", "Not specified")
+        st.markdown(
+            f"""
+            <div style="background: white; padding: 1.5rem; border-radius: 15px; 
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;
+                        border-left: 4px solid #28a745;">
+                <h3 style="color: #28a745; margin: 0 0 0.5rem 0;">📋 Regulation</h3>
+                <p style="margin: 0; font-size: 1.2rem; font-weight: 600; color: #2c3e50;">
+                    {regulation}
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
     with col2:
-        st.metric("Pokemon Count", len(analysis_result.get("pokemon_team", [])))
+        team_size = len(analysis_result.get("pokemon_team", []))
+        st.markdown(
+            f"""
+            <div style="background: white; padding: 1.5rem; border-radius: 15px; 
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;
+                        border-left: 4px solid #667eea;">
+                <h3 style="color: #667eea; margin: 0 0 0.5rem 0;">👥 Team Size</h3>
+                <p style="margin: 0; font-size: 1.2rem; font-weight: 600; color: #2c3e50;">
+                    {team_size} Pokemon
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
     with col3:
         author = analysis_result.get("author", "Unknown")
-        st.write(f"**Author:** {author}")
+        st.markdown(
+            f"""
+            <div style="background: white; padding: 1.5rem; border-radius: 15px; 
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;
+                        border-left: 4px solid #764ba2;">
+                <h3 style="color: #764ba2; margin: 0 0 0.5rem 0;">👤 Author</h3>
+                <p style="margin: 0; font-size: 1.2rem; font-weight: 600; color: #2c3e50;">
+                    {author}
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    # Overall strategy
+    # Strategy section with better formatting
     strategy = analysis_result.get("overall_strategy", "Strategy not specified")
-    st.markdown("### 🎪 Overall Strategy")
-    st.write(strategy)
+    if strategy != "Strategy not specified":
+        st.markdown("### 💡 Team Strategy")
+        st.markdown(
+            f"""
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 15px; 
+                        border-left: 4px solid #667eea; margin: 1rem 0;">
+                <p style="margin: 0; color: #2c3e50; font-size: 16px; line-height: 1.6;">
+                    {strategy}
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    # Team synergy
-    synergy = analysis_result.get("team_synergy", "Team synergy not specified")
-    if synergy != "Team synergy not specified":
-        st.markdown("### 🔗 Team Synergy")
-        st.write(synergy)
+    # Strengths and weaknesses in professional layout
+    strengths = analysis_result.get("strengths", [])
+    weaknesses = analysis_result.get("weaknesses", [])
+    
+    if strengths or weaknesses:
+        col1, col2 = st.columns(2)
 
-    # Strengths and weaknesses
-    col1, col2 = st.columns(2)
+        with col1:
+            if strengths:
+                st.markdown("### ✅ Key Strengths")
+                for strength in strengths:
+                    st.markdown(f"• {strength}")
 
-    with col1:
-        st.markdown("### ✅ Strengths")
-        strengths = analysis_result.get("strengths", [])
-        if strengths:
-            for strength in strengths:
-                st.write(f"• {strength}")
-        else:
-            st.write("No specific strengths identified")
-
-    with col2:
-        st.markdown("### ⚠️ Weaknesses")
-        weaknesses = analysis_result.get("weaknesses", [])
-        if weaknesses:
-            for weakness in weaknesses:
-                st.write(f"• {weakness}")
-        else:
-            st.write("No specific weaknesses identified")
+        with col2:
+            if weaknesses:
+                st.markdown("### ⚠️ Considerations")
+                for weakness in weaknesses:
+                    st.markdown(f"• {weakness}")
 
     # Meta relevance
     meta_relevance = analysis_result.get("meta_relevance", "")
-    if meta_relevance:
-        st.markdown("### 📈 Meta Relevance")
-        st.write(meta_relevance)
+    if meta_relevance and meta_relevance != "Not specified":
+        st.markdown("### 📊 Meta Analysis")
+        st.markdown(
+            f"""
+            <div style="background: #e8f5e8; padding: 1.5rem; border-radius: 15px; 
+                        border-left: 4px solid #28a745; margin: 1rem 0;">
+                <p style="margin: 0; color: #2c3e50; font-size: 16px; line-height: 1.6;">
+                    {meta_relevance}
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 def render_pokemon_team(pokemon_team: List[Dict[str, Any]]):
     """
-    Render the Pokemon team with enhanced formatting
+    Render the Pokemon team with enhanced formatting and sprite grid
 
     Args:
         pokemon_team: List of Pokemon data dictionaries
     """
-    st.header("👥 Team Roster")
+    st.header("🏆 Your VGC Team")
 
     if not pokemon_team:
         st.warning("❌ No Pokemon team data available")
         return
     
-    # Team summary
-    st.markdown(
-        f"""
-        <div class="team-summary">
-            <h3>📋 Team Overview</h3>
-            <p><strong>Team Size:</strong> {len(pokemon_team)} Pokemon</p>
-            <p><strong>Composition:</strong> {', '.join([p.get('name', 'Unknown') for p in pokemon_team])}</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # Team sprite grid overview
+    st.subheader("📋 Team Overview")
+    
+    # Create sprite grid - display in rows of 3
+    rows = [pokemon_team[i:i+3] for i in range(0, len(pokemon_team), 3)]
+    
+    for row in rows:
+        cols = st.columns(3)
+        for i, pokemon in enumerate(row):
+            with cols[i]:
+                name = pokemon.get('name', 'Unknown')
+                sprite_url = get_pokemon_sprite_url(name)
+                role = pokemon.get('role', 'Unknown')
+                
+                # Create a beautiful Pokemon preview card
+                st.markdown(
+                    f"""
+                    <div class="team-preview-card">
+                        <div style="text-align: center; padding: 15px; border-radius: 12px; 
+                                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                    color: white; margin: 10px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                            <img src="{sprite_url}" width="100" style="display: block; margin: 0 auto;"/>
+                            <h4 style="margin: 10px 0 5px 0; font-size: 16px;">{name}</h4>
+                            <p style="margin: 0; font-size: 12px; opacity: 0.9;">🎯 {role}</p>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
     
     st.divider()
 
@@ -423,9 +548,6 @@ def render_sidebar():
             "Choose Page:",
             [
                 "🏠 Analysis Home",
-                "📚 Saved Teams", 
-                "🔍 Team Search",
-                "⚙️ Settings",
                 "📖 Help & Guide"
             ],
             index=0
@@ -451,46 +573,42 @@ def render_sidebar():
         
         st.divider()
         
-        # Sample Analysis
-        st.header("📋 Sample Analysis")
+        # Professional Resources
+        st.header("🔗 VGC Resources")
         st.markdown(
-            """Try analyzing this Japanese VGC article:
+            """
+            **Tournament Data:**
+            • [Pikalytics](https://www.pikalytics.com/)
+            • [VGC Stats](https://www.trainertower.com/vgc-stats/)
             
-            **Sample URL:**
-            `https://note.com/icho_poke/n/n8ffb464e9335`
-            
-            Features teams with:
-            - 🛡️ Zamazenta-Crowned
-            - ⚔️ Iron Valiant  
-            - ⚡ Pawmot
+            **Team Building:**
+            • [Pokemon Showdown](https://play.pokemonshowdown.com/)
+            • [Trainer Tower](https://www.trainertower.com/)
             """
         )
-        
-        if st.button("📝 Use Sample URL", use_container_width=True):
-            st.session_state.sample_url = "https://note.com/icho_poke/n/n8ffb464e9335"
-            st.success("Sample URL loaded! Paste it in the analysis section.")
         
         st.divider()
 
         # About section
-        st.header("ℹ️ About VGC Analyzer")
+        st.header("🎯 About This Tool")
         st.markdown(
             """
-            **Advanced Pokemon VGC Analysis Tool**
+            **Professional VGC Analysis Platform**
             
-            ✨ **Features:**
-            - Japanese article translation
-            - EV spread optimization analysis
-            - Team synergy evaluation
-            - Meta relevance assessment
-            - Export to Pokepaste format
+            **What We Provide:**
+            ✨ Instant Japanese article translation
+            🏆 Professional team analysis 
+            📊 EV spread breakdowns
+            📋 Export ready formats
             
-            🎯 **Perfect for:**
-            - Tournament preparation
-            - Team building research
-            - Meta analysis
-            - Competitive study
-        """
+            **Perfect For:**
+            • Competitive VGC players
+            • Team analysts & researchers
+            • Content creators
+            • Tournament preparation
+            
+            *Trusted by the VGC community worldwide*
+            """
         )
 
         # Links
@@ -509,98 +627,36 @@ def render_sidebar():
 
 
 def render_image_analysis_section(analysis_result: Dict[str, Any]):
-    """Render image analysis results section"""
+    """Render consumer-friendly image analysis insights"""
     image_analysis = analysis_result.get("image_analysis")
     
-    if not image_analysis:
+    if not image_analysis or not image_analysis.get("success", False):
         return
         
-    st.header("🖼️ Image Analysis Results")
-    
-    if not image_analysis.get("success", False):
-        if "error" in image_analysis:
-            st.error(f"Image analysis failed: {image_analysis['error']}")
-        else:
-            st.info("No image analysis performed for this article.")
-        return
-    
-    # Display image statistics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("Images Found", image_analysis.get("images_found", 0))
-    with col2:
-        st.metric("VGC Relevant", image_analysis.get("vgc_images", 0))
-    with col3:
-        st.metric("Analyzed", image_analysis.get("analyzed_images", 0))
-    with col4:
-        # Count total EV spreads found
-        total_ev_spreads = 0
-        for img_analysis in image_analysis.get("image_analyses", []):
-            total_ev_spreads += len(img_analysis.get("ev_spreads", []))
-        st.metric("EV Spreads Found", total_ev_spreads)
-    
-    # Display detailed analysis for each image
+    # Count total EV spreads found across all images
+    total_ev_spreads = 0
     image_analyses = image_analysis.get("image_analyses", [])
     
-    if image_analyses:
-        st.subheader("📊 Detailed Image Analysis")
+    for img_analysis in image_analyses:
+        total_ev_spreads += len(img_analysis.get("ev_spreads", []))
+    
+    # Only show if we found additional EV data from images
+    if total_ev_spreads > 0:
+        st.success(f"🎯 Enhanced Analysis: Found {total_ev_spreads} additional EV spread{'s' if total_ev_spreads != 1 else ''} from team images!")
         
-        for i, img_analysis in enumerate(image_analyses):
-            with st.expander(f"🖼️ Image {i+1} Analysis", expanded=i==0):
-                col1, col2 = st.columns([2, 1])
-                
-                with col1:
-                    st.write(f"**Image URL:** {img_analysis.get('image_url', 'Unknown')}")
-                    st.write(f"**Size:** {img_analysis.get('image_size', 'Unknown')}")
-                    st.write(f"**File Size:** {img_analysis.get('file_size', 0):,} bytes")
-                    
-                    if img_analysis.get('is_note_com_asset'):
-                        st.success("✅ High Priority: Note.com Asset")
-                
-                with col2:
-                    st.write("**Quality Indicators:**")
-                    quality_score = 0
-                    if img_analysis.get('is_note_com_asset'):
-                        quality_score += 3
-                        st.write("🔥 Note.com Asset (+3)")
-                    
-                    size = img_analysis.get('image_size', (0, 0))
-                    if len(size) == 2 and size[0] > 800 and size[1] > 600:
-                        quality_score += 2
-                        st.write("📏 Large Image (+2)")
-                    
-                    file_size = img_analysis.get('file_size', 0)
-                    if file_size > 50000:
-                        quality_score += 1
-                        st.write("💾 Substantial Data (+1)")
-                    
-                    st.metric("Quality Score", f"{quality_score}/6")
-                
-                # Show EV spreads found
+        # Show the EV spreads in a clean format
+        with st.expander("📊 View Additional EV Spreads", expanded=False):
+            for i, img_analysis in enumerate(image_analyses):
                 ev_spreads = img_analysis.get("ev_spreads", [])
                 if ev_spreads:
-                    st.write("**🎯 EV Spreads Detected:**")
+                    st.write(f"**From Image {i+1}:**")
                     for j, ev_spread in enumerate(ev_spreads):
-                        confidence = ev_spread.get("confidence", "unknown")
-                        confidence_color = "🟢" if confidence == "high" else "🟡" if confidence == "medium" else "🔴"
-                        
-                        st.code(f"Spread {j+1}: {ev_spread.get('format', 'Unknown')} (Total: {ev_spread.get('total', 'Unknown')}) {confidence_color}")
-                
-                # Show analysis text (truncated for UI)
-                analysis_text = img_analysis.get("analysis", "No analysis available")
-                if len(analysis_text) > 500:
-                    st.write("**🔍 Vision Analysis Summary:**")
-                    st.write(analysis_text[:500] + "...")
-                    
-                    with st.expander("View Full Analysis"):
-                        st.write(analysis_text)
-                else:
-                    st.write("**🔍 Vision Analysis:**")
-                    st.write(analysis_text)
-    
+                        spread_format = ev_spread.get('format', 'Unknown')
+                        st.code(f"{spread_format} (Total: {ev_spread.get('total', 'Unknown')} EVs)")
+                    st.divider()
     else:
-        st.info("No detailed image analysis results available.")
+        # Just show a subtle indicator that image analysis was performed
+        st.info("🔍 Team images analyzed for additional details")
 
 
 def apply_custom_css():
@@ -611,48 +667,83 @@ def apply_custom_css():
     /* Main container styling */
     .main {
         padding: 1rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     }
     
-    /* Button styling */
+    /* Professional header styling */
+    .stApp > header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Enhanced button styling */
     .stButton > button {
         width: 100%;
-        border-radius: 5px;
+        border-radius: 8px;
         border: none;
-        background: linear-gradient(45deg, #667eea, #764ba2);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        font-weight: bold;
+        font-weight: 600;
+        padding: 0.6rem 1.2rem;
+        transition: all 0.3s ease;
+        font-size: 14px;
     }
     
     .stButton > button:hover {
-        background: linear-gradient(45deg, #764ba2, #667eea);
-        transform: translateY(-1px);
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Primary button styling */
+    .stButton > button[data-testid="primary-button"] {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        font-weight: 700;
+    }
+    
+    .stButton > button[data-testid="primary-button"]:hover {
+        background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
     }
     
     /* Enhanced Pokemon card styling */
     .enhanced-pokemon-card {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 15px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        border: 2px solid #dee2e6;
-        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 1.5rem 0;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
     }
     
     .enhanced-pokemon-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+        border-color: rgba(102, 126, 234, 0.4);
+    }
+    
+    .enhanced-pokemon-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
     
     .card-header {
         display: flex;
         align-items: center;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1rem;
-        border-radius: 10px;
+        padding: 1.5rem;
+        border-radius: 15px;
         color: white;
-        margin: -1.5rem -1.5rem 1rem -1.5rem;
+        margin: -2rem -2rem 1.5rem -2rem;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
     
     .pokemon-number {
