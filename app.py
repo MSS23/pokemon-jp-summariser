@@ -64,25 +64,52 @@ class VGCAnalysisApp:
             st.session_state.current_url = None
         if "analysis_complete" not in st.session_state:
             st.session_state.analysis_complete = False
+        if "current_page" not in st.session_state:
+            st.session_state.current_page = "🏠 Analysis Home"
+        if "sample_url" not in st.session_state:
+            st.session_state.sample_url = None
 
     def run(self):
         """Run the main application"""
         # Apply custom styling
         apply_custom_css()
 
-        # Render sidebar
-        render_sidebar()
+        # Render sidebar and get current page
+        current_page = render_sidebar()
+        st.session_state.current_page = current_page
 
-        # Main content
-        self.render_main_content()
+        # Route to appropriate page
+        self.route_page(current_page)
 
-    def render_main_content(self):
-        """Render the main application content"""
+    def route_page(self, page: str):
+        """Route to the appropriate page based on selection"""
+        if page == "🏠 Analysis Home":
+            self.render_analysis_page()
+        elif page == "📚 Saved Teams":
+            self.render_saved_teams_page()
+        elif page == "🔍 Team Search":
+            self.render_team_search_page()
+        elif page == "⚙️ Settings":
+            self.render_settings_page()
+        elif page == "📖 Help & Guide":
+            self.render_help_page()
+        else:
+            self.render_analysis_page()
+            
+    def render_analysis_page(self):
+        """Render the main analysis page"""
         # Page header
         render_page_header()
 
         # Input section
         input_type, content = render_analysis_input()
+        
+        # Check if sample URL should be used
+        if st.session_state.sample_url:
+            if input_type == "url":
+                content = st.session_state.sample_url
+                st.info(f"📎 Using sample URL: {content}")
+                st.session_state.sample_url = None  # Clear after use
 
         # Analysis button and processing
         if st.button("🔍 Analyze", type="primary", use_container_width=True):
@@ -145,7 +172,7 @@ class VGCAnalysisApp:
                         )
 
                     st.success("Analysis complete! 🎉")
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.error(
                         "Analysis failed. Please try again with different content."
@@ -209,7 +236,7 @@ class VGCAnalysisApp:
         with col1:
             if st.button("🔄 New Analysis", use_container_width=True):
                 self.clear_analysis()
-                st.experimental_rerun()
+                st.rerun()
 
         with col2:
             if DATABASE_AVAILABLE and st.button(
@@ -278,6 +305,171 @@ class VGCAnalysisApp:
         translation_notes = result.get("translation_notes", "")
         if translation_notes:
             st.write(f"**Translation Notes:** {translation_notes}")
+
+
+    def render_saved_teams_page(self):
+        """Render the saved teams page"""
+        st.header(\"📚 Saved Teams\")
+        
+        if not DATABASE_AVAILABLE:
+            st.warning(\"\u26a0\ufe0f Database not available. Teams cannot be saved or retrieved.\")
+            st.info(\"\ud83d\udca1 Teams are still cached during your current session.\")
+            return
+            
+        try:
+            teams = TeamCRUD.get_recent_teams(limit=20)
+            if teams:
+                st.success(f\"Found {len(teams)} saved teams\")
+                
+                for i, team in enumerate(teams):
+                    with st.expander(f\"\ud83c\udfc6 {team.name} - {team.created_at.strftime('%Y-%m-%d %H:%M')}\"):
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.metric(\"Regulation\", team.regulation or \"Not specified\")
+                            st.metric(\"Rating\", f\"{team.rating:.1f}/5.0\" if team.rating else \"Not rated\")
+                            
+                        with col2:
+                            if team.tournament_result:
+                                st.write(f\"**Result:** {team.tournament_result}\")
+                            if team.author:
+                                st.write(f\"**Author:** {team.author}\")
+                                
+                        with col3:
+                            if team.article_url:
+                                st.write(f\"**[View Original Article]({team.article_url})**\")
+                                
+                        if team.strategy_summary:
+                            st.write(f\"**Strategy:** {team.strategy_summary}\")
+                            
+                        # Show Pokemon names
+                        pokemon_names = [p.name for p in team.pokemon]
+                        if pokemon_names:
+                            st.write(f\"**Team:** {', '.join(pokemon_names)}\")
+            else:
+                st.info(\"\ud83d\udcdd No saved teams found. Analyze some articles to build your collection!\")
+                
+        except Exception as e:
+            st.error(f\"Error loading saved teams: {e}\")
+            
+    def render_team_search_page(self):
+        \"\"\"Render the team search page\"\"\"
+        st.header(\"\ud83d\udd0d Team Search\")
+        st.info(\"\ud83d\udea7 Team search functionality coming soon!\")
+        
+        # Placeholder for future search functionality
+        st.markdown(
+            \"\"\"
+            **Planned Features:**
+            - Search by Pokemon name
+            - Filter by regulation (A, B, C)
+            - Search by author
+            - Filter by tournament results
+            - Advanced team archetype filtering
+            \"\"\"
+        )
+        
+    def render_settings_page(self):
+        \"\"\"Render the settings page\"\"\"
+        st.header(\"\u2699\ufe0f Settings\")
+        
+        # Cache settings
+        st.subheader(\"\ud83d\udcbe Cache Management\")
+        
+        from cache_manager import cache
+        cache_stats = cache.get_stats()
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric(\"Total Cache Files\", cache_stats['total_files'])
+        with col2:
+            st.metric(\"Valid Files\", cache_stats['valid_files'])
+        with col3:
+            st.metric(\"Cache Size (MB)\", cache_stats['total_size_mb'])
+            
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button(\"\ud83d\uddd1\ufe0f Clear All Cache\", use_container_width=True):
+                cache.clear_all()
+                st.success(\"Cache cleared successfully!\")
+                st.rerun()
+                
+        with col2:
+            if st.button(\"\ud83e\uddf9 Clear Expired Only\", use_container_width=True):
+                cleared = cache.clear_expired()
+                st.success(f\"Cleared {cleared} expired files!\")
+                st.rerun()
+        
+        # Display settings
+        st.subheader(\"\ud83c\udfa8 Display Preferences\")
+        st.info(\"\ud83d\udea7 Display preferences coming soon!\")
+        
+    def render_help_page(self):
+        \"\"\"Render the help and guide page\"\"\"
+        st.header(\"\ud83d\udcd6 Help & User Guide\")
+        
+        # Quick start guide
+        st.subheader(\"\ud83d\ude80 Quick Start\")
+        st.markdown(
+            \"\"\"
+            1. **\ud83d\udcdd Input**: Paste a Japanese VGC article URL or text
+            2. **\ud83d\udd0d Analyze**: Click the Analyze button to process
+            3. **\ud83d\udc40 Review**: Examine the translated team and analysis
+            4. **\ud83d\udcbe Export**: Download translations or pokepaste format
+            \"\"\"
+        )
+        
+        # Supported formats
+        st.subheader(\"\ud83d\udcc4 Supported Article Formats\")
+        st.markdown(
+            \"\"\"
+            **\u2705 Supported Sites:**
+            - note.com articles
+            - Most Japanese Pokemon blogs
+            - Tournament reports with team lists
+            
+            **\ud83d\udd0d What We Extract:**
+            - Pokemon names, abilities, items
+            - Move sets and EV spreads  
+            - Strategic explanations
+            - Tournament context
+            \"\"\"
+        )
+        
+        # Sample URLs
+        st.subheader(\"\ud83c\udf1f Sample Analysis\")
+        st.markdown(
+            \"\"\"
+            Try analyzing this sample article featuring:
+            - \ud83d\udee1\ufe0f Zamazenta-Crowned
+            - \u2694\ufe0f Iron Valiant
+            - \u26a1 Pawmot
+            
+            **Sample URL:** `https://note.com/icho_poke/n/n8ffb464e9335`
+            \"\"\"
+        )
+        
+        # Troubleshooting
+        st.subheader(\"\ud83d\udd27 Troubleshooting\")
+        with st.expander(\"Common Issues\"):
+            st.markdown(
+                \"\"\"
+                **\"Invalid URL\" Error:**
+                - Ensure the URL is accessible
+                - Check for typos in the URL
+                - Some sites may block automated access
+                
+                **\"No Content Found\" Error:**
+                - Article may be too short
+                - Content might not contain Pokemon team data
+                - Try pasting the text directly instead
+                
+                **Slow Analysis:**
+                - Large articles take longer to process
+                - First analysis may take longer (caching helps)
+                - Check your internet connection
+                \"\"\"
+            )
 
 
 def main():

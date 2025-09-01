@@ -62,66 +62,114 @@ def render_analysis_input() -> tuple[str, str]:
 
 def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     """
-    Render individual Pokemon card
+    Render individual Pokemon card with enhanced formatting
 
     Args:
         pokemon: Pokemon data dictionary
         index: Pokemon position in team (0-5)
     """
-    with st.container():
-        col1, col2 = st.columns([1, 2])
-
-        with col1:
-            # Pokemon sprite
-            sprite_url = get_pokemon_sprite_url(pokemon.get("name", "Unknown"))
-            st.image(sprite_url, width=150)
-
-        with col2:
-            # Pokemon details
-            name = pokemon.get("name", "Unknown Pokemon")
-            tera_type = pokemon.get("tera_type", "Unknown")
-
-            st.markdown(
-                f"""
-                <div class="pokemon-header">
-                    <h3 style="margin: 0; color: #2c3e50;">{name}</h3>
-                    <span class="tera-type {get_pokemon_type_class(tera_type)}">
+    name = pokemon.get("name", "Unknown Pokemon")
+    tera_type = pokemon.get("tera_type", "Unknown")
+    ability = pokemon.get('ability', 'Not specified')
+    item = pokemon.get('held_item', 'Not specified')
+    nature = pokemon.get('nature', 'Not specified')
+    role = pokemon.get("role", "Not specified")
+    moves = pokemon.get("moves", [])
+    evs = pokemon.get("evs", "Not specified")
+    ev_explanation = pokemon.get("ev_explanation", "No explanation provided")
+    
+    # Enhanced card styling
+    st.markdown(
+        f"""
+        <div class="enhanced-pokemon-card">
+            <div class="card-header">
+                <div class="pokemon-number">#{index + 1}</div>
+                <div class="pokemon-title">
+                    <h2>{name}</h2>
+                    <span class="tera-badge {get_pokemon_type_class(tera_type)}">
                         ⚡ {tera_type} Tera
                     </span>
                 </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-            # Basic info
-            st.write(f"**Ability:** {pokemon.get('ability', 'Not specified')}")
-            st.write(f"**Item:** {pokemon.get('held_item', 'Not specified')}")
-            st.write(f"**Nature:** {pokemon.get('nature', 'Not specified')}")
+    # Main content in columns
+    col1, col2, col3 = st.columns([1, 2, 2])
 
-            # Role
-            role = pokemon.get("role", "Not specified")
-            st.markdown(
-                f"""
-                <div class="role-badge {get_role_class(role)}">
-                    🎯 {role}
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
+    with col1:
+        # Pokemon sprite with better sizing
+        sprite_url = get_pokemon_sprite_url(name)
+        st.image(sprite_url, width=120, caption=f"{name}")
+        
+        # Role badge
+        st.markdown(
+            f"""
+            <div class="enhanced-role-badge {get_role_class(role)}">
+                🎯 {role}
+            </div>
+        """,
+            unsafe_allow_html=True,
+        )
 
-    # Moves section
-    moves = pokemon.get("moves", [])
-    st.markdown("**Moves:**")
-    moves_html = format_moves_html(moves)
-    st.markdown(moves_html, unsafe_allow_html=True)
+    with col2:
+        # Core stats in a clean format
+        st.markdown("**⚔️ Core Information**")
+        
+        info_data = {
+            "🧬 Ability": ability,
+            "🎒 Held Item": item, 
+            "🌟 Nature": nature
+        }
+        
+        for label, value in info_data.items():
+            if value != "Not specified":
+                st.markdown(f"**{label}:** {value}")
+            else:
+                st.markdown(f"**{label}:** *{value}*")
+        
+        # Moves in a better format
+        st.markdown("**🎮 Moveset**")
+        if moves and any(move != "Not specified" for move in moves):
+            for i, move in enumerate(moves[:4], 1):
+                if move and move != "Not specified":
+                    st.markdown(f"**{i}.** {move}")
+                else:
+                    st.markdown(f"**{i}.** *Not specified*")
+        else:
+            st.markdown("*Moves not specified*")
 
-    # EV spread and explanation
-    evs = pokemon.get("evs", "Not specified")
-    ev_explanation = pokemon.get("ev_explanation", "No explanation provided")
-
-    with st.expander("📊 EV Details", expanded=False):
-        st.write(f"**EV Spread:** {evs}")
-        st.write(f"**Explanation:** {ev_explanation}")
+    with col3:
+        # EV spread with visual representation
+        st.markdown("**📊 EV Investment**")
+        
+        if evs != "Not specified":
+            st.code(evs, language=None)
+            
+            # Parse and visualize EV spread if possible
+            if "/" in str(evs):
+                try:
+                    ev_values = [int(x.strip()) for x in str(evs).split("/")]
+                    if len(ev_values) == 6:
+                        ev_labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
+                        for label, value in zip(ev_labels, ev_values):
+                            if value > 0:
+                                st.markdown(f"**{label}:** {value}")
+                except:
+                    pass
+        else:
+            st.markdown("*EV spread not specified*")
+        
+        # EV explanation in expander
+        with st.expander("💡 EV Strategy", expanded=False):
+            if ev_explanation != "No explanation provided":
+                st.write(ev_explanation)
+            else:
+                st.write("*No strategic explanation provided*")
+    
+    st.divider()
 
 
 def render_team_showcase(analysis_result: Dict[str, Any]):
@@ -188,28 +236,44 @@ def render_team_showcase(analysis_result: Dict[str, Any]):
 
 def render_pokemon_team(pokemon_team: List[Dict[str, Any]]):
     """
-    Render the Pokemon team grid
+    Render the Pokemon team with enhanced formatting
 
     Args:
         pokemon_team: List of Pokemon data dictionaries
     """
-    st.header("👥 Team Members")
+    st.header("👥 Team Roster")
 
     if not pokemon_team:
-        st.warning("No Pokemon team data available")
+        st.warning("❌ No Pokemon team data available")
         return
+    
+    # Team summary
+    st.markdown(
+        f"""
+        <div class="team-summary">
+            <h3>📋 Team Overview</h3>
+            <p><strong>Team Size:</strong> {len(pokemon_team)} Pokemon</p>
+            <p><strong>Composition:</strong> {', '.join([p.get('name', 'Unknown') for p in pokemon_team])}</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    st.divider()
 
-    # Render Pokemon in a grid
-    for i in range(0, len(pokemon_team), 2):
-        cols = st.columns(2)
-
-        with cols[0]:
-            if i < len(pokemon_team):
-                render_pokemon_card(pokemon_team[i], i)
-
-        with cols[1]:
-            if i + 1 < len(pokemon_team):
-                render_pokemon_card(pokemon_team[i + 1], i + 1)
+    # Render each Pokemon individually with full width
+    for i, pokemon in enumerate(pokemon_team):
+        render_pokemon_card(pokemon, i)
+        
+    # Team analysis summary
+    st.markdown(
+        """
+        <div class="team-footer">
+            <p><em>💡 Use the EV Strategy expanders above to understand the reasoning behind each Pokemon's stat distribution.</em></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 def render_export_section(analysis_result: Dict[str, Any]):
@@ -349,42 +413,99 @@ def create_translation_export(analysis_result: Dict[str, Any]) -> str:
 
 
 def render_sidebar():
-    """Render sidebar with additional tools and information"""
+    """Render sidebar with navigation and tools"""
     with st.sidebar:
-        st.header("🛠️ Tools")
-
-        # Cache management
-        st.subheader("Cache Management")
-        if st.button("Clear Cache"):
-            from cache_manager import cache
-
-            cache.clear_all()
-            st.success("Cache cleared!")
+        # Navigation
+        st.header("📊 Navigation")
+        
+        # Page selection
+        page = st.selectbox(
+            "Choose Page:",
+            [
+                "🏠 Analysis Home",
+                "📚 Saved Teams", 
+                "🔍 Team Search",
+                "⚙️ Settings",
+                "📖 Help & Guide"
+            ],
+            index=0
+        )
+        
+        st.divider()
+        
+        # Quick Actions
+        st.header("⚡ Quick Actions")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🆕 New Analysis", use_container_width=True):
+                st.session_state.analysis_result = None
+                st.session_state.current_url = None
+                st.experimental_rerun()
+        
+        with col2:
+            if st.button("🗑️ Clear Cache", use_container_width=True):
+                from cache_manager import cache
+                cache.clear_all()
+                st.success("Cache cleared!")
+        
+        st.divider()
+        
+        # Sample Analysis
+        st.header("📋 Sample Analysis")
+        st.markdown(
+            """Try analyzing this Japanese VGC article:
+            
+            **Sample URL:**
+            `https://note.com/icho_poke/n/n8ffb464e9335`
+            
+            Features teams with:
+            - 🛡️ Zamazenta-Crowned
+            - ⚔️ Iron Valiant  
+            - ⚡ Pawmot
+            """
+        )
+        
+        if st.button("📝 Use Sample URL", use_container_width=True):
+            st.session_state.sample_url = "https://note.com/icho_poke/n/n8ffb464e9335"
+            st.success("Sample URL loaded! Paste it in the analysis section.")
+        
+        st.divider()
 
         # About section
-        st.subheader("ℹ️ About")
+        st.header("ℹ️ About VGC Analyzer")
         st.markdown(
             """
-            This tool analyzes Japanese Pokemon VGC articles and provides:
+            **Advanced Pokemon VGC Analysis Tool**
             
-            - **Team translations** with English names
-            - **EV spread analysis** with strategic explanations  
-            - **Team synergy** insights
-            - **Export options** for sharing
+            ✨ **Features:**
+            - Japanese article translation
+            - EV spread optimization analysis
+            - Team synergy evaluation
+            - Meta relevance assessment
+            - Export to Pokepaste format
             
-            Perfect for studying Japanese tournament reports and team builds!
+            🎯 **Perfect for:**
+            - Tournament preparation
+            - Team building research
+            - Meta analysis
+            - Competitive study
         """
         )
 
         # Links
-        st.subheader("🔗 Useful Links")
+        st.header("🔗 VGC Resources")
         st.markdown(
             """
             - [Pokemon Showdown](https://pokemonshowdown.com/)
-            - [Pikalytics](https://pikalytics.com/)
+            - [Pikalytics VGC Stats](https://pikalytics.com/)
+            - [Victory Road](https://victoryroadvgc.com/)
+            - [Trainer Tower](https://www.trainertower.com/)
             - [VGC Stats](https://www.trainertower.com/vgc-stats/)
         """
         )
+        
+        return page
 
 
 def apply_custom_css():
@@ -412,24 +533,85 @@ def apply_custom_css():
         transform: translateY(-1px);
     }
     
-    /* Pokemon card styling */
-    .pokemon-card {
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    /* Enhanced Pokemon card styling */
+    .enhanced-pokemon-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border: 2px solid #dee2e6;
+        transition: all 0.3s ease;
     }
     
-    .pokemon-header {
+    .enhanced-pokemon-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }
+    
+    .card-header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.5rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1rem;
+        border-radius: 10px;
+        color: white;
+        margin: -1.5rem -1.5rem 1rem -1.5rem;
     }
     
-    /* Type badges */
+    .pokemon-number {
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin-right: 1rem;
+    }
+    
+    .pokemon-title h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    
+    .team-summary {
+        background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+        border-left: 4px solid #667eea;
+    }
+    
+    .team-summary h3 {
+        color: #2c3e50;
+        margin-top: 0;
+    }
+    
+    .team-footer {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+        margin-top: 2rem;
+        border: 1px solid #dee2e6;
+    }
+    
+    /* Enhanced Type and Tera badges */
+    .tera-badge {
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: bold;
+        color: white;
+        margin-left: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
     .tera-type {
         padding: 0.2rem 0.5rem;
         border-radius: 15px;
@@ -457,7 +639,25 @@ def apply_custom_css():
     .type-ice { background: #98D8D8; }
     .type-normal { background: #A8A878; }
     
-    /* Role badges */
+    /* Enhanced Role badges */
+    .enhanced-role-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+        display: inline-block;
+        text-align: center;
+        width: 100%;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        transition: all 0.2s ease;
+    }
+    
+    .enhanced-role-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
     .role-badge {
         padding: 0.3rem 0.6rem;
         border-radius: 20px;
