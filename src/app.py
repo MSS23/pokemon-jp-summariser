@@ -7,9 +7,9 @@ import streamlit as st
 from typing import Dict, Any, Optional
 
 # Import our modular components
-from config import Config
-from vgc_analyzer import GeminiVGCAnalyzer
-from ui_components import (
+from .utils.config import Config
+from .core.analyzer import GeminiVGCAnalyzer
+from .ui.components import (
     render_page_header,
     render_analysis_input,
     render_article_summary,
@@ -23,8 +23,8 @@ from ui_components import (
 
 # Import database components if available
 try:
-    from database.models import init_database
-    from database.crud import TeamCRUD
+    from .database.models import init_database
+    from .database.crud import TeamCRUD
 
     DATABASE_AVAILABLE = True
 except ImportError:
@@ -124,8 +124,8 @@ class VGCAnalysisApp:
         Process the analysis request
 
         Args:
-            input_type: 'url', 'text', or 'screenshot'
-            content: URL, text content, or screenshot data to analyze
+            input_type: 'url' or 'text'
+            content: URL or text content to analyze
         """
         try:
             with st.spinner("Analyzing content... This may take a moment."):
@@ -154,28 +154,6 @@ class VGCAnalysisApp:
                     result = self.analyzer.analyze_article_with_images(
                         analysis_content, st.session_state.current_url
                     )
-                
-                elif input_type == "screenshot":
-                    # Handle screenshot analysis
-                    if not content or not isinstance(content, dict):
-                        st.error("No screenshot uploaded or invalid screenshot data.")
-                        return
-                    
-                    # Extract screenshot data
-                    image_data = content.get("image_data")
-                    image_format = content.get("format", "png")
-                    filename = content.get("filename", "screenshot.png")
-                    
-                    if not image_data:
-                        st.error("No image data found in uploaded screenshot.")
-                        return
-                    
-                    # Analyze screenshot directly
-                    result = self.analyzer.analyze_screenshot(
-                        image_data, image_format, filename
-                    )
-                    
-                    st.session_state.current_url = None
                 
                 else:  # text input
                     analysis_content = content

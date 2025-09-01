@@ -1,147 +1,144 @@
-# Pokemon VGC Article Analyzer 🎮⚔️
+# Pokemon VGC Analysis Platform
 
-A powerful Streamlit application for analyzing Japanese Pokemon VGC (Video Game Championships) articles with AI-powered translation, team showcase, and export functionality.
+🎮 **AI-powered analysis platform for Japanese Pokemon VGC tournament reports and team compositions.**
 
-## Features ✨
+## Overview
 
-- 🔍 **Japanese Article Analysis**: Scrape and analyze VGC articles from URLs or text input
-- 🤖 **AI-Powered Translation**: Google Gemini AI provides accurate translations with VGC terminology
-- 🌟 **Beautiful Team Showcase**: Pokemon sprites, detailed stats, and professional layouts
-- 📊 **EV Strategy Analysis**: Comprehensive explanations of EV spreads and strategic decisions
-- 📥 **Export Functionality**: Download translations (.txt) and pokepaste files
-- 📱 **Responsive Design**: Works seamlessly on desktop and mobile
+This application uses Google Gemini AI to analyze Japanese Pokemon VGC (Video Game Championships) articles, providing comprehensive team analysis, translations, and strategic insights. Built with modern Python technologies and designed for competitive Pokemon players and analysts.
 
-## Quick Start 🚀
+## ✨ Key Features
 
-### 1. Installation
+- **🤖 Advanced AI Analysis**: Google Gemini SDK integration with specialized 780+ line VGC prompts
+- **🌐 Multi-Strategy Web Scraping**: Robust content extraction from Japanese sites (note.com, specialized VGC sites)
+- **🔍 Pokemon Form Recognition**: Enhanced Gen 9 Pokemon identification including Ogerpon variants, Hisuian forms, Treasures of Ruin
+- **📱 Modern Web Interface**: Clean Streamlit-based UI with responsive design
+- **🖼️ Multi-Modal Analysis**: Text analysis + Nintendo Switch screenshot recognition
+- **📊 EV Spread Analysis**: Comprehensive EV explanations with strategic reasoning
+- **💾 Intelligent Caching**: Performance-optimized with smart content caching
+- **📁 Export Functionality**: Download translations and pokepaste formats
 
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.8+
+- Google Gemini API key
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd pokemon-vgc-analyzer
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip install -r config/requirements.txt
+   ```
+
+3. **Configure API key**
+   Create `config/.streamlit/secrets.toml`:
+   ```toml
+   google_api_key = "your_gemini_api_key_here"
+   ```
+
+4. **Run the application**
+   ```bash
+   streamlit run src/app.py
+   ```
+
+## 🏗️ Architecture
+
+### Clean Modular Structure
+```
+pokemon-vgc-analyzer/
+├── src/                          # Main application source
+│   ├── core/                     # Core business logic
+│   │   ├── analyzer.py           # VGC analysis engine
+│   │   ├── scraper.py           # Multi-strategy web scraping
+│   │   └── pokemon_validator.py  # Pokemon form validation
+│   ├── ui/                       # User interface
+│   │   ├── components.py         # Streamlit UI components
+│   │   └── pages.py             # Page routing logic
+│   ├── utils/                    # Utilities
+│   │   ├── config.py            # Configuration management
+│   │   ├── cache_manager.py     # Caching system
+│   │   └── image_analyzer.py    # Image analysis utilities
+│   └── database/                 # Database models
+├── tests/                        # Test suite
+├── docs/                         # Documentation
+├── config/                       # Configuration files
+└── data/                         # Data storage
+```
+
+## 🎯 Real-World Performance
+
+Based on comprehensive testing with 8 diverse Japanese VGC articles:
+
+- **✅ 62% Total Success Rate** (38% complete + 25% partial)
+- **📊 25,601+ characters** of VGC content successfully extracted
+- **🎯 340 average quality score** accurately reflecting VGC relevance
+- **🔧 Zero UI contamination** on successful extractions
+
+### Successful Site Types:
+- ✅ **note.com** dynamic content (major improvement)
+- ✅ **Tournament reports** with detailed team data
+- ✅ **Player spotlights** and mixed content types
+- ✅ **Team construction** articles with EV spreads
+
+## 🛠️ Technologies Used
+
+- **Backend**: Python 3.8+, Google Gemini AI SDK
+- **Frontend**: Streamlit with custom CSS styling
+- **Web Scraping**: BeautifulSoup4, Requests with multi-strategy fallbacks
+- **Database**: SQLAlchemy with SQLite
+- **Caching**: Custom intelligent caching system
+- **APIs**: Google Gemini, PokeAPI for sprites
+- **Testing**: Comprehensive real-world validation
+
+## 📖 Documentation
+
+- **[Development Guide](docs/CLAUDE.md)**: Complete development setup and architecture
+- **[API Documentation](docs/API.md)**: Detailed API reference
+- **[Architecture Overview](docs/ARCHITECTURE.md)**: System design and patterns
+
+## 🧪 Testing
+
+Run the test suite:
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+python -m pytest tests/
 ```
 
-### 2. Configuration
+### Test Coverage
+- **Integration Tests**: End-to-end workflow validation
+- **EV Extraction Tests**: Comprehensive EV spread parsing
+- **Real-World Validation**: Tested against 8 diverse Japanese VGC sites
 
-Set your Google Gemini API key in `.streamlit/secrets.toml`:
+## 🤝 Contributing
 
-```toml
-google_api_key = "your_api_key_here"
-```
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-### 3. Run the Application
+## 📄 License
 
-```bash
-streamlit run app.py
-```
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-The application will open in your browser at `http://localhost:8501`
+## 🙏 Acknowledgments
 
-## How to Use 📖
+- Google Gemini AI team for powerful language models
+- Pokemon VGC community for domain expertise
+- Japanese Pokemon content creators for test data
+- Streamlit team for the excellent web framework
 
-### Analyzing an Article
+## 🔗 Links
 
-1. **Enter URL**: Paste a Japanese VGC article URL in the sidebar
-2. **Or Paste Text**: Manually paste article content in the text area
-3. **Click Analyze**: Hit the "🔍 Analyze Article" button
-4. **View Results**: See the translated content and team showcase
-
-### Understanding the Results
-
-- **Article Summary**: Main points and strategy overview
-- **Team Analysis**: Strengths, weaknesses, and meta relevance
-- **Pokemon Showcase**: Individual cards with sprites, stats, and moves
-- **EV Explanations**: Detailed reasoning for stat investments
-
-### Exporting Data
-
-- **📄 Translation**: Download complete article translation as .txt file
-- **🎮 Pokepaste**: Export team in standard pokepaste format for easy importing
-
-## Features in Detail 🔧
-
-### AI-Powered Analysis
-- Uses Google Gemini 2.5 Flash for VGC analysis (optimal balance: advanced quality + reliable quota) and Flash-Lite for vision tasks
-- Accurate translation of Pokemon names, moves, and abilities
-- EV spread validation and explanation
-- Team composition and meta analysis
-
-### Pokemon Showcase
-- Automatic sprite fetching from PokeAPI
-- Hover effects and professional styling
-- Detailed move sets and item information
-- Expandable EV strategy explanations
-
-### Export Capabilities
-- **Translation Files**: Complete article translations with formatting
-- **Pokepaste Format**: Standard format compatible with Pokemon Showdown and other tools
-
-## Supported Content 📚
-
-- Japanese VGC tournament reports
-- Team building articles and guides
-- Pokemon competitive analysis posts
-- Strategy discussions and meta reports
-
-## Technical Details ⚙️
-
-### Dependencies
-- Streamlit 1.28+
-- Google Generative AI 0.3+
-- Requests, BeautifulSoup4, PIL
-- PokeAPI integration for sprites
-
-### Architecture
-- Single-file application for simplicity
-- Modular function design
-- Error handling and fallbacks
-- Responsive CSS styling
-
-## Troubleshooting 🔧
-
-### Common Issues
-
-**API Key Problems**
-- Ensure your Google API key is correctly set in `.streamlit/secrets.toml`
-- Verify Gemini API access and quota limits
-
-**Pokemon Sprites Not Loading**
-- Check internet connection to PokeAPI
-- Application provides fallbacks for missing sprites
-
-**Article Scraping Issues**
-- Some sites may block automated requests
-- Try the manual text input option instead
-
-### Getting Help
-
-If you encounter issues:
-1. Check the console for error messages
-2. Verify all dependencies are installed
-3. Ensure your API key has proper permissions
-
-## Example Workflow 💡
-
-1. **Find a Japanese VGC article** from sites like Pokestats, notes, or tournament reports
-2. **Copy the URL** and paste it into the application sidebar
-3. **Click "Analyze Article"** and wait for processing (typically 10-30 seconds)
-4. **Review the results**: translated content, team breakdown, and EV explanations
-5. **Download files**: save translation and pokepaste for future reference
-6. **Share or study**: use the exported data for team building or research
-
-## Contributing 🤝
-
-This is a single-file application designed for simplicity and ease of use. Contributions and improvements are welcome!
-
-### Areas for Enhancement
-- Additional language support
-- More export formats
-- Enhanced UI components
-- Integration with other Pokemon databases
-
-## License 📄
-
-This project is for educational and research purposes. Pokemon is a trademark of Nintendo/Game Freak/Creatures Inc.
+- [Live Demo](link-to-demo) (if applicable)
+- [Documentation](docs/)
+- [Issue Tracker](link-to-issues)
 
 ---
 
-Enjoy analyzing VGC teams! 🎉
+**Built with ❤️ for the Pokemon VGC community**

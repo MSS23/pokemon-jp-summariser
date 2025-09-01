@@ -433,34 +433,73 @@ Extract Pokemon team data from Nintendo Switch team screenshots with focus on ba
 You are analyzing a Nintendo Switch Pokemon team screenshot (typically blue background with 6 Pokemon sprites).
 These screenshots show basic team composition but typically DO NOT contain detailed EV spreads.
 
-**PRIMARY OBJECTIVES:**
+🔍 **SYSTEMATIC POKEMON IDENTIFICATION PROCESS:**
 
-**OBJECTIVE 1: POKEMON IDENTIFICATION (HIGHEST PRIORITY)**
-- Identify each Pokemon by their sprites/models
-- Read any visible Japanese Pokemon names
-- Note Pokemon forms, regional variants (Galar, Hisui, etc.)
-- Identify Paradox Pokemon correctly (Iron Valiant, Flutter Mane, etc.)
-- Count total Pokemon (should be 6 for complete team)
+**STEP 1: SCREENSHOT ANALYSIS & SETUP**
+1. **Identify Screenshot Type**: Team builder, battle box, rental team, or battle screen
+2. **Count Pokemon Positions**: Locate all 6 Pokemon slots (even if some empty)
+3. **Assess Image Quality**: Note if sprites are clear, blurry, or partially obscured
+4. **UI Language Detection**: Identify if interface shows Japanese text
 
-**OBJECTIVE 2: HELD ITEMS DETECTION**
-- Look for held item icons next to Pokemon sprites
-- Read Japanese item names if visible as text
-- Common items to recognize:
-  • きあいのタスキ (Focus Sash) - red/white sash icon
-  • いのちのたま (Life Orb) - purple orb icon
-  • こだわりスカーフ (Choice Scarf) - blue scarf icon
-  • とつげきチョッキ (Assault Vest) - green vest icon
-  • たべのこし (Leftovers) - apple icon
+**STEP 2: INDIVIDUAL POKEMON ANALYSIS (Repeat for each Pokemon)**
+For Pokemon Position #1, #2, #3, #4, #5, #6:
 
-**OBJECTIVE 3: BASIC MOVE/ABILITY INFO (IF VISIBLE)**
-- Look for any visible Japanese move names
-- Check for ability names if displayed
-- Note: Switch screenshots often don't show full movesets
+**A. VISUAL SPRITE EXAMINATION:**
+- **Primary Colors**: What are the dominant colors? (e.g., golden = Gholdengo, brown/tan = Ursaluna)
+- **Body Shape**: Humanoid, quadruped, bird-like, fish-like, etc.
+- **Size Relative**: Large, medium, small compared to other Pokemon
+- **Distinctive Features**: Wings, tails, weapons, special appendages, unique silhouette
+- **Posture/Stance**: Standing, flying, swimming, fighting pose
 
-**CRITICAL LIMITATIONS TO ACKNOWLEDGE:**
-❌ EV spreads are typically NOT visible in Switch screenshots
-❌ Detailed move explanations are usually not available
-❌ Strategic analysis requires article context not available in screenshots
+**B. DETAILED FEATURE ANALYSIS:**
+- **Head Shape**: Round, angular, elongated, crowned, etc.
+- **Eyes**: Visible eye color, size, expression
+- **Body Texture**: Smooth, furry, scaled, metallic, ghostly
+- **Special Elements**: Flames, water, electricity, auras, typing indicators
+- **Unique Identifiers**: Specific patterns, markings, tools, or accessories
+
+**C. JAPANESE TEXT EXTRACTION:**
+- **Pokemon Name Text**: Look for Japanese characters near each Pokemon
+- **Scan Systematically**: Check above, below, and beside each sprite
+- **OCR Confidence**: Note if text is clear or partially obscured
+
+**D. CROSS-REFERENCE IDENTIFICATION:**
+- **Visual + Text Matching**: Compare sprite analysis with any Japanese text found
+- **Database Lookup**: Match findings against comprehensive Pokemon database
+- **Form Verification**: Check if this is a regional variant, paradox form, or special form
+- **Confidence Assessment**: Rate identification as High/Medium/Low confidence
+
+**STEP 3: TEAM COMPOSITION VALIDATION**
+- **VGC Legality Check**: Does this team make sense for competitive play?
+- **Type Balance Review**: Reasonable type distribution and synergy
+- **Generation Consistency**: Mix of Pokemon from different generations is normal
+- **Meta Relevance**: Are these Pokemon commonly used in VGC?
+
+**STEP 4: HELD ITEMS & ADDITIONAL INFO**
+- **Item Icon Detection**: Look for small item icons near Pokemon sprites
+- **Japanese Item Names**: Extract any visible item text
+- **Ability/Move Info**: Note any additional data if visible
+- **Level/Stats**: Record if visible (usually not in team builders)
+
+**🚨 CRITICAL IDENTIFICATION GUIDELINES:**
+
+**COMMON SWITCH SCREENSHOT POKEMON BY VISUAL CUES:**
+- **Golden/Yellow Metal Pokemon** = Likely Gholdengo (ゴルデンゴ)
+- **Large Brown Bear** = Likely Ursaluna (ガチグマ)
+- **Big Pelican/Bird** = Likely Pelipper (ペリッパー)
+- **Bridge/Structure-like** = Likely Archaludon (ブリジュラス)
+- **Long Fish with Red/White** = Likely Basculegion (イダイトウ)
+- **Small White/Green Cotton Ball** = Likely Whimsicott (エルフーン)
+- **Orange Dragon** = Likely Koraidon (コライドン)
+- **Purple Electric Dragon** = Likely Miraidon (ミライドン)
+- **Pink/Purple Flowing Ghost** = Likely Flutter Mane (フラッター)
+- **Metallic Robot-like** = Likely Iron Paradox Pokemon (テツノ)
+
+**ERROR PREVENTION STRATEGIES:**
+- **Don't Guess**: If uncertain between 2+ Pokemon, state both possibilities
+- **Use Elimination**: Rule out impossible matches based on clear visual differences
+- **Context Clues**: Use team composition to validate individual identifications
+- **Confidence Scoring**: Always provide confidence level for each identification
 
 **🗾 ESSENTIAL JAPANESE TRANSLATIONS:**
 
@@ -478,6 +517,42 @@ These screenshots show basic team composition but typically DO NOT contain detai
 - チオンジェン = Chi-Yu
 - ディンルー = Ting-Lu
 - イーユイ = Wo-Chien
+
+**CRITICAL MISSING POKEMON (Recently Misidentified):**
+- ゴルデンゴ = Gholdengo (Gen 9 Steel/Ghost - golden surfboard-like Pokemon)
+- ペリッパー = Pelipper (Water/Flying - large pelican Pokemon)
+- ガチグマ = Ursaluna (Ground/Normal - large brown bear from Legends Arceus)
+- ブリジュラス = Archaludon (Steel/Dragon - bridge-like structure Pokemon)
+- イダイトウ = Basculegion (Water/Ghost - elongated fish with red/white coloring)
+
+**ADDITIONAL COMMON VGC POKEMON:**
+- フラッター = Flutter Mane (Ghost/Fairy paradox - flowing pink/purple)
+- テツノ = Iron (Future Paradox prefix - various Iron Pokemon)
+- ウネルミナモ = Walking Wake (Water/Dragon paradox)
+- ライド = Raging Bolt (Electric/Dragon paradox)
+- トリトドン = Gastrodon (Water/Ground - sea slug Pokemon)
+- クレッフィ = Klefki (Steel/Fairy - key ring Pokemon)
+- ハリテヤマ = Hariyama (Fighting - sumo wrestler Pokemon)
+- オーロンゲ = Grimmsnarl (Dark/Fairy - long-haired troll-like)
+- ドラパルト = Dragapult (Dragon/Ghost - stealth bomber-like)
+- ミミッキュ = Mimikyu (Ghost/Fairy - Pikachu disguise)
+- アーマーガア = Corviknight (Flying/Steel - armored raven)
+- サーフゴー = Gholdengo (Steel/Ghost - same as ゴルデンゴ)
+- コライドン = Koraidon (Fighting/Dragon - orange legendary)
+- ミライドン = Miraidon (Electric/Dragon - purple legendary)
+- カイオーガ = Kyogre (Water legendary - blue whale-like)
+- グラードン = Groudon (Ground legendary - red dinosaur-like)
+- レックウザ = Rayquaza (Dragon/Flying legendary - green serpent)
+- ルナアーラ = Lunala (Psychic/Ghost legendary - bat-like)
+- ソルガレオ = Solgaleo (Psychic/Steel legendary - lion-like)
+- ネクロズマ = Necrozma (Psychic legendary - crystalline)
+- ザシアン = Zacian (Fairy/Steel legendary - wolf with sword)
+- ザマゼンタ = Zamazenta (Fighting/Steel legendary - wolf with shield)
+- バドレックス = Calyrex (Psychic/Grass legendary - crowned)
+- レジエレキ = Regieleki (Electric legendary - electrical pattern)
+- レジドラゴ = Regidrago (Dragon legendary - dragon head)
+- ブリザポス = Glastrier (Ice legendary horse)
+- レイスポス = Spectrier (Ghost legendary horse)
 
 **ITEM NAMES:**
 - たべのこし = Leftovers
@@ -504,33 +579,76 @@ These screenshots show basic team composition but typically DO NOT contain detai
 ```
 === NINTENDO SWITCH TEAM SCREENSHOT ANALYSIS ===
 
-TEAM COMPOSITION:
-Pokemon #1: [Name] ([Japanese name if visible])
+SCREENSHOT ASSESSMENT:
+- Screenshot Type: [Team Builder/Battle Box/Rental Team/Battle Screen]
+- Image Quality: [Good/Fair/Poor]
+- UI Language: [Japanese/English/Mixed]
+- Total Pokemon Slots Visible: [X/6]
+
+SYSTEMATIC POKEMON IDENTIFICATION:
+
+Pokemon Slot #1:
+- Visual Analysis: [Dominant colors, body shape, distinctive features]
+- Japanese Name Text: [Japanese characters if visible, or "Not visible"]
+- Identified As: [Pokemon Name] 
+- Confidence Level: [High/Medium/Low]
+- Reasoning: [Brief explanation of identification]
 - Held Item: [Item name or "Not visible"]
-- Notes: [Any form/variant info]
 
-Pokemon #2: [Name] ([Japanese name if visible])
+Pokemon Slot #2:
+- Visual Analysis: [Dominant colors, body shape, distinctive features]
+- Japanese Name Text: [Japanese characters if visible, or "Not visible"]
+- Identified As: [Pokemon Name]
+- Confidence Level: [High/Medium/Low]
+- Reasoning: [Brief explanation of identification]
 - Held Item: [Item name or "Not visible"]
-- Notes: [Any form/variant info]
 
-[Continue for all 6 Pokemon]
+[Continue for all 6 Pokemon slots]
 
-ANALYSIS SUMMARY:
-- Total Pokemon Identified: X/6
-- Held Items Detected: X/6
-- Screenshot Quality: Good/Fair/Poor
-- Confidence Level: High/Medium/Low
+TEAM COMPOSITION VALIDATION:
+- VGC Legality: [Legal/Questionable - explain if issues]
+- Type Balance: [Describe type distribution]
+- Meta Relevance: [Common/Uncommon/Unusual team composition]
+- Synergy Assessment: [Brief team synergy notes]
 
-LIMITATIONS NOTED:
-- EV spreads: Not available in screenshot format
-- Detailed movesets: Not visible in this screenshot type
-- Strategy analysis: Requires article context
+CONFIDENCE SUMMARY:
+- High Confidence Identifications: [X/6]
+- Medium Confidence Identifications: [X/6] 
+- Low Confidence Identifications: [X/6]
+- Failed Identifications: [X/6]
+
+POTENTIAL IDENTIFICATION ISSUES:
+[List any Pokemon you're uncertain about and why]
+
+OVERALL ANALYSIS QUALITY:
+- Screenshot Quality Impact: [How image quality affected analysis]
+- Text Visibility: [How well Japanese text could be read]
+- Final Confidence Rating: [High/Medium/Low]
 
 POKEPASTE READINESS:
-✅ Pokemon names available for basic pokepaste
+✅ Pokemon names available: [X/6 identified]
 ❌ EV spreads not available (user must add manually)
 ❌ Complete movesets not available (user must add manually)
+⚠️ Low confidence identifications: [List any uncertain Pokemon]
 ```
+
+**🚨 CRITICAL REMINDERS FOR ACCURATE IDENTIFICATION:**
+
+1. **VISUAL ANALYSIS FIRST**: Analyze the sprite/model appearance before looking at text
+2. **CROSS-VALIDATE**: Match visual analysis with any Japanese text found
+3. **USE PROCESS OF ELIMINATION**: Rule out obviously wrong Pokemon based on clear differences
+4. **DON'T FORCE MATCHES**: If uncertain, state multiple possibilities with confidence levels
+5. **RECENT FAILURE EXAMPLE**: A team was incorrectly identified - the actual team was:
+   - Whimsicott (エルフーン) - small white/green cotton Pokemon
+   - Gholdengo (ゴルデンゴ) - golden metallic surfboard-like Pokemon  
+   - Pelipper (ペリッパー) - large white/blue pelican Pokemon
+   - Ursaluna (ガチグマ) - large brown bear Pokemon
+   - Archaludon (ブリジュラス) - metallic bridge-like structure Pokemon
+   - Basculegion (イダイトウ) - elongated red/white ghost fish Pokemon
+
+6. **SYSTEMATIC APPROACH**: Follow the step-by-step process, don't skip steps
+7. **CONFIDENCE HONESTY**: Better to admit uncertainty than give wrong confident answer
+8. **CONTEXT VALIDATION**: Check if the identified team makes sense for VGC play
 
 **🚨 REMEMBER: Switch screenshots provide basic team composition only. Focus on accurate Pokemon identification and visible items. Do not attempt to guess EVs or detailed strategies.**
 '''
