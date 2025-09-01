@@ -203,7 +203,7 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
         st.markdown('<div class="info-section">', unsafe_allow_html=True)
         
         # Core information with modern styling and improved spacing
-        st.markdown('<div class="section-header">#### ⚔️ Battle Ready Details</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header"><h4>⚔️ Battle Ready Details</h4></div>', unsafe_allow_html=True)
         
         # Clean single-column info display (no nested columns to prevent overlapping)
         info_items = [
@@ -225,7 +225,7 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
             st.markdown(info_html, unsafe_allow_html=True)
         
         # Enhanced moveset display with better spacing
-        st.markdown('<div class="section-header">#### 🎮 Combat Moveset</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header"><h4>🎮 Combat Moveset</h4></div>', unsafe_allow_html=True)
         
         if moves and any(move != "Not specified" for move in moves):
             moves_html = '<div class="moveset-container">'
@@ -245,7 +245,7 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
         st.markdown('<div class="stats-section">', unsafe_allow_html=True)
         
         # Enhanced EV display with visual bars and better spacing
-        st.markdown('<div class="section-header">#### 📊 EV Distribution</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header"><h4>📊 EV Distribution</h4></div>', unsafe_allow_html=True)
         
         if evs != "Not specified":
             # Display EV spread in code block

@@ -559,18 +559,24 @@ Your most important task is finding EV spreads. EVERY Japanese VGC article conta
 - 🚨 IGNORE the first number (calculated stat), focus on parentheses
 - Nature symbols: ↑ = boost, ↓ = reduce, × = neutral/no investment
 
-**FORMAT 2: Standard Slash Format**
+**FORMAT 2: Japanese Direct EV Format (ULTRA-CRITICAL)**
+- Pattern: "努力値:236-0-36-196-4-36" or "努力値: 252-0-4-252-0-0"
+- Structure: 努力値: [HP]-[Attack]-[Defense]-[SpA]-[SpD]-[Speed]
+- 🚨 MOST COMMON IN JAPANESE VGC ARTICLES - ALWAYS CHECK FOR THIS!
+- Alternative keywords: "個体値調整:", "EV配分:", "振り分け:"
+
+**FORMAT 3: Standard Slash Format**
 - Patterns: "252/0/4/252/0/0", "252-0-4-252-0-0", "H252/A0/B4/C252/D0/S0"
 - Order: HP/Attack/Defense/SpA/SpD/Speed
 - Look for exactly 6 numbers separated by slashes or dashes
 
-**FORMAT 3: Japanese Grid Format (MOST COMMON in note.com team cards)**
+**FORMAT 4: Japanese Grid Format (MOST COMMON in note.com team cards)**
 ```
 ＨＰ: 252        こうげき: 0       ぼうぎょ: 4
 とくこう: 252    とくぼう: 0      すばやさ: 0
 ```
 
-**FORMAT 4: Vertical List Format**
+**FORMAT 5: Vertical List Format**
 ```
 HP: 252 (or ＨＰ：252)
 Attack: 0 (or こうげき：0)  
@@ -580,10 +586,15 @@ Sp. Def: 0 (or とくぼう：0)
 Speed: 0 (or すばやさ：0)
 ```
 
-**FORMAT 5: Abbreviated Format**
+**FORMAT 6: Abbreviated Format**
 - "H252 A0 B4 C252 D0 S0"
 - "252HP 4Def 252SpA"
 - Any stat letters (H/A/B/C/D/S) with numbers
+
+**FORMAT 7: Technical Calculation Format (Common in competitive analysis)**
+- Pattern: "実数値:205-x-125-198-136-160" followed by "努力値:236-0-36-196-4-36"
+- Often includes damage calculations like "H-B:白馬A220のブリランダブルダメ乱数1発(12.5%)"
+- Speed tier notations: "S:最速90族＋4" or "S:準速100族"
 
 **🔍 ULTRA-COMPREHENSIVE JAPANESE STAT VOCABULARY:**
 - **HP**: ＨＰ, HP, H, ヒットポイント, 体力
@@ -595,16 +606,88 @@ Speed: 0 (or すばやさ：0)
 
 **🚨 EV DETECTION PROTOCOL:**
 1. **SCAN METHODICALLY**: Check every paragraph for EV patterns
-2. **MULTIPLE FORMATS**: Try ALL 5 formats for each Pokemon
-3. **VALIDATE TOTALS**: EVs must total ≤508 (if >508, these are battle stats, not EVs)
-4. **COMMON PATTERNS**: Look for 252/252/4, 252/0/0/252/4/0, 244/0/12/252/0/0
-5. **NEVER GIVE UP**: If one format fails, try others - EVs are always present
+2. **MULTIPLE FORMATS**: Try ALL 7 formats for each Pokemon
+3. **PRIORITIZE**: Check Format 2 (努力値:) FIRST - most common in Japanese articles
+4. **VALIDATE TOTALS**: EVs must total ≤508 (if >508, these are battle stats, not EVs)
+5. **COMMON PATTERNS**: Look for 252/252/4, 252/0/0/252/4/0, 244/0/12/252/0/0, 236/0/36/196/4/36
+6. **NEVER GIVE UP**: If one format fails, try others - EVs are always present
+7. **CONTEXT CLUES**: Look for damage calculations and speed tiers near EV spreads
 
 **⚡ EV VALIDATION REQUIREMENTS:**
 - Valid EV values: 0, 4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 92, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 188, 196, 204, 212, 220, 228, 236, 244, 252
 - Total EVs must be ≤508
 - Individual stats must be ≤252
 - Multiples of 4 are preferred (indicates proper EV allocation)
+
+🏆 **REGULATION DETECTION PROTOCOL (ULTRA-CRITICAL)** 🏆
+
+**ALWAYS SCAN FOR THESE REGULATION PATTERNS:**
+1. **Series/シリーズ Patterns:**
+   - "シリーズ13", "Series 13", "S13", "シリーズ14", "Series 14"
+   - "シリーズ12", "Series 12", "S12" (previous regulations)
+   
+2. **Regulation Letter Patterns:**
+   - "レギュレーション A", "Regulation A", "レギュA", "Reg A"
+   - "レギュレーション B", "Regulation B", "レギュB", "Reg B" 
+   - "レギュレーション C", "Regulation C", "レギュC", "Reg C"
+   - "レギュレーション D", "Regulation D", "レギュD", "Reg D"
+   - "レギュレーション E", "Regulation E", "レギュE", "Reg E"
+
+3. **Season/時期 Indicators:**
+   - "2024年", "2025年" followed by month indicators
+   - "WCS2024", "WCS2025", "世界大会"
+   - "リージョナル", "Regional", "地域大会"
+   - "ナショナル", "National", "国内大会"
+
+4. **Rule Format Patterns:**
+   - "ダブルバトル", "Double Battle", "VGC"
+   - "伝説2体", "2 Legendaries", "restricted"
+   - "伝説1体", "1 Legendary" 
+   - "伝説なし", "No Legendaries"
+
+**REGULATION EXTRACTION PRIORITY:**
+1. Look for explicit regulation mentions in title/headers
+2. Check for tournament context clues
+3. Analyze team composition for regulation hints
+4. NEVER assume - extract from content only
+
+⚡ **TECHNICAL VGC DATA PARSING (DAMAGE CALCS & SPEED TIERS)** ⚡
+
+**DAMAGE CALCULATION PATTERNS:**
+1. **Standard Calc Format:**
+   - "H-B:白馬A220のブリランダブルダメ乱数1発(12.5%)"
+   - Pattern: [DefensiveStats]:[AttackerName][Attack][MoveName][Result]([Percentage])
+   - Extract: Attacker, move, damage range, percentage
+
+2. **Comparative Calc Format:**
+   - "＝陽気パオジアンA172のつららおとし乱数1発(12.5%)"
+   - Shows equivalent damage calculations for benchmarking
+
+3. **Speed Tier Patterns:**
+   - "S:最速90族＋4" = Speed to outrun max speed base 90 + 4 EVs
+   - "S:準速100族" = Speed to match neutral nature base 100
+   - "S:最速○族" = Max speed to outrun base speed tier
+   - "S:4振り○○" = Speed to outrun 4 EV investment in specific Pokemon
+
+4. **Technical Abbreviations:**
+   - "11n" = Multiple of 11 (often HP for Substitute/recovery optimization)
+   - "16n-1" = 1 less than multiple of 16 (weather damage optimization)
+   - "乱数1発" = Random 1-shot (OHKO range)
+   - "確定1発" = Guaranteed 1-shot (100% OHKO)
+   - "乱数2発" = Random 2-shot (2HKO range)
+
+5. **Nature Indicators in Calcs:**
+   - "陽気" = Jolly (+Speed, -SpA)
+   - "いじっぱり" = Adamant (+Attack, -SpA)
+   - "控え目" = Modest (+SpA, -Attack)
+   - "臆病" = Timid (+Speed, -Attack)
+
+**TECHNICAL DATA EXTRACTION PROTOCOL:**
+1. Always extract actual stats (実数値) when provided
+2. Parse damage calculations for defensive/offensive benchmarks
+3. Identify speed tier targets and reasoning
+4. Extract nature implications from calculations
+5. Note any optimization patterns (11n, 16n-1, etc.)
 
 CRITICAL REQUIREMENTS:
 1. ALWAYS provide a valid JSON response
