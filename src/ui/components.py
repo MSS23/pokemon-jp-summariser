@@ -152,10 +152,13 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     evs = pokemon.get("evs", "Not specified")
     ev_explanation = pokemon.get("ev_explanation", "No explanation provided")
     
-    # Professional card container with enhanced styling
+    # Single cohesive container with header and grid content - compact vertical spacing
+    sprite_url = get_pokemon_sprite_url(name)
+    
+    # Combined header + grid container for precise vertical rhythm control  
     st.markdown(
         f"""
-        <div class="professional-pokemon-card" data-pokemon="{name.lower().replace(' ', '-')}">
+        <div class="pokemon-card-wrapper">
             <div class="card-header-modern">
                 <div class="pokemon-number-badge">#{index + 1}</div>
                 <div class="pokemon-title-section">
@@ -165,18 +168,11 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
                         <span class="tera-text">{tera_type} Tera</span>
                     </span>
                 </div>
-                <div class="card-decoration"></div>
             </div>
-        </div>
+            <div class="pokemon-card-container">
         """,
         unsafe_allow_html=True,
     )
-
-    # CSS Grid-based responsive layout broken into manageable chunks
-    sprite_url = get_pokemon_sprite_url(name)
-    
-    # Start the grid container
-    st.markdown('<div class="pokemon-card-container">', unsafe_allow_html=True)
     
     # Sprite Section
     st.markdown(
@@ -263,8 +259,8 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     else:
         st.markdown('<div class="ev-not-specified">*EV spread not specified*</div>', unsafe_allow_html=True)
     
-    # Close stats section and grid container
-    st.markdown('</div></div>', unsafe_allow_html=True)
+    # Close stats section, grid container, and wrapper
+    st.markdown('</div></div></div>', unsafe_allow_html=True)
     
     # Add EV bars if valid EV spread
     if evs != "Not specified" and "/" in str(evs):
@@ -1044,6 +1040,55 @@ def apply_custom_css():
         height: 5px;
         background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
         z-index: 1;
+    }
+    
+    /* New Pokemon Card Wrapper - Compact Vertical Spacing */
+    .pokemon-card-wrapper {
+        background: var(--surface);
+        border-radius: 20px;
+        margin: 1rem 0; /* Reduced from 3rem to 1rem (16px vs 48px) */
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        border: 1px solid rgba(99, 102, 241, 0.1);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        container-type: inline-size;
+        min-width: 320px;
+    }
+    
+    .pokemon-card-wrapper:hover {
+        box-shadow: 0 20px 60px rgba(99, 102, 241, 0.25);
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+    
+    .pokemon-card-wrapper::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+        z-index: 1;
+    }
+    
+    /* Header with reduced bottom spacing for tight gap */
+    .pokemon-card-wrapper .card-header-modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2.5rem 2rem 0.75rem 2rem; /* Reduced bottom padding from 2rem to 0.75rem */
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 0; /* Explicit zero margin */
+    }
+    
+    /* Grid container with reduced top padding for tight connection */
+    .pokemon-card-wrapper .pokemon-card-container {
+        padding-top: 0.75rem; /* Reduced from 2rem to 0.75rem */
+        padding-bottom: 2rem;
+        padding-left: 2rem;
+        padding-right: 2rem;
+        margin-top: 0; /* Explicit zero margin */
     }
     
     .card-header-modern {
