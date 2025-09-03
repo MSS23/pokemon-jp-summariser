@@ -266,6 +266,7 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
                     </div>
                 </div>
             </div>
+        </div>
         """,
         unsafe_allow_html=True,
     )
@@ -318,9 +319,6 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     # Enhanced EV Distribution Section
     st.markdown('<div class="section-divider-enhanced"><span class="section-title">📊 EV Distribution</span></div>', unsafe_allow_html=True)
     render_ev_bars(evs)
-    
-    # Close enhanced card
-    st.markdown('</div>', unsafe_allow_html=True)
     
     # Enhanced strategic reasoning section
     if ev_explanation != "No explanation provided":
