@@ -25,6 +25,23 @@ def render_section_header(icon: str, label: str):
         unsafe_allow_html=True
     )
 
+def inject_stat_css():
+    """Inject CSS styles for stat cards"""
+    st.markdown("""
+    <style>
+      .stat-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #e5e7eb;
+                 border-radius:16px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.05);margin-bottom:10px;}
+      .stat-card.prominent{outline:2px solid #c7d2fe; outline-offset:0;}
+      .stat-icon-wrapper{width:40px;height:40px;display:grid;place-items:center;border-radius:10px;background:#f8fafc;}
+      .stat-label{font-size:12px;color:#64748b;margin-bottom:2px;line-height:1;}
+      .stat-value{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
+      .stat-content{min-width:0;}
+      .stat-accent{margin-left:auto;width:8px;height:8px;border-radius:9999px;}
+      .stat-accent.golden{background:#f59e0b;}
+      @media (min-width: 640px){ .stat-value{max-width:360px;} }
+    </style>
+    """, unsafe_allow_html=True)
+
 def render_stat_card(icon: str, label: str, value: str, accent: str = None, prominent: bool = False) -> str:
     """
     Generate HTML for a compact stat card
@@ -39,22 +56,18 @@ def render_stat_card(icon: str, label: str, value: str, accent: str = None, prom
     Returns:
         HTML string for the stat card
     """
-    empty_class = "empty" if value == "Not specified" else ""
-    prominent_class = "prominent" if prominent else ""
-    accent_class = f"accent-{accent}" if accent else ""
-    
-    # Truncate long values for mobile
-    display_value = value if len(value) <= 15 else f"{value[:12]}..."
-    
-    return f'''
-    <div class="stat-card {prominent_class} {empty_class} {accent_class}">
-        <div class="stat-icon">{icon}</div>
-        <div class="stat-content">
-            <div class="stat-label">{label}</div>
-            <div class="stat-value" title="{value}">{display_value}</div>
-        </div>
-        {f'<div class="stat-accent {accent}"></div>' if accent else ''}
-    </div>'''
+    accent_html = f'<div class="stat-accent {accent}"></div>' if accent else ""
+    prominent_cls = " prominent" if prominent else ""
+    return f"""
+    <article class="stat-card{prominent_cls}">
+      <div class="stat-icon-wrapper"><span aria-hidden="true">{icon}</span></div>
+      <div class="stat-content">
+        <div class="stat-label">{label}</div>
+        <div class="stat-value">{value}</div>
+      </div>
+      {accent_html}
+    </article>
+    """
 
 def render_moves_grid(moves: List[str]):
     """Render moveset as dynamic, enhanced move cards"""
@@ -303,119 +316,12 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     )
     
     # Inject CSS for stat cards
-    st.markdown('''
-    <style>
-    .stat-cards-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin: 16px 0;
-    }
+    inject_stat_css()
     
-    .stat-card {
-        display: flex;
-        align-items: center;
-        background: white;
-        border-radius: 12px;
-        padding: 12px 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border: 1px solid #e2e8f0;
-        min-width: 0;
-        flex: 1 1 140px;
-        max-width: 200px;
-        transition: all 0.2s ease;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-    }
-    
-    .stat-card.prominent {
-        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-        border: 1px solid #f59e0b;
-        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
-    }
-    
-    .stat-card.empty {
-        opacity: 0.6;
-        background: #f8fafc;
-        border: 1px dashed #cbd5e1;
-    }
-    
-    .stat-icon {
-        font-size: 18px;
-        margin-right: 10px;
-        flex-shrink: 0;
-    }
-    
-    .stat-content {
-        min-width: 0;
-        flex: 1;
-    }
-    
-    .stat-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 2px;
-    }
-    
-    .stat-value {
-        font-size: 13px;
-        font-weight: 600;
-        color: #1e293b;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    
-    .stat-accent {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        margin-left: 8px;
-        flex-shrink: 0;
-    }
-    
-    .stat-accent.golden {
-        background: #f59e0b;
-    }
-    
-    @media (max-width: 360px) {
-        .stat-cards-container {
-            gap: 8px;
-        }
-        .stat-card {
-            padding: 10px 12px;
-            min-width: 0;
-            flex: 1 1 100px;
-        }
-        .stat-icon {
-            font-size: 16px;
-            margin-right: 8px;
-        }
-        .stat-value {
-            font-size: 12px;
-        }
-    }
-    </style>
-    ''', unsafe_allow_html=True)
-    
-    # Enhanced Battle Stats Section with new stat cards
-    ability_card = render_stat_card("🧬", "Ability", ability)
-    item_card = render_stat_card("🎒", "Held Item", item, accent="golden", prominent=True)
-    nature_card = render_stat_card("🌟", "Nature", nature)
-    
-    st.markdown(f'''
-    <div class="stat-cards-container">
-        {ability_card}
-        {item_card}
-        {nature_card}
-    </div>
-    ''', unsafe_allow_html=True)
+    # Enhanced Battle Stats Section with individual stat cards
+    st.markdown(render_stat_card("🧬", "Ability", ability), unsafe_allow_html=True)
+    st.markdown(render_stat_card("🎒", "Held Item", item, accent="golden", prominent=True), unsafe_allow_html=True)
+    st.markdown(render_stat_card("🌟", "Nature", nature), unsafe_allow_html=True)
     
     # Enhanced Moveset Section
     st.markdown('<div class="section-divider-enhanced"><span class="section-title">🎮 Combat Moveset</span></div>', unsafe_allow_html=True)
