@@ -224,24 +224,21 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
         unsafe_allow_html=True
     )
     
-    # Moveset section
+    # Moveset section - render each move individually to avoid HTML parsing issues
     st.markdown('<div class="section-header"><h4>🎮 Combat Moveset</h4></div>', unsafe_allow_html=True)
+    st.markdown('<div class="moveset-container">', unsafe_allow_html=True)
     
-    # Generate moves HTML
+    # Generate moves one by one
     moves_list = moves[:4] if moves else ["Not specified"] * 4
-    moves_html = '<div class="moveset-container">'
     for i, move in enumerate(moves_list, 1):
         empty_class = ' empty' if not move or move == 'Not specified' else ''
         move_display = move if move and move != "Not specified" else "Not specified"
-        moves_html += f'''
-        <div class="move-item{empty_class}">
-            <span class="move-number">{i}</span>
-            <span class="move-name" title="{move_display}">{move_display}</span>
-        </div>
-        '''
-    moves_html += '</div></div>'  # Close moveset-container and pokemon-info-section
+        
+        move_html = f'<div class="move-item{empty_class}"><span class="move-number">{i}</span><span class="move-name" title="{move_display}">{move_display}</span></div>'
+        st.markdown(move_html, unsafe_allow_html=True)
     
-    st.markdown(moves_html, unsafe_allow_html=True)
+    # Close containers
+    st.markdown('</div></div>', unsafe_allow_html=True)  # Close moveset-container and pokemon-info-section
     
     # Stats Section
     st.markdown(
