@@ -172,84 +172,102 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
         unsafe_allow_html=True,
     )
 
-    # CSS Grid-based responsive layout instead of Streamlit columns
+    # CSS Grid-based responsive layout broken into manageable chunks
     sprite_url = get_pokemon_sprite_url(name)
     
-    # Create comprehensive Pokemon card content using CSS Grid
+    # Start the grid container
+    st.markdown('<div class="pokemon-card-container">', unsafe_allow_html=True)
+    
+    # Sprite Section
     st.markdown(
-        f"""
-        <div class="pokemon-card-container">
-            <!-- Sprite Section -->
-            <div class="pokemon-sprite-section">
-                <div class="sprite-frame">
-                    <img src="{sprite_url}" alt="{name}" class="pokemon-sprite" 
-                         onerror="this.src='https://via.placeholder.com/180x180/f0f0f0/999?text={name[:3]}'"/>
-                </div>
-                <div class="pokemon-name-label" title="{name}">{name}</div>
-                <div class="pokemon-role-badge {get_role_class(role)}" title="Role: {role}">
-                    <span class="role-icon">🎯</span>
-                    <span class="role-text">{role}</span>
-                </div>
+        f'''
+        <div class="pokemon-sprite-section">
+            <div class="sprite-frame">
+                <img src="{sprite_url}" alt="{name}" class="pokemon-sprite" 
+                     onerror="this.src='https://via.placeholder.com/180x180/f0f0f0/999?text={name[:3]}'"/>
             </div>
-            
-            <!-- Info Section -->
-            <div class="pokemon-info-section">
-                <div class="section-header">
-                    <h4>⚔️ Battle Ready Details</h4>
-                </div>
-                
-                <div class="info-items-container">
-                    <div class="info-item {'specified' if ability != 'Not specified' else 'not-specified'}">
-                        <span class="info-icon">🧬</span>
-                        <span class="info-label">Ability:</span>
-                        <span class="info-value" title="{ability}">{ability}</span>
-                    </div>
-                    <div class="info-item {'specified' if item != 'Not specified' else 'not-specified'}">
-                        <span class="info-icon">🎒</span>
-                        <span class="info-label">Held Item:</span>
-                        <span class="info-value" title="{item}">{item}</span>
-                    </div>
-                    <div class="info-item {'specified' if nature != 'Not specified' else 'not-specified'}">
-                        <span class="info-icon">🌟</span>
-                        <span class="info-label">Nature:</span>
-                        <span class="info-value" title="{nature}">{nature}</span>
-                    </div>
-                </div>
-                
-                <div class="section-header">
-                    <h4>🎮 Combat Moveset</h4>
-                </div>
-                
-                <div class="moveset-container">
-                    {"".join([
-                        '<div class="move-item{}">'.format(' empty' if not move or move == 'Not specified' else '') +
-                        f'<span class="move-number">{i}</span>' +
-                        f'<span class="move-name" title="{move if move and move != "Not specified" else "Not specified"}">' +
-                        f'{move if move and move != "Not specified" else "Not specified"}' +
-                        '</span></div>'
-                        for i, move in enumerate(moves[:4] if moves else ["Not specified"]*4, 1)
-                    ])}
-                </div>
-            </div>
-            
-            <!-- Stats Section -->
-            <div class="pokemon-stats-section">
-                <div class="section-header">
-                    <h4>📊 EV Distribution</h4>
-                </div>
-                
-                {"" if evs == 'Not specified' else f'''
-                <div class="ev-spread-display">
-                    <code class="ev-code" title="EV Spread: {evs}">{evs}</code>
-                </div>
-                '''}
-                
-                {"<div class='ev-not-specified'>*EV spread not specified*</div>" if evs == "Not specified" else ""}
+            <div class="pokemon-name-label" title="{name}">{name}</div>
+            <div class="pokemon-role-badge {get_role_class(role)}" title="Role: {role}">
+                <span class="role-icon">🎯</span>
+                <span class="role-text">{role}</span>
             </div>
         </div>
-        """,
+        ''',
         unsafe_allow_html=True
     )
+    
+    # Info Section
+    st.markdown(
+        f'''
+        <div class="pokemon-info-section">
+            <div class="section-header">
+                <h4>⚔️ Battle Ready Details</h4>
+            </div>
+            <div class="info-items-container">
+                <div class="info-item {'specified' if ability != 'Not specified' else 'not-specified'}">
+                    <span class="info-icon">🧬</span>
+                    <span class="info-label">Ability:</span>
+                    <span class="info-value" title="{ability}">{ability}</span>
+                </div>
+                <div class="info-item {'specified' if item != 'Not specified' else 'not-specified'}">
+                    <span class="info-icon">🎒</span>
+                    <span class="info-label">Held Item:</span>
+                    <span class="info-value" title="{item}">{item}</span>
+                </div>
+                <div class="info-item {'specified' if nature != 'Not specified' else 'not-specified'}">
+                    <span class="info-icon">🌟</span>
+                    <span class="info-label">Nature:</span>
+                    <span class="info-value" title="{nature}">{nature}</span>
+                </div>
+            </div>
+        ''',
+        unsafe_allow_html=True
+    )
+    
+    # Moveset section
+    st.markdown('<div class="section-header"><h4>🎮 Combat Moveset</h4></div>', unsafe_allow_html=True)
+    
+    # Generate moves HTML
+    moves_list = moves[:4] if moves else ["Not specified"] * 4
+    moves_html = '<div class="moveset-container">'
+    for i, move in enumerate(moves_list, 1):
+        empty_class = ' empty' if not move or move == 'Not specified' else ''
+        move_display = move if move and move != "Not specified" else "Not specified"
+        moves_html += f'''
+        <div class="move-item{empty_class}">
+            <span class="move-number">{i}</span>
+            <span class="move-name" title="{move_display}">{move_display}</span>
+        </div>
+        '''
+    moves_html += '</div></div>'  # Close moveset-container and pokemon-info-section
+    
+    st.markdown(moves_html, unsafe_allow_html=True)
+    
+    # Stats Section
+    st.markdown(
+        '''
+        <div class="pokemon-stats-section">
+            <div class="section-header">
+                <h4>📊 EV Distribution</h4>
+            </div>
+        ''',
+        unsafe_allow_html=True
+    )
+    
+    if evs != "Not specified":
+        st.markdown(
+            f'''
+            <div class="ev-spread-display">
+                <code class="ev-code" title="EV Spread: {evs}">{evs}</code>
+            </div>
+            ''',
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown('<div class="ev-not-specified">*EV spread not specified*</div>', unsafe_allow_html=True)
+    
+    # Close stats section and grid container
+    st.markdown('</div></div>', unsafe_allow_html=True)
     
     # Add EV bars if valid EV spread
     if evs != "Not specified" and "/" in str(evs):
