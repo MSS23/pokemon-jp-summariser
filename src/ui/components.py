@@ -172,117 +172,120 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
         unsafe_allow_html=True,
     )
 
-    # Responsive layout that adapts to screen size and prevents overlapping
-    sprite_col, info_col, stats_col = st.columns([1.2, 2.8, 2.0])
-
-    with sprite_col:
-        # Enhanced sprite display with proper error handling
-        sprite_url = get_pokemon_sprite_url(name)
-        
-        st.markdown(
-            f"""
-            <div class="pokemon-sprite-container">
+    # CSS Grid-based responsive layout instead of Streamlit columns
+    sprite_url = get_pokemon_sprite_url(name)
+    
+    # Create comprehensive Pokemon card content using CSS Grid
+    st.markdown(
+        f"""
+        <div class="pokemon-card-container">
+            <!-- Sprite Section -->
+            <div class="pokemon-sprite-section">
                 <div class="sprite-frame">
                     <img src="{sprite_url}" alt="{name}" class="pokemon-sprite" 
                          onerror="this.src='https://via.placeholder.com/180x180/f0f0f0/999?text={name[:3]}'"/>
                 </div>
-                <div class="pokemon-name-label">{name}</div>
-                <div class="pokemon-role-badge {get_role_class(role)}">
+                <div class="pokemon-name-label" title="{name}">{name}</div>
+                <div class="pokemon-role-badge {get_role_class(role)}" title="Role: {role}">
                     <span class="role-icon">🎯</span>
                     <span class="role-text">{role}</span>
                 </div>
             </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with info_col:
-        st.markdown('<div class="info-section">', unsafe_allow_html=True)
-        
-        # Core information with modern styling and improved spacing
-        st.markdown('<div class="section-header"><h4>⚔️ Battle Ready Details</h4></div>', unsafe_allow_html=True)
-        
-        # Clean single-column info display (no nested columns to prevent overlapping)
-        info_items = [
-            ("🧬", "Ability", ability),
-            ("🎒", "Held Item", item), 
-            ("🌟", "Nature", nature)
-        ]
-        
-        # Display all items in a clean single-column layout
-        for icon, label, value in info_items:
-            status_class = "specified" if value != "Not specified" else "not-specified"
-            info_html = f"""
-            <div class="info-item {status_class}">
-                <span class="info-icon">{icon}</span>
-                <span class="info-label">{label}:</span>
-                <span class="info-value">{value}</span>
-            </div>
-            """
-            st.markdown(info_html, unsafe_allow_html=True)
-        
-        # Enhanced moveset display with better spacing
-        st.markdown('<div class="section-header"><h4>🎮 Combat Moveset</h4></div>', unsafe_allow_html=True)
-        
-        if moves and any(move != "Not specified" for move in moves):
-            moves_html = '<div class="moveset-container">'
-            for i, move in enumerate(moves[:4], 1):
-                if move and move != "Not specified":
-                    moves_html += f'<div class="move-item"><span class="move-number">{i}</span><span class="move-name">{move}</span></div>'
-                else:
-                    moves_html += f'<div class="move-item empty"><span class="move-number">{i}</span><span class="move-name">Not specified</span></div>'
-            moves_html += '</div>'
-            st.markdown(moves_html, unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="moveset-empty">*Moves not specified*</div>', unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with stats_col:
-        st.markdown('<div class="stats-section">', unsafe_allow_html=True)
-        
-        # Enhanced EV display with visual bars and better spacing
-        st.markdown('<div class="section-header"><h4>📊 EV Distribution</h4></div>', unsafe_allow_html=True)
-        
-        if evs != "Not specified":
-            # Display EV spread in code block
-            st.markdown(
-                f'''
-                <div class="ev-spread-display">
-                    <code class="ev-code">{evs}</code>
-                </div>
-                ''',
-                unsafe_allow_html=True
-            )
             
-            # Parse and create visual EV bars
-            if "/" in str(evs):
-                try:
-                    ev_values = [int(x.strip()) for x in str(evs).split("/")]
-                    if len(ev_values) == 6:
-                        ev_labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
-                        ev_icons = ["❤️", "⚔️", "🛡️", "✨", "💫", "💨"]
-                        
-                        ev_bars_html = '<div class="ev-bars-container">'
-                        for label, icon, value in zip(ev_labels, ev_icons, ev_values):
-                            if value > 0:
-                                percentage = (value / 252) * 100
-                                ev_bars_html += f'<div class="ev-bar-item"><div class="ev-bar-label"><span class="ev-icon">{icon}</span><span class="ev-stat">{label}</span><span class="ev-value">{value}</span></div><div class="ev-bar-track"><div class="ev-bar-fill" style="width: {percentage}%"></div></div></div>'
-                        ev_bars_html += '</div>'
-                        st.markdown(ev_bars_html, unsafe_allow_html=True)
-                except Exception:
-                    st.markdown('<div class="ev-parse-error">*EV format could not be parsed*</div>', unsafe_allow_html=True)
+            <!-- Info Section -->
+            <div class="pokemon-info-section">
+                <div class="section-header">
+                    <h4>⚔️ Battle Ready Details</h4>
+                </div>
+                
+                <div class="info-items-container">
+                    <div class="info-item {'specified' if ability != 'Not specified' else 'not-specified'}">
+                        <span class="info-icon">🧬</span>
+                        <span class="info-label">Ability:</span>
+                        <span class="info-value" title="{ability}">{ability}</span>
+                    </div>
+                    <div class="info-item {'specified' if item != 'Not specified' else 'not-specified'}">
+                        <span class="info-icon">🎒</span>
+                        <span class="info-label">Held Item:</span>
+                        <span class="info-value" title="{item}">{item}</span>
+                    </div>
+                    <div class="info-item {'specified' if nature != 'Not specified' else 'not-specified'}">
+                        <span class="info-icon">🌟</span>
+                        <span class="info-label">Nature:</span>
+                        <span class="info-value" title="{nature}">{nature}</span>
+                    </div>
+                </div>
+                
+                <div class="section-header">
+                    <h4>🎮 Combat Moveset</h4>
+                </div>
+                
+                <div class="moveset-container">
+                    {"".join([
+                        f'<div class="move-item {'empty' if not move or move == 'Not specified' else ''}">
+                            <span class="move-number">{i}</span>
+                            <span class="move-name" title="{move if move and move != 'Not specified' else 'Not specified'}">
+                                {move if move and move != "Not specified" else "Not specified"}
+                            </span>
+                        </div>'
+                        for i, move in enumerate(moves[:4] if moves else ['Not specified']*4, 1)
+                    ])}
+                </div>
+            </div>
+            
+            <!-- Stats Section -->
+            <div class="pokemon-stats-section">
+                <div class="section-header">
+                    <h4>📊 EV Distribution</h4>
+                </div>
+                
+                {"" if evs == 'Not specified' else f'''
+                <div class="ev-spread-display">
+                    <code class="ev-code" title="EV Spread: {evs}">{evs}</code>
+                </div>
+                '''}
+                
+                {"<div class='ev-not-specified'>*EV spread not specified*</div>" if evs == "Not specified" else ""}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # Add EV bars if valid EV spread
+    if evs != "Not specified" and "/" in str(evs):
+        try:
+            ev_values = [int(x.strip()) for x in str(evs).split("/")]
+            if len(ev_values) == 6:
+                ev_labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
+                ev_icons = ["❤️", "⚔️", "🛡️", "✨", "💫", "💨"]
+                
+                ev_bars_html = '<div class="ev-bars-container">'
+                for label, icon, value in zip(ev_labels, ev_icons, ev_values):
+                    if value > 0:
+                        percentage = (value / 252) * 100
+                        ev_bars_html += f'''
+                        <div class="ev-bar-item">
+                            <div class="ev-bar-label">
+                                <span class="ev-icon">{icon}</span>
+                                <span class="ev-stat">{label}</span>
+                                <span class="ev-value">{value}</span>
+                            </div>
+                            <div class="ev-bar-track">
+                                <div class="ev-bar-fill" style="width: {percentage}%"></div>
+                            </div>
+                        </div>'''
+                ev_bars_html += '</div>'
+                st.markdown(ev_bars_html, unsafe_allow_html=True)
+        except Exception:
+            st.markdown('<div class="ev-parse-error">*EV format could not be parsed*</div>', unsafe_allow_html=True)
+    
+    # Enhanced EV strategy explanation
+    with st.expander("💡 Strategic Reasoning", expanded=False):
+        if ev_explanation != "No explanation provided":
+            st.markdown(f'<div class="ev-explanation">{ev_explanation}</div>', unsafe_allow_html=True)
         else:
-            st.markdown('<div class="ev-not-specified">*EV spread not specified*</div>', unsafe_allow_html=True)
-        
-        # Enhanced EV strategy explanation
-        with st.expander("💡 Strategic Reasoning", expanded=False):
-            if ev_explanation != "No explanation provided":
-                st.markdown(f'<div class="ev-explanation">{ev_explanation}</div>', unsafe_allow_html=True)
-            else:
-                st.markdown('<div class="ev-explanation empty">*No strategic explanation provided*</div>', unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('<div class="ev-explanation empty">*No strategic explanation provided*</div>', unsafe_allow_html=True)
     
     # Modern divider
     st.markdown('<div class="card-divider"></div>', unsafe_allow_html=True)
@@ -996,7 +999,7 @@ def apply_custom_css():
         box-shadow: var(--shadow-lg);
     }
     
-    /* Professional Pokemon Card Styling */
+    /* Professional Pokemon Card Styling - CSS Grid Based */
     .professional-pokemon-card {
         background: var(--surface);
         border-radius: 20px;
@@ -1008,12 +1011,14 @@ def apply_custom_css():
         position: relative;
         overflow: hidden;
         backdrop-filter: blur(10px);
+        container-type: inline-size; /* Enable container queries */
+        min-width: 320px; /* Safe minimum width */
     }
     
     .professional-pokemon-card:hover {
-        transform: translateY(-8px);
         box-shadow: 0 20px 60px rgba(99, 102, 241, 0.25);
         border-color: rgba(99, 102, 241, 0.3);
+        /* Removed transform to prevent overflow issues */
     }
     
     .professional-pokemon-card::before {
@@ -1024,6 +1029,7 @@ def apply_custom_css():
         right: 0;
         height: 5px;
         background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+        z-index: 1;
     }
     
     .card-header-modern {
@@ -1031,17 +1037,33 @@ def apply_custom_css():
         padding: 2.5rem 2rem;
         position: relative;
         overflow: hidden;
+        /* Removed problematic ::after pseudo-element */
     }
     
-    .card-header-modern::after {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -20px;
-        width: 200px;
-        height: 200px;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-        border-radius: 50%;
+    /* CSS Grid Container for Pokemon Card Layout */
+    .pokemon-card-container {
+        display: grid;
+        grid-template-columns: minmax(200px, 1fr) minmax(300px, 2fr) minmax(200px, 1fr);
+        gap: 1.5rem;
+        padding: 2rem;
+        min-height: 400px;
+        container-type: inline-size;
+    }
+    
+    /* Container queries for responsive behavior */
+    @container (max-width: 800px) {
+        .pokemon-card-container {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            padding: 1.5rem;
+        }
+    }
+    
+    @container (max-width: 600px) {
+        .pokemon-card-container {
+            padding: 1rem;
+            gap: 0.75rem;
+        }
     }
     
     .pokemon-number-badge {
@@ -1063,10 +1085,14 @@ def apply_custom_css():
     .pokemon-title-section h2.pokemon-name-title {
         color: white;
         margin: 0.5rem 0 1rem 0;
-        font-size: 2.2rem;
+        font-size: clamp(1.5rem, 4vw, 2.2rem); /* Responsive font size */
         font-weight: 800;
         letter-spacing: -0.02em;
         text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        max-width: 100%;
     }
     
     .tera-badge-modern {
@@ -1091,15 +1117,31 @@ def apply_custom_css():
         font-weight: 700;
     }
     
-    .card-decoration {
-        position: absolute;
-        bottom: -30px;
-        right: -30px;
-        width: 80px;
-        height: 80px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 50%;
-        opacity: 0.6;
+    /* Removed problematic absolute positioning decoration */
+    
+    /* Grid Section Styling */
+    .pokemon-sprite-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1.5rem;
+        gap: 1rem;
+    }
+    
+    .pokemon-info-section {
+        display: flex;
+        flex-direction: column;
+        padding: 1.5rem;
+        gap: 1rem;
+        min-width: 0; /* Allow content to shrink */
+    }
+    
+    .pokemon-stats-section {
+        display: flex;
+        flex-direction: column;
+        padding: 1.5rem;
+        gap: 1rem;
+        min-width: 0; /* Allow content to shrink */
     }
     
     /* Sprite Container Styling */
@@ -1131,11 +1173,15 @@ def apply_custom_css():
     }
     
     .pokemon-name-label {
-        font-size: 1.1rem;
+        font-size: clamp(1rem, 2.5vw, 1.1rem);
         font-weight: 700;
         color: var(--on-surface);
         margin-bottom: 0.8rem;
         text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        max-width: 100%;
     }
     
     .pokemon-role-badge {
@@ -1207,7 +1253,8 @@ def apply_custom_css():
     
     .info-item:hover {
         background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
-        transform: translateX(4px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        /* Removed transform to prevent overflow */
     }
     
     .info-item.not-specified {
@@ -1223,13 +1270,19 @@ def apply_custom_css():
     .info-label {
         font-weight: 600;
         color: var(--on-surface);
-        min-width: 80px;
+        min-width: 60px; /* Reduced min-width for flexibility */
+        flex-shrink: 0;
     }
     
     .info-value {
         font-weight: 500;
         color: #475569;
         font-style: italic;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        flex: 1; /* Allow to grow and shrink */
+        min-width: 0;
     }
     
     .info-item.specified .info-value {
@@ -1262,7 +1315,8 @@ def apply_custom_css():
     
     .move-item:hover {
         background: linear-gradient(135deg, #b3e5fc 0%, #81d4fa 100%);
-        transform: translateX(4px);
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+        /* Removed transform to prevent overflow */
     }
     
     .move-item.empty {
@@ -1292,6 +1346,11 @@ def apply_custom_css():
     .move-name {
         font-weight: 600;
         color: #0369a1;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
     }
     
     .move-item.empty .move-name {
@@ -1803,6 +1862,58 @@ def apply_custom_css():
     @keyframes slideUp {
         from { transform: translateY(10px); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Additional CSS for new grid containers */
+    .info-items-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        width: 100%;
+    }
+    
+    /* Tera badge responsive text handling */
+    .tera-text {
+        font-weight: 700;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    
+    .role-text {
+        font-weight: 700;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    
+    /* EV code responsive sizing */
+    .ev-code {
+        font-size: clamp(0.9rem, 2.5vw, 1.1rem) !important;
+        word-break: break-all;
+        overflow-wrap: break-word;
+    }
+    
+    /* Safe interaction for all hoverable elements */
+    .pokemon-role-badge:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        /* Removed transform to prevent overflow */
+    }
+    
+    .sprite-frame:hover {
+        box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+        /* Removed transform to prevent overflow */
+    }
+    
+    /* Container queries support check and fallback */
+    @supports not (container-type: inline-size) {
+        @media (max-width: 800px) {
+            .pokemon-card-container {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
     }
     </style>
     """,
