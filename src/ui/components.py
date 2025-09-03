@@ -25,6 +25,37 @@ def render_section_header(icon: str, label: str):
         unsafe_allow_html=True
     )
 
+def render_stat_card(icon: str, label: str, value: str, accent: str = None, prominent: bool = False) -> str:
+    """
+    Generate HTML for a compact stat card
+    
+    Args:
+        icon: Emoji icon for the card
+        label: Display label (e.g., "Held Item", "Nature")
+        value: Display value (e.g., "Focus Sash", "Timid")
+        accent: Optional accent color class (e.g., "golden")
+        prominent: Whether to apply prominent styling
+    
+    Returns:
+        HTML string for the stat card
+    """
+    empty_class = "empty" if value == "Not specified" else ""
+    prominent_class = "prominent" if prominent else ""
+    accent_class = f"accent-{accent}" if accent else ""
+    
+    # Truncate long values for mobile
+    display_value = value if len(value) <= 15 else f"{value[:12]}..."
+    
+    return f'''
+    <div class="stat-card {prominent_class} {empty_class} {accent_class}">
+        <div class="stat-icon">{icon}</div>
+        <div class="stat-content">
+            <div class="stat-label">{label}</div>
+            <div class="stat-value" title="{value}">{display_value}</div>
+        </div>
+        {f'<div class="stat-accent {accent}"></div>' if accent else ''}
+    </div>'''
+
 def render_moves_grid(moves: List[str]):
     """Render moveset as dynamic, enhanced move cards"""
     moves_list = moves[:4] if moves else ["Not specified"] * 4
@@ -271,46 +302,120 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
         unsafe_allow_html=True,
     )
     
-    # Enhanced Battle Stats Section
-    st.markdown(
-        f'''
-        <div class="battle-stats-grid">
-            <div class="stat-card ability-card {'empty' if ability == 'Not specified' else ''}">
-                <div class="stat-icon-wrapper">
-                    <span class="stat-icon">🧬</span>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Ability</div>
-                    <div class="stat-value">{ability}</div>
-                </div>
-                <div class="stat-accent"></div>
-            </div>
-            
-            <div class="stat-card item-card prominent {'empty' if item == 'Not specified' else ''}">
-                <div class="stat-icon-wrapper">
-                    <span class="stat-icon">🎒</span>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Held Item</div>
-                    <div class="stat-value">{item}</div>
-                </div>
-                <div class="stat-accent golden"></div>
-            </div>
-            
-            <div class="stat-card nature-card {'empty' if nature == 'Not specified' else ''}">
-                <div class="stat-icon-wrapper">
-                    <span class="stat-icon">🌟</span>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Nature</div>
-                    <div class="stat-value">{nature}</div>
-                </div>
-                <div class="stat-accent"></div>
-            </div>
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
+    # Inject CSS for stat cards
+    st.markdown('''
+    <style>
+    .stat-cards-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 16px 0;
+    }
+    
+    .stat-card {
+        display: flex;
+        align-items: center;
+        background: white;
+        border-radius: 12px;
+        padding: 12px 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border: 1px solid #e2e8f0;
+        min-width: 0;
+        flex: 1 1 140px;
+        max-width: 200px;
+        transition: all 0.2s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    
+    .stat-card.prominent {
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        border: 1px solid #f59e0b;
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+    }
+    
+    .stat-card.empty {
+        opacity: 0.6;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+    }
+    
+    .stat-icon {
+        font-size: 18px;
+        margin-right: 10px;
+        flex-shrink: 0;
+    }
+    
+    .stat-content {
+        min-width: 0;
+        flex: 1;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 2px;
+    }
+    
+    .stat-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .stat-accent {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        margin-left: 8px;
+        flex-shrink: 0;
+    }
+    
+    .stat-accent.golden {
+        background: #f59e0b;
+    }
+    
+    @media (max-width: 360px) {
+        .stat-cards-container {
+            gap: 8px;
+        }
+        .stat-card {
+            padding: 10px 12px;
+            min-width: 0;
+            flex: 1 1 100px;
+        }
+        .stat-icon {
+            font-size: 16px;
+            margin-right: 8px;
+        }
+        .stat-value {
+            font-size: 12px;
+        }
+    }
+    </style>
+    ''', unsafe_allow_html=True)
+    
+    # Enhanced Battle Stats Section with new stat cards
+    ability_card = render_stat_card("🧬", "Ability", ability)
+    item_card = render_stat_card("🎒", "Held Item", item, accent="golden", prominent=True)
+    nature_card = render_stat_card("🌟", "Nature", nature)
+    
+    st.markdown(f'''
+    <div class="stat-cards-container">
+        {ability_card}
+        {item_card}
+        {nature_card}
+    </div>
+    ''', unsafe_allow_html=True)
     
     # Enhanced Moveset Section
     st.markdown('<div class="section-divider-enhanced"><span class="section-title">🎮 Combat Moveset</span></div>', unsafe_allow_html=True)
