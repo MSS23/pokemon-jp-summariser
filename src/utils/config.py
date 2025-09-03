@@ -528,5 +528,11 @@ MOVE_NAME_TRANSLATIONS = {
     "ひかりのかべ": "Light Screen",
     "リフレクター": "Reflect",
     "オーロラベール": "Aurora Veil",
+    # Pokemon Move Translation Updates
+    "ニトロチャージ": "Flame Charge",  # Flame Charge (also known as Accel Break in some contexts)
+    "フレイムチャージ": "Flame Charge",  # Alternative Japanese name for Flame Charge
+    "アクセルブレイク": "Flame Charge",  # Accel Break -> Flame Charge
+    "カタストロフィ": "Ruination",  # Catastrophe -> Ruination
+    "ワイドブレイカー": "Breaking Swipe",  # Wide Breaker -> Breaking Swipe
     # Add more as needed...
 }

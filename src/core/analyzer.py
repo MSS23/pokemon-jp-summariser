@@ -7,7 +7,7 @@ import re
 from typing import Dict, Optional, Any, List
 import google.generativeai as genai
 
-from utils.config import Config, POKEMON_NAME_TRANSLATIONS
+from utils.config import Config, POKEMON_NAME_TRANSLATIONS, MOVE_NAME_TRANSLATIONS
 from utils.cache_manager import cache
 from core.scraper import ArticleScraper
 from core.pokemon_validator import PokemonValidator
@@ -1051,6 +1051,47 @@ If NO explicit regulation is mentioned in the text, you MUST use "Not specified"
    - Look for technical explanations (e.g., "16n-1 for weather", "11n for Substitute")
    - Translate Japanese strategic text to English
    - If no strategic reasoning found, use "EV reasoning not specified in article"
+
+**🎯 MOVE NAME TRANSLATION DATABASE:**
+
+**CRITICAL MOVE TRANSLATIONS (2025 Update):**
+- マジカルシャイン = Dazzling Gleam (Fairy-type spread move)
+- アクセルブレイク = Flame Charge (Fire-type speed boosting move, also known as Accel Break)
+- ニトロチャージ = Flame Charge (Alternative Japanese name)
+- フレイムチャージ = Flame Charge (Alternative Japanese name) 
+- カタストロフィ = Ruination (Dark-type signature move of Treasures of Ruin)
+- ワイドブレイカー = Breaking Swipe (Dragon-type attack lowering move)
+- アストラルビット = Astral Barrage (Psychic-type signature move of Calyrex-Shadow)
+- ブリザードランス = Glacial Lance (Ice-type signature move of Calyrex-Ice)
+- テラバースト = Tera Blast (Normal-type move that changes with Tera type)
+- 10まんボルト = Thunderbolt
+- かえんほうしゃ = Flamethrower
+- なみのり = Surf
+- じしん = Earthquake
+- まもる = Protect
+- ねこだまし = Fake Out
+- とんぼがえり = U-turn
+- ボルトチェンジ = Volt Switch
+- いわなだれ = Rock Slide
+- エアスラッシュ = Air Slash
+- アイアンヘッド = Iron Head
+- ヘビーボンバー = Heavy Slam
+- インファイト = Close Combat
+- フレアドライブ = Flare Blitz
+- ムーンフォース = Moonblast
+- じゃれつく = Play Rough
+- ワイドガード = Wide Guard
+- このゆびとまれ = Follow Me
+- いかりのこな = Rage Powder
+- キノコのほうし = Spore
+- おいかぜ = Tailwind
+- トリックルーム = Trick Room
+
+**MOVE TRANSLATION PROTOCOL:**
+1. Always use exact English move names from official Pokemon translations
+2. Never leave Japanese move names untranslated in the final output
+3. If uncertain about a move name, use context clues from Pokemon and strategy
+4. For signature moves, cross-reference with Pokemon to ensure accuracy
 
 RESPONSE FORMAT:
 Provide your response in this EXACT JSON structure:
