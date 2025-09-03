@@ -172,8 +172,8 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
         unsafe_allow_html=True,
     )
 
-    # Optimized layout with better content distribution and spacing
-    sprite_col, info_col, stats_col = st.columns([1.5, 3.0, 2.5])
+    # Responsive layout that adapts to screen size and prevents overlapping
+    sprite_col, info_col, stats_col = st.columns([1.2, 2.8, 2.0])
 
     with sprite_col:
         # Enhanced sprite display with proper error handling
@@ -912,10 +912,21 @@ def apply_custom_css():
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     }
     
-    /* Main content container */
+    /* Main content container - improved for split screen */
     .main .block-container {
         padding: 2rem 1rem;
         max-width: none;
+        overflow-x: hidden; /* Prevent horizontal scrolling */
+    }
+    
+    /* Ensure columns don't overflow */
+    .stColumns {
+        overflow: hidden;
+    }
+    
+    .stColumn {
+        min-width: 0; /* Allow columns to shrink below content size */
+        overflow-wrap: break-word; /* Break long words if needed */
     }
     
     /* Sidebar styling with VGCMulticalc inspiration */
@@ -1637,8 +1648,45 @@ def apply_custom_css():
         to { opacity: 1; transform: translateY(0); }
     }
     
-    /* Responsive Design */
+    /* Responsive Design - Enhanced for better split screen support */
+    @media (max-width: 1200px) {
+        /* Tablet and split screen improvements */
+        .info-item {
+            flex-wrap: wrap;
+            padding: 0.9rem 1.0rem;
+        }
+        
+        .info-label {
+            min-width: 70px;
+            font-size: 0.9rem;
+        }
+        
+        .info-value {
+            font-size: 0.9rem;
+        }
+        
+        .move-item {
+            flex-wrap: wrap;
+            padding: 0.8rem 1.0rem;
+        }
+        
+        .pokemon-sprite {
+            width: 140px;
+            height: 140px;
+        }
+        
+        .sprite-frame {
+            padding: 0.8rem;
+        }
+        
+        .ev-code {
+            font-size: 1.0rem;
+            padding: 0.8rem 1.2rem;
+        }
+    }
+    
     @media (max-width: 768px) {
+        /* Mobile and narrow split screen */
         .info-item {
             flex-direction: column;
             align-items: flex-start;
@@ -1662,9 +1710,27 @@ def apply_custom_css():
             margin-top: 1.0rem;
             margin-bottom: 1.2rem;
         }
+        
+        .pokemon-sprite {
+            width: 120px;
+            height: 120px;
+        }
+        
+        .pokemon-name-title {
+            font-size: 1.8rem !important;
+        }
+        
+        .card-header-modern {
+            padding: 2rem 1.5rem;
+        }
     }
     
-    @media (max-width: 480px) {
+    @media (max-width: 600px) {
+        /* Very narrow screens - stack everything vertically */
+        .professional-pokemon-card {
+            margin: 2rem 0;
+        }
+        
         .info-item, .move-item {
             padding: 0.8rem;
             border-radius: 8px;
@@ -1680,6 +1746,53 @@ def apply_custom_css():
         
         .ev-spread-display {
             font-size: 0.9rem;
+        }
+        
+        .pokemon-sprite {
+            width: 100px;
+            height: 100px;
+        }
+        
+        .sprite-frame {
+            padding: 0.6rem;
+        }
+    }
+    
+    /* Split screen and narrow monitor optimizations */
+    @media (max-width: 900px) and (min-width: 769px) {
+        /* This targets split screen scenarios specifically */
+        .info-section, .stats-section {
+            padding: 1.2rem;
+        }
+        
+        .info-item {
+            padding: 0.8rem 1.0rem;
+            margin-bottom: 0.8rem;
+        }
+        
+        .info-label {
+            min-width: 60px;
+        }
+        
+        .move-item {
+            padding: 0.8rem 1.0rem;
+        }
+        
+        .ev-bars-container {
+            gap: 0.8rem;
+        }
+        
+        .ev-bar-item {
+            padding: 0.6rem;
+        }
+        
+        /* Reduce font sizes slightly for better fit */
+        .pokemon-name-title {
+            font-size: 1.9rem !important;
+        }
+        
+        .section-header h4 {
+            font-size: 1.0rem !important;
         }
     }
     
