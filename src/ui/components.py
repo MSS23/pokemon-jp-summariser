@@ -16,13 +16,10 @@ from utils import (
 def render_page_header():
     """Render the professional main page header with quick stats"""
     # Get quick stats for better UX
-    saved_count = len(st.session_state.get("saved_teams", []))
     analysis_available = bool(st.session_state.get("analysis_result"))
     
     # Build stats display
     stats_items = []
-    if saved_count > 0:
-        stats_items.append(f"📊 {saved_count} Teams Saved")
     if analysis_available:
         stats_items.append("✅ Analysis Ready")
     
@@ -504,22 +501,8 @@ def render_team_showcase(analysis_result: Dict[str, Any]):
             unsafe_allow_html=True
         )
 
-    # Enhanced user experience: Quick actions and team save notification
+    # Enhanced user experience: Quick actions 
     st.markdown("---")
-    team_count = len(st.session_state.get("saved_teams", []))
-    
-    # Show save status and quick navigation
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        if team_count > 0:
-            st.success(f"✅ **Team automatically saved!** You now have {team_count} teams in your collection.")
-        else:
-            st.info("💾 Team will be saved automatically for future searching.")
-    
-    with col2:
-        if st.button("🔍 Search Similar Teams", help="Find similar teams in your collection", key="quick_search"):
-            st.session_state.current_page = "🔍 Team Search"
-            st.rerun()
     
     # Quick navigation options
     st.markdown("**⚡ What's next?**")
@@ -803,8 +786,6 @@ def render_sidebar():
             [
                 "🏠 Analysis Home",
                 "🎮 Switch Translation",
-                "📚 Saved Teams", 
-                "🔍 Team Search",
                 "⚙️ Settings",
                 "📖 Help & Guide"
             ],

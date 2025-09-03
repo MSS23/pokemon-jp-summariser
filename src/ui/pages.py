@@ -4,77 +4,7 @@ Additional page functions for the VGC Analysis App
 
 import streamlit as st
 
-# Import database components if available
-try:
-    from database.models import init_database
-    from database.crud import TeamCRUD
-    DATABASE_AVAILABLE = True
-except ImportError:
-    DATABASE_AVAILABLE = False
 
-
-def render_saved_teams_page():
-    """Render the saved teams page"""
-    st.header("📚 Saved Teams")
-    
-    if not DATABASE_AVAILABLE:
-        st.warning("⚠️ Database not available. Teams cannot be saved or retrieved.")
-        st.info("💡 Teams are still cached during your current session.")
-        return
-        
-    try:
-        teams = TeamCRUD.get_recent_teams(limit=20)
-        if teams:
-            st.success(f"Found {len(teams)} saved teams")
-            
-            for i, team in enumerate(teams):
-                with st.expander(f"🏆 {team.name} - {team.created_at.strftime('%Y-%m-%d %H:%M')}"):
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        st.metric("Regulation", team.regulation or "Not specified")
-                        st.metric("Rating", f"{team.rating:.1f}/5.0" if team.rating else "Not rated")
-                        
-                    with col2:
-                        if team.tournament_result:
-                            st.write(f"**Result:** {team.tournament_result}")
-                        if team.author:
-                            st.write(f"**Author:** {team.author}")
-                            
-                    with col3:
-                        if team.article_url:
-                            st.write(f"**[View Original Article]({team.article_url})**")
-                            
-                    if team.strategy_summary:
-                        st.write(f"**Strategy:** {team.strategy_summary}")
-                        
-                    # Show Pokemon names
-                    pokemon_names = [p.name for p in team.pokemon]
-                    if pokemon_names:
-                        st.write(f"**Team:** {', '.join(pokemon_names)}")
-        else:
-            st.info("📝 No saved teams found. Analyze some articles to build your collection!")
-            
-    except Exception as e:
-        st.error(f"Error loading saved teams: {e}")
-        
-def render_team_search_page():
-    """Render the team search page"""
-    st.header("🔍 Team Search")
-    st.info("🚧 Team search functionality coming soon!")
-    
-    # Placeholder for future search functionality
-    st.markdown(
-        """
-        **Planned Features:**
-        - Search by Pokemon name
-        - Filter by regulation (A, B, C)
-        - Search by author
-        - Filter by tournament results
-        - Advanced team archetype filtering
-        """
-    )
-    
 def render_settings_page():
     """Render the settings page"""
     st.header("⚙️ Settings")

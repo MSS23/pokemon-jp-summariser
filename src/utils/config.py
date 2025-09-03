@@ -50,11 +50,6 @@ class Config:
         return cls.GOOGLE_API_KEY
 
     @classmethod
-    def get_database_url(cls) -> str:
-        """Get database URL"""
-        return "sqlite:///vgc_analyzer.db"
-
-    @classmethod
     def ensure_log_directory(cls):
         """Ensure log directory exists"""
         os.makedirs(cls.LOG_DIR, exist_ok=True)
