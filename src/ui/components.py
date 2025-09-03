@@ -222,13 +222,12 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
                 
                 <div class="moveset-container">
                     {"".join([
-                        f'<div class="move-item {'empty' if not move or move == 'Not specified' else ''}">
-                            <span class="move-number">{i}</span>
-                            <span class="move-name" title="{move if move and move != 'Not specified' else 'Not specified'}">
-                                {move if move and move != "Not specified" else "Not specified"}
-                            </span>
-                        </div>'
-                        for i, move in enumerate(moves[:4] if moves else ['Not specified']*4, 1)
+                        '<div class="move-item{}">'.format(' empty' if not move or move == 'Not specified' else '') +
+                        f'<span class="move-number">{i}</span>' +
+                        f'<span class="move-name" title="{move if move and move != "Not specified" else "Not specified"}">' +
+                        f'{move if move and move != "Not specified" else "Not specified"}' +
+                        '</span></div>'
+                        for i, move in enumerate(moves[:4] if moves else ["Not specified"]*4, 1)
                     ])}
                 </div>
             </div>
