@@ -1121,10 +1121,15 @@ Provide your response in this EXACT JSON structure:
       "role_in_team": "Pokemon's strategic role"
     }
   ],
-  "overall_strategy": "Team's overall strategy and synergies",
-  "tournament_context": "Tournament or competitive context if mentioned",
-  "translation_notes": "Any translation notes or uncertainties",
-  "content_summary": "Brief summary of the article content"
+  "overall_strategy": "Comprehensive team strategy and approach - analyze the core gameplan, win conditions, and tactical approach described in the article",
+  "team_strengths": "Detailed analysis of team strengths - what makes this team effective, key advantages, favorable matchups, powerful combinations, and strategic assets mentioned in the article",
+  "team_weaknesses": "Detailed analysis of team weaknesses - vulnerabilities, problematic matchups, gaps in coverage, potential counters, and strategic limitations mentioned in the article",
+  "team_synergies": "How team members work together - core interactions, support relationships, combo strategies, and synergistic elements described in the article", 
+  "meta_analysis": "Analysis of how this team fits in the current meta, what it's designed to counter, and its positioning in the competitive landscape as described in the article",
+  "tournament_context": "Tournament or competitive context if mentioned - results, placement, tournament format, notable wins/losses",
+  "full_translation": "COMPLETE English translation of the entire article content - translate ALL Japanese text to natural, fluent English while preserving technical VGC terminology. This should be a comprehensive translation of the entire article, not just a summary.",
+  "translation_notes": "Any translation notes, uncertainties, or technical clarifications",
+  "content_summary": "Brief summary of the article's main points and structure"
 }
 
 Please analyze the following content and provide your response in the exact JSON format specified above:
@@ -1216,7 +1221,11 @@ Please analyze the following content and provide your response in the exact JSON
     def _validate_and_clean_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and clean the analysis result"""
         # Ensure required fields exist
-        required_fields = ["title", "pokemon_team", "overall_strategy", "regulation"]
+        required_fields = [
+            "title", "pokemon_team", "overall_strategy", "regulation", 
+            "team_strengths", "team_weaknesses", "team_synergies", 
+            "meta_analysis", "full_translation", "translation_notes", "content_summary"
+        ]
         for field in required_fields:
             if field not in result:
                 result[field] = "Not specified"

@@ -12,6 +12,74 @@ from utils import (
     create_pokepaste,
 )
 
+def render_section_header(icon: str, label: str):
+    """Render a clean section header with icon and label"""
+    st.markdown(
+        f'''
+        <div class="section-header">
+            <span class="section-icon">{icon}</span>
+            <span class="section-label">{label}</span>
+            <div class="section-divider"></div>
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
+
+def render_moves_grid(moves: List[str]):
+    """Render moveset as compact pills in a grid"""
+    moves_list = moves[:4] if moves else ["Not specified"] * 4
+    
+    moves_html = '<div class="moves-grid">'
+    for i, move in enumerate(moves_list, 1):
+        is_empty = not move or move == 'Not specified'
+        move_display = move if move and move != "Not specified" else "Not specified"
+        
+        moves_html += f'''
+        <div class="move-pill {'empty' if is_empty else ''}">
+            <span class="move-number">{i}</span>
+            <span class="move-name" title="{move_display}">{move_display}</span>
+        </div>'''
+    
+    moves_html += '</div>'
+    st.markdown(moves_html, unsafe_allow_html=True)
+
+def render_ev_bars(evs):
+    """Render standardized EV bars with consistent alignment"""
+    if evs == "Not specified":
+        st.markdown('<div class="ev-not-specified">EV spread not specified</div>', unsafe_allow_html=True)
+        return
+    
+    # Display EV summary
+    st.markdown(f'<div class="ev-summary">EVs: <code>{evs}</code></div>', unsafe_allow_html=True)
+    
+    # Parse and display bars
+    if "/" in str(evs):
+        try:
+            ev_values = [int(x.strip()) for x in str(evs).split("/")]
+            if len(ev_values) == 6:
+                ev_labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
+                ev_icons = ["❤️", "⚔️", "🛡️", "✨", "💫", "💨"]
+                
+                bars_html = '<div class="ev-bars">'
+                for label, icon, value in zip(ev_labels, ev_icons, ev_values):
+                    if value > 0:
+                        percentage = min((value / 252) * 100, 100)  # Cap at 100%
+                        bars_html += f'''
+                        <div class="ev-bar">
+                            <div class="ev-bar-info">
+                                <span class="ev-icon">{icon}</span>
+                                <span class="ev-label">{label}</span>
+                                <span class="ev-value">{value}</span>
+                            </div>
+                            <div class="ev-bar-track">
+                                <div class="ev-bar-fill" style="width: {percentage}%"></div>
+                            </div>
+                        </div>'''
+                bars_html += '</div>'
+                st.markdown(bars_html, unsafe_allow_html=True)
+        except Exception:
+            st.markdown('<div class="ev-parse-error">EV format could not be parsed</div>', unsafe_allow_html=True)
+
 
 def render_page_header():
     """Render the professional main page header with quick stats"""
@@ -136,8 +204,8 @@ def render_analysis_input() -> tuple[str, str]:
 
 def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     """
-    Render individual Pokemon card with professional, modern design
-
+    Render a clean, professional Pokemon card with compact layout
+    
     Args:
         pokemon: Pokemon data dictionary
         index: Pokemon position in team (0-5)
@@ -152,153 +220,69 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     evs = pokemon.get("evs", "Not specified")
     ev_explanation = pokemon.get("ev_explanation", "No explanation provided")
     
-    # Single cohesive container with header and grid content - compact vertical spacing
     sprite_url = get_pokemon_sprite_url(name)
     
-    # Combined header + grid container for precise vertical rhythm control  
+    # Professional card container with clean header
     st.markdown(
         f"""
-        <div class="pokemon-card-wrapper">
-            <div class="card-header-modern">
-                <div class="pokemon-number-badge">#{index + 1}</div>
-                <div class="pokemon-title-section">
-                    <h2 class="pokemon-name-title">{name}</h2>
-                    <span class="tera-badge-modern {get_pokemon_type_class(tera_type)}">
-                        <span class="tera-icon">⚡</span>
-                        <span class="tera-text">{tera_type} Tera</span>
-                    </span>
+        <div class="poke-card">
+            <div class="poke-card-header">
+                <img src="{sprite_url}" alt="{name}" class="poke-sprite" 
+                     onerror="this.src='https://via.placeholder.com/64x64/f0f0f0/999?text={name[:3]}'"/>
+                <div class="poke-header-info">
+                    <h3 class="poke-name">{name}</h3>
+                    <div class="poke-badges">
+                        <span class="poke-slot-badge">#{index + 1}</span>
+                        <span class="poke-tera-chip {get_pokemon_type_class(tera_type).lower()}">
+                            ⚡ {tera_type}
+                        </span>
+                    </div>
                 </div>
             </div>
-            <div class="pokemon-card-container">
         """,
         unsafe_allow_html=True,
     )
     
-    # Sprite Section
+    # Quick Facts Section
+    render_section_header("⚔️", "Battle-Ready Details")
     st.markdown(
         f'''
-        <div class="pokemon-sprite-section">
-            <div class="sprite-frame">
-                <img src="{sprite_url}" alt="{name}" class="pokemon-sprite" 
-                     onerror="this.src='https://via.placeholder.com/180x180/f0f0f0/999?text={name[:3]}'"/>
+        <div class="poke-quick-facts">
+            <div class="poke-fact {"" if ability != "Not specified" else "empty"}">
+                <span class="fact-icon">🧬</span>
+                <span class="fact-label">Ability</span>
+                <span class="fact-value">{ability}</span>
             </div>
-            <div class="pokemon-name-label" title="{name}">{name}</div>
-            <div class="pokemon-role-badge {get_role_class(role)}" title="Role: {role}">
-                <span class="role-icon">🎯</span>
-                <span class="role-text">{role}</span>
+            <div class="poke-fact item-prominent {"" if item != "Not specified" else "empty"}">
+                <span class="fact-icon">🎒</span>
+                <span class="fact-label">Item</span>
+                <span class="fact-value">{item}</span>
+            </div>
+            <div class="poke-fact {"" if nature != "Not specified" else "empty"}">
+                <span class="fact-icon">🌟</span>
+                <span class="fact-label">Nature</span>
+                <span class="fact-value">{nature}</span>
             </div>
         </div>
         ''',
         unsafe_allow_html=True
     )
     
-    # Info Section
-    st.markdown(
-        f'''
-        <div class="pokemon-info-section">
-            <div class="section-header">
-                <h4>⚔️ Battle Ready Details</h4>
-            </div>
-            <div class="info-items-container">
-                <div class="info-item {'specified' if ability != 'Not specified' else 'not-specified'}">
-                    <span class="info-icon">🧬</span>
-                    <span class="info-label">Ability:</span>
-                    <span class="info-value" title="{ability}">{ability}</span>
-                </div>
-                <div class="info-item {'specified' if item != 'Not specified' else 'not-specified'}">
-                    <span class="info-icon">🎒</span>
-                    <span class="info-label">Held Item:</span>
-                    <span class="info-value" title="{item}">{item}</span>
-                </div>
-                <div class="info-item {'specified' if nature != 'Not specified' else 'not-specified'}">
-                    <span class="info-icon">🌟</span>
-                    <span class="info-label">Nature:</span>
-                    <span class="info-value" title="{nature}">{nature}</span>
-                </div>
-            </div>
-        ''',
-        unsafe_allow_html=True
-    )
+    # Moveset Section
+    render_section_header("🎮", "Combat Moveset")
+    render_moves_grid(moves)
     
-    # Moveset section - render each move individually to avoid HTML parsing issues
-    st.markdown('<div class="section-header"><h4>🎮 Combat Moveset</h4></div>', unsafe_allow_html=True)
-    st.markdown('<div class="moveset-container">', unsafe_allow_html=True)
+    # EV Distribution Section
+    render_section_header("📊", "EV Distribution")
+    render_ev_bars(evs)
     
-    # Generate moves one by one
-    moves_list = moves[:4] if moves else ["Not specified"] * 4
-    for i, move in enumerate(moves_list, 1):
-        empty_class = ' empty' if not move or move == 'Not specified' else ''
-        move_display = move if move and move != "Not specified" else "Not specified"
-        
-        move_html = f'<div class="move-item{empty_class}"><span class="move-number">{i}</span><span class="move-name" title="{move_display}">{move_display}</span></div>'
-        st.markdown(move_html, unsafe_allow_html=True)
+    # Close card
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Close containers
-    st.markdown('</div></div>', unsafe_allow_html=True)  # Close moveset-container and pokemon-info-section
-    
-    # Stats Section
-    st.markdown(
-        '''
-        <div class="pokemon-stats-section">
-            <div class="section-header">
-                <h4>📊 EV Distribution</h4>
-            </div>
-        ''',
-        unsafe_allow_html=True
-    )
-    
-    if evs != "Not specified":
-        st.markdown(
-            f'''
-            <div class="ev-spread-display">
-                <code class="ev-code" title="EV Spread: {evs}">{evs}</code>
-            </div>
-            ''',
-            unsafe_allow_html=True
-        )
-    else:
-        st.markdown('<div class="ev-not-specified">*EV spread not specified*</div>', unsafe_allow_html=True)
-    
-    # Close stats section, grid container, and wrapper
-    st.markdown('</div></div></div>', unsafe_allow_html=True)
-    
-    # Add EV bars if valid EV spread
-    if evs != "Not specified" and "/" in str(evs):
-        try:
-            ev_values = [int(x.strip()) for x in str(evs).split("/")]
-            if len(ev_values) == 6:
-                ev_labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
-                ev_icons = ["❤️", "⚔️", "🛡️", "✨", "💫", "💨"]
-                
-                ev_bars_html = '<div class="ev-bars-container">'
-                for label, icon, value in zip(ev_labels, ev_icons, ev_values):
-                    if value > 0:
-                        percentage = (value / 252) * 100
-                        ev_bars_html += f'''
-                        <div class="ev-bar-item">
-                            <div class="ev-bar-label">
-                                <span class="ev-icon">{icon}</span>
-                                <span class="ev-stat">{label}</span>
-                                <span class="ev-value">{value}</span>
-                            </div>
-                            <div class="ev-bar-track">
-                                <div class="ev-bar-fill" style="width: {percentage}%"></div>
-                            </div>
-                        </div>'''
-                ev_bars_html += '</div>'
-                st.markdown(ev_bars_html, unsafe_allow_html=True)
-        except Exception:
-            st.markdown('<div class="ev-parse-error">*EV format could not be parsed*</div>', unsafe_allow_html=True)
-    
-    # Enhanced EV strategy explanation
-    with st.expander("💡 Strategic Reasoning", expanded=False):
-        if ev_explanation != "No explanation provided":
-            st.markdown(f'<div class="ev-explanation">{ev_explanation}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="ev-explanation empty">*No strategic explanation provided*</div>', unsafe_allow_html=True)
-    
-    # Modern divider
-    st.markdown('<div class="card-divider"></div>', unsafe_allow_html=True)
+    # Strategic reasoning in clean expander
+    if ev_explanation != "No explanation provided":
+        with st.expander("💡 Strategic Reasoning", expanded=False):
+            st.markdown(f'<div class="strategy-explanation">{ev_explanation}</div>', unsafe_allow_html=True)
 
 
 def render_article_summary(analysis_result: Dict[str, Any]):
@@ -363,22 +347,105 @@ def render_article_summary(analysis_result: Dict[str, Any]):
             unsafe_allow_html=True
         )
     
-    # Key insights row
+    # Strategic Analysis Section
+    st.markdown("### 🧠 Strategic Analysis")
+    
+    # Team Strategy
+    overall_strategy = analysis_result.get("overall_strategy", "")
+    if overall_strategy:
+        st.markdown(
+            f"""
+            <div style="background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%); 
+                        padding: 1.5rem; border-radius: 12px; border-left: 4px solid #0288d1; margin: 1rem 0;">
+                <h4 style="color: #01579b; margin: 0 0 1rem 0;">🎯 Overall Strategy</h4>
+                <p style="color: #0277bd; margin: 0; font-size: 1rem; line-height: 1.6;">
+                    {overall_strategy}
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+    # Team Strengths and Weaknesses in columns
     col1, col2 = st.columns(2)
     
     with col1:
-        strengths = analysis_result.get("strengths", [])
-        if strengths:
-            st.markdown("**🔥 Key Strengths:**")
-            for strength in strengths[:3]:  # Show top 3
-                st.markdown(f"• {strength}")
+        team_strengths = analysis_result.get("team_strengths", "")
+        if team_strengths:
+            st.markdown(
+                f"""
+                <div style="background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); 
+                            padding: 1.5rem; border-radius: 12px; border-left: 4px solid #4caf50; margin: 1rem 0;">
+                    <h4 style="color: #2e7d32; margin: 0 0 1rem 0;">🔥 Team Strengths</h4>
+                    <div style="color: #388e3c; font-size: 0.95rem; line-height: 1.6;">
+                        {team_strengths.replace(chr(10), '<br>')}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
     
     with col2:
-        weaknesses = analysis_result.get("weaknesses", [])
-        if weaknesses:
-            st.markdown("**⚠️ Watch Out For:**")
-            for weakness in weaknesses[:3]:  # Show top 3
-                st.markdown(f"• {weakness}")
+        team_weaknesses = analysis_result.get("team_weaknesses", "")
+        if team_weaknesses:
+            st.markdown(
+                f"""
+                <div style="background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); 
+                            padding: 1.5rem; border-radius: 12px; border-left: 4px solid #f44336; margin: 1rem 0;">
+                    <h4 style="color: #c62828; margin: 0 0 1rem 0;">⚠️ Team Weaknesses</h4>
+                    <div style="color: #d32f2f; font-size: 0.95rem; line-height: 1.6;">
+                        {team_weaknesses.replace(chr(10), '<br>')}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+    
+    # Team Synergies
+    team_synergies = analysis_result.get("team_synergies", "")
+    if team_synergies:
+        st.markdown(
+            f"""
+            <div style="background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 40%); 
+                        padding: 1.5rem; border-radius: 12px; border-left: 4px solid #ff9800; margin: 1rem 0;">
+                <h4 style="color: #ef6c00; margin: 0 0 1rem 0;">🤝 Team Synergies</h4>
+                <div style="color: #f57c00; font-size: 0.95rem; line-height: 1.6;">
+                    {team_synergies.replace(chr(10), '<br>')}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+    # Meta Analysis
+    meta_analysis = analysis_result.get("meta_analysis", "")
+    if meta_analysis:
+        st.markdown(
+            f"""
+            <div style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); 
+                        padding: 1.5rem; border-radius: 12px; border-left: 4px solid #9c27b0; margin: 1rem 0;">
+                <h4 style="color: #6a1b9a; margin: 0 0 1rem 0;">📊 Meta Analysis</h4>
+                <div style="color: #7b1fa2; font-size: 0.95rem; line-height: 1.6;">
+                    {meta_analysis.replace(chr(10), '<br>')}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+    # Full Translation Section
+    full_translation = analysis_result.get("full_translation", "")
+    if full_translation:
+        with st.expander("📖 Complete Article Translation", expanded=False):
+            st.markdown(
+                f"""
+                <div style="background: #fafafa; padding: 1.5rem; border-radius: 8px; 
+                            border: 1px solid #e0e0e0; line-height: 1.8; font-size: 0.95rem;">
+                    {full_translation.replace(chr(10), '<br><br>')}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
     
     st.divider()
 
@@ -889,30 +956,53 @@ def render_image_analysis_section(analysis_result: Dict[str, Any]):
 
 
 def apply_custom_css():
-    """Apply modern VGCMulticalc-style CSS styling"""
+    """Apply clean, professional CSS styling for VGC Analysis Platform"""
     st.markdown(
         """
     <style>
-    /* Import Google Fonts */
+    /* Import modern fonts */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
-    /* Root variables for consistent theming */
+    /* Clean design tokens */
     :root {
-        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        --secondary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        --surface: #ffffff;
-        --surface-variant: #f8fafc;
-        --on-surface: #1e293b;
-        --border-color: #e2e8f0;
-        --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-        --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.06);
-        --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
-        --shadow-xl: 0 20px 25px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.04);
-        --border-radius-sm: 8px;
-        --border-radius-md: 12px;
-        --border-radius-lg: 16px;
-        --border-radius-xl: 20px;
+        --color-gray-50: #f9fafb;
+        --color-gray-100: #f3f4f6;
+        --color-gray-200: #e5e7eb;
+        --color-gray-300: #d1d5db;
+        --color-gray-400: #9ca3af;
+        --color-gray-500: #6b7280;
+        --color-gray-600: #4b5563;
+        --color-gray-700: #374151;
+        --color-gray-800: #1f2937;
+        --color-gray-900: #111827;
+        
+        --color-blue-50: #eff6ff;
+        --color-blue-100: #dbeafe;
+        --color-blue-500: #3b82f6;
+        --color-blue-600: #2563eb;
+        --color-blue-700: #1d4ed8;
+        
+        --color-green-50: #f0fdf4;
+        --color-green-500: #22c55e;
+        --color-green-600: #16a34a;
+        
+        --color-red-50: #fef2f2;
+        --color-red-500: #ef4444;
+        --color-red-600: #dc2626;
+        
+        --color-amber-50: #fffbeb;
+        --color-amber-500: #f59e0b;
+        --color-amber-600: #d97706;
+        
+        --color-purple-50: #faf5ff;
+        --color-purple-500: #a855f7;
+        --color-purple-600: #9333ea;
+        
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        
+        --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
     /* Modern typography */
@@ -1073,18 +1163,18 @@ def apply_custom_css():
         z-index: 1;
     }
     
-    /* Header with reduced bottom spacing for tight gap */
+    /* Header with minimal bottom spacing for tight gap */
     .pokemon-card-wrapper .card-header-modern {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2.5rem 2rem 0.75rem 2rem; /* Reduced bottom padding from 2rem to 0.75rem */
+        padding: 2.5rem 2rem 0.5rem 2rem; /* Further reduced bottom padding to 0.5rem (8px) */
         position: relative;
         overflow: hidden;
         margin-bottom: 0; /* Explicit zero margin */
     }
     
-    /* Grid container with reduced top padding for tight connection */
+    /* Grid container with minimal top padding for seamless connection */
     .pokemon-card-wrapper .pokemon-card-container {
-        padding-top: 0.75rem; /* Reduced from 2rem to 0.75rem */
+        padding-top: 0.5rem; /* Further reduced from 0.75rem to 0.5rem (8px) */
         padding-bottom: 2rem;
         padding-left: 2rem;
         padding-right: 2rem;
