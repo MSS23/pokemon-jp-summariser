@@ -132,9 +132,8 @@ try:
         if not result:
             return
 
-        # Article summary
-        if result.get("article_summary"):
-            render_article_summary(result)
+        # Article summary (always render as it handles missing fields gracefully)
+        render_article_summary(result)
 
         # Team showcase
         if result.get("pokemon_team"):
