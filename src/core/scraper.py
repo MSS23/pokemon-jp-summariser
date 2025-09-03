@@ -7,6 +7,11 @@ import requests
 from bs4 import BeautifulSoup
 from typing import Optional
 import time
+import logging
+
+# Configure logging for debugging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class ArticleScraper:
@@ -55,12 +60,17 @@ class ArticleScraper:
         
         for strategy_func in strategies:
             try:
+                logger.info(f"Trying scraping strategy: {strategy_func.__name__}")
                 content = strategy_func(url)
                 if content and len(content.strip()) > 50:  # Lower minimum for better fallback
+                    logger.info(f"Success with {strategy_func.__name__}: extracted {len(content)} characters")
+                    logger.debug(f"Content preview: {content[:200]}...")
                     return content
+                else:
+                    logger.warning(f"Strategy {strategy_func.__name__} returned insufficient content: {len(content) if content else 0} chars")
             except Exception as e:
                 # Log the error but continue to next strategy
-                print(f"Scraping strategy failed: {strategy_func.__name__}: {str(e)}")
+                logger.error(f"Scraping strategy failed: {strategy_func.__name__}: {str(e)}")
                 continue
         
         raise ValueError("All scraping strategies failed to extract meaningful content")
@@ -185,9 +195,14 @@ class ArticleScraper:
             
             # Special handling for note.com articles (critical improvement)
             if "note.com" in response.url:
+                logger.info("Detected note.com URL, using specialized extraction")
                 note_content = self._extract_note_com_content_specialized(soup)
                 if note_content:
+                    logger.info(f"Note.com specialized extraction successful: {len(note_content)} characters")
+                    logger.debug(f"Note.com content preview: {note_content[:300]}...")
                     return note_content
+                else:
+                    logger.warning("Note.com specialized extraction failed, falling back to generic extraction")
 
             # Remove unwanted elements but be more selective for dynamic content
             for element in soup(
@@ -589,15 +604,19 @@ class ArticleScraper:
             for selector in ultra_specific_selectors:
                 try:
                     elements = soup.select(selector)
+                    logger.info(f"Trying note.com selector: {selector} - found {len(elements)} elements")
                     for element in elements:
                         text_content = element.get_text(separator=" ", strip=True)
                         if len(text_content) > 100:  # Minimum length threshold
                             # Score this content for VGC relevance
                             content_score = self._calculate_content_score(text_content)
+                            logger.debug(f"Element content score: {content_score} for {len(text_content)} chars")
                             if content_score > best_score:
                                 best_score = content_score
                                 best_content = element
-                except Exception:
+                                logger.info(f"New best content found with score {best_score}")
+                except Exception as e:
+                    logger.debug(f"Selector {selector} failed: {e}")
                     continue
             
             if best_content:
