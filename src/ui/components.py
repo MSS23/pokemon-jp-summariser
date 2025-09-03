@@ -26,53 +26,74 @@ def render_section_header(icon: str, label: str):
     )
 
 def render_moves_grid(moves: List[str]):
-    """Render moveset as compact pills in a grid"""
+    """Render moveset as dynamic, enhanced move cards"""
     moves_list = moves[:4] if moves else ["Not specified"] * 4
     
-    moves_html = '<div class="moves-grid">'
+    moves_html = '<div class="moves-grid-enhanced">'
     for i, move in enumerate(moves_list, 1):
         is_empty = not move or move == 'Not specified'
         move_display = move if move and move != "Not specified" else "Not specified"
         
+        # Add visual variety with different move card styles
+        card_class = f"move-card-{(i-1) % 4 + 1}"
+        
         moves_html += f'''
-        <div class="move-pill {'empty' if is_empty else ''}">
-            <span class="move-number">{i}</span>
-            <span class="move-name" title="{move_display}">{move_display}</span>
+        <div class="move-card {card_class} {'empty' if is_empty else ''}">
+            <div class="move-header">
+                <div class="move-number-badge">{i}</div>
+                <div class="move-type-indicator"></div>
+            </div>
+            <div class="move-content">
+                <span class="move-name-dynamic" title="{move_display}">{move_display}</span>
+            </div>
+            <div class="move-accent"></div>
         </div>'''
     
     moves_html += '</div>'
     st.markdown(moves_html, unsafe_allow_html=True)
 
 def render_ev_bars(evs):
-    """Render standardized EV bars with consistent alignment"""
+    """Render dynamic, enhanced EV visualization"""
     if evs == "Not specified":
         st.markdown('<div class="ev-not-specified">EV spread not specified</div>', unsafe_allow_html=True)
         return
     
-    # Display EV summary
-    st.markdown(f'<div class="ev-summary">EVs: <code>{evs}</code></div>', unsafe_allow_html=True)
+    # Display EV summary with enhanced styling
+    st.markdown(f'<div class="ev-summary-enhanced"><span class="ev-label-text">EV Distribution:</span> <code class="ev-code-enhanced">{evs}</code></div>', unsafe_allow_html=True)
     
-    # Parse and display bars
+    # Parse and display enhanced bars
     if "/" in str(evs):
         try:
             ev_values = [int(x.strip()) for x in str(evs).split("/")]
             if len(ev_values) == 6:
                 ev_labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
                 ev_icons = ["❤️", "⚔️", "🛡️", "✨", "💫", "💨"]
+                ev_colors = ["#ef4444", "#f59e0b", "#3b82f6", "#8b5cf6", "#06b6d4", "#10b981"]
                 
-                bars_html = '<div class="ev-bars">'
-                for label, icon, value in zip(ev_labels, ev_icons, ev_values):
+                bars_html = '<div class="ev-bars-enhanced">'
+                for i, (label, icon, value) in enumerate(zip(ev_labels, ev_icons, ev_values)):
                     if value > 0:
                         percentage = min((value / 252) * 100, 100)  # Cap at 100%
+                        color = ev_colors[i]
+                        
+                        # Determine bar intensity for visual effect
+                        intensity = "high" if value >= 200 else "medium" if value >= 100 else "low"
+                        
                         bars_html += f'''
-                        <div class="ev-bar">
-                            <div class="ev-bar-info">
-                                <span class="ev-icon">{icon}</span>
-                                <span class="ev-label">{label}</span>
-                                <span class="ev-value">{value}</span>
+                        <div class="ev-bar-enhanced {intensity}">
+                            <div class="ev-bar-header">
+                                <div class="ev-stat-info">
+                                    <span class="ev-icon-enhanced">{icon}</span>
+                                    <span class="ev-label-enhanced">{label}</span>
+                                </div>
+                                <div class="ev-value-badge" style="background-color: {color}20; color: {color};">
+                                    {value}
+                                </div>
                             </div>
-                            <div class="ev-bar-track">
-                                <div class="ev-bar-fill" style="width: {percentage}%"></div>
+                            <div class="ev-bar-track-enhanced">
+                                <div class="ev-bar-fill-enhanced {intensity}" 
+                                     style="width: {percentage}%; background: linear-gradient(90deg, {color}80, {color});"></div>
+                                <div class="ev-bar-shimmer"></div>
                             </div>
                         </div>'''
                 bars_html += '</div>'
@@ -204,7 +225,7 @@ def render_analysis_input() -> tuple[str, str]:
 
 def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     """
-    Render a clean, professional Pokemon card with compact layout
+    Render a dynamic, visually enhanced Pokemon card
     
     Args:
         pokemon: Pokemon data dictionary
@@ -221,21 +242,27 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     ev_explanation = pokemon.get("ev_explanation", "No explanation provided")
     
     sprite_url = get_pokemon_sprite_url(name)
+    type_class = get_pokemon_type_class(tera_type).lower()
     
-    # Professional card container with clean header
+    # Dynamic Pokemon card with enhanced visual hierarchy
     st.markdown(
         f"""
-        <div class="poke-card">
-            <div class="poke-card-header">
-                <img src="{sprite_url}" alt="{name}" class="poke-sprite" 
-                     onerror="this.src='https://via.placeholder.com/64x64/f0f0f0/999?text={name[:3]}'"/>
-                <div class="poke-header-info">
-                    <h3 class="poke-name">{name}</h3>
-                    <div class="poke-badges">
-                        <span class="poke-slot-badge">#{index + 1}</span>
-                        <span class="poke-tera-chip {get_pokemon_type_class(tera_type).lower()}">
-                            ⚡ {tera_type}
-                        </span>
+        <div class="poke-card-enhanced">
+            <div class="poke-card-hero {type_class}">
+                <div class="hero-background"></div>
+                <div class="hero-content">
+                    <div class="poke-slot-number">#{index + 1}</div>
+                    <div class="poke-sprite-container">
+                        <img src="{sprite_url}" alt="{name}" class="poke-sprite-large" 
+                             onerror="this.src='https://via.placeholder.com/96x96/f0f0f0/999?text={name[:3]}'"/>
+                        <div class="sprite-glow {type_class}"></div>
+                    </div>
+                    <div class="poke-title-section">
+                        <h2 class="poke-name-hero">{name}</h2>
+                        <div class="poke-type-badge {type_class}">
+                            <span class="type-icon">⚡</span>
+                            <span class="type-name">{tera_type}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -243,46 +270,74 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
         unsafe_allow_html=True,
     )
     
-    # Quick Facts Section
-    render_section_header("⚔️", "Battle-Ready Details")
+    # Enhanced Battle Stats Section
     st.markdown(
         f'''
-        <div class="poke-quick-facts">
-            <div class="poke-fact {"" if ability != "Not specified" else "empty"}">
-                <span class="fact-icon">🧬</span>
-                <span class="fact-label">Ability</span>
-                <span class="fact-value">{ability}</span>
+        <div class="battle-stats-grid">
+            <div class="stat-card ability-card {"empty" if ability == "Not specified" else ""}">
+                <div class="stat-icon-wrapper">
+                    <span class="stat-icon">🧬</span>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Ability</div>
+                    <div class="stat-value">{ability}</div>
+                </div>
+                <div class="stat-accent"></div>
             </div>
-            <div class="poke-fact item-prominent {"" if item != "Not specified" else "empty"}">
-                <span class="fact-icon">🎒</span>
-                <span class="fact-label">Item</span>
-                <span class="fact-value">{item}</span>
+            
+            <div class="stat-card item-card prominent {"empty" if item == "Not specified" else ""}">
+                <div class="stat-icon-wrapper">
+                    <span class="stat-icon">🎒</span>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Held Item</div>
+                    <div class="stat-value">{item}</div>
+                </div>
+                <div class="stat-accent golden"></div>
             </div>
-            <div class="poke-fact {"" if nature != "Not specified" else "empty"}">
-                <span class="fact-icon">🌟</span>
-                <span class="fact-label">Nature</span>
-                <span class="fact-value">{nature}</span>
+            
+            <div class="stat-card nature-card {"empty" if nature == "Not specified" else ""}">
+                <div class="stat-icon-wrapper">
+                    <span class="stat-icon">🌟</span>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Nature</div>
+                    <div class="stat-value">{nature}</div>
+                </div>
+                <div class="stat-accent"></div>
             </div>
         </div>
         ''',
         unsafe_allow_html=True
     )
     
-    # Moveset Section
-    render_section_header("🎮", "Combat Moveset")
+    # Enhanced Moveset Section
+    st.markdown('<div class="section-divider-enhanced"><span class="section-title">🎮 Combat Moveset</span></div>', unsafe_allow_html=True)
     render_moves_grid(moves)
     
-    # EV Distribution Section
-    render_section_header("📊", "EV Distribution")
+    # Enhanced EV Distribution Section
+    st.markdown('<div class="section-divider-enhanced"><span class="section-title">📊 EV Distribution</span></div>', unsafe_allow_html=True)
     render_ev_bars(evs)
     
-    # Close card
+    # Close enhanced card
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Strategic reasoning in clean expander
+    # Enhanced strategic reasoning section
     if ev_explanation != "No explanation provided":
-        with st.expander("💡 Strategic Reasoning", expanded=False):
-            st.markdown(f'<div class="strategy-explanation">{ev_explanation}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'''
+            <div class="strategy-section-enhanced">
+                <div class="strategy-header">
+                    <span class="strategy-icon">💡</span>
+                    <span class="strategy-title">Strategic Reasoning</span>
+                </div>
+                <div class="strategy-content">
+                    {ev_explanation}
+                </div>
+            </div>
+            ''',
+            unsafe_allow_html=True
+        )
 
 
 def render_article_summary(analysis_result: Dict[str, Any]):
@@ -2062,6 +2117,488 @@ def apply_custom_css():
                 flex-direction: column;
                 gap: 1rem;
             }
+        }
+    }
+    
+    /* ============================================= */
+    /* ENHANCED DYNAMIC POKEMON CARD STYLES */
+    /* ============================================= */
+    
+    .poke-card-enhanced {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        margin: 2rem 0;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+    
+    .poke-card-enhanced:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 64px rgba(0,0,0,0.15);
+    }
+    
+    .poke-card-hero {
+        position: relative;
+        padding: 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        overflow: hidden;
+    }
+    
+    .poke-card-hero.ghost {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    }
+    
+    .poke-card-hero.psychic {
+        background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+    }
+    
+    .poke-card-hero.dark {
+        background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+    }
+    
+    .hero-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at top right, rgba(255,255,255,0.1), transparent);
+    }
+    
+    .hero-content {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        z-index: 1;
+    }
+    
+    .poke-slot-number {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        backdrop-filter: blur(10px);
+    }
+    
+    .poke-sprite-container {
+        position: relative;
+    }
+    
+    .poke-sprite-large {
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.1);
+        padding: 1rem;
+        backdrop-filter: blur(10px);
+        transition: transform 0.3s ease;
+    }
+    
+    .poke-sprite-large:hover {
+        transform: scale(1.1) rotate(5deg);
+    }
+    
+    .sprite-glow {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,255,255,0.3), transparent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .poke-sprite-container:hover .sprite-glow {
+        opacity: 1;
+    }
+    
+    .poke-name-hero {
+        color: white;
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .poke-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+    }
+    
+    .type-icon {
+        font-size: 1.2rem;
+    }
+    
+    /* Enhanced Battle Stats */
+    .battle-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    
+    .stat-card.prominent {
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        border: 2px solid #f59e0b;
+    }
+    
+    .stat-icon-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+        margin-bottom: 1rem;
+    }
+    
+    .stat-icon {
+        font-size: 1.5rem;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--color-gray-600);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--color-gray-900);
+    }
+    
+    .stat-accent {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    }
+    
+    .stat-accent.golden {
+        background: linear-gradient(90deg, #f59e0b, #f97316);
+    }
+    
+    /* Enhanced Section Dividers */
+    .section-divider-enhanced {
+        display: flex;
+        align-items: center;
+        padding: 1.5rem 2rem 1rem 2rem;
+        position: relative;
+    }
+    
+    .section-title {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Enhanced Moves Grid */
+    .moves-grid-enhanced {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        padding: 0 2rem 2rem 2rem;
+    }
+    
+    .move-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    
+    .move-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    
+    .move-card-1 { border-left: 4px solid #ef4444; }
+    .move-card-2 { border-left: 4px solid #3b82f6; }
+    .move-card-3 { border-left: 4px solid #10b981; }
+    .move-card-4 { border-left: 4px solid #f59e0b; }
+    
+    .move-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .move-number-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
+    .move-name-dynamic {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--color-gray-900);
+        display: block;
+    }
+    
+    .move-card.empty {
+        opacity: 0.5;
+        background: #f8fafc;
+    }
+    
+    .move-accent {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .move-card:hover .move-accent {
+        opacity: 1;
+    }
+    
+    /* Enhanced EV Bars */
+    .ev-summary-enhanced {
+        padding: 1rem 2rem;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-radius: 12px;
+        margin: 0 2rem 1rem 2rem;
+        border: 1px solid #0ea5e9;
+    }
+    
+    .ev-label-text {
+        font-weight: 600;
+        color: #0369a1;
+        margin-right: 1rem;
+    }
+    
+    .ev-code-enhanced {
+        background: white;
+        color: #0c4a6e;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-weight: 600;
+        border: 1px solid #0ea5e9;
+    }
+    
+    .ev-bars-enhanced {
+        padding: 0 2rem 2rem 2rem;
+        display: grid;
+        gap: 1rem;
+    }
+    
+    .ev-bar-enhanced {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+    
+    .ev-bar-enhanced:hover {
+        transform: translateX(4px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    
+    .ev-bar-enhanced.high {
+        border-left: 4px solid #10b981;
+    }
+    
+    .ev-bar-enhanced.medium {
+        border-left: 4px solid #f59e0b;
+    }
+    
+    .ev-bar-enhanced.low {
+        border-left: 4px solid #6b7280;
+    }
+    
+    .ev-bar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .ev-stat-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .ev-icon-enhanced {
+        font-size: 1.25rem;
+    }
+    
+    .ev-label-enhanced {
+        font-weight: 600;
+        color: var(--color-gray-700);
+    }
+    
+    .ev-value-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
+    .ev-bar-track-enhanced {
+        height: 8px;
+        background: #f1f5f9;
+        border-radius: 4px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .ev-bar-fill-enhanced {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+    
+    .ev-bar-shimmer {
+        position: absolute;
+        top: 0;
+        left: -100%;
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+        animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+    
+    /* Enhanced Strategy Section */
+    .strategy-section-enhanced {
+        background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+        border: 1px solid #f59e0b;
+        border-radius: 16px;
+        margin: 1rem 2rem 2rem 2rem;
+        overflow: hidden;
+    }
+    
+    .strategy-header {
+        background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .strategy-icon {
+        font-size: 1.25rem;
+    }
+    
+    .strategy-title {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .strategy-content {
+        padding: 1.5rem;
+        line-height: 1.7;
+        color: #92400e;
+    }
+    
+    /* Mobile Responsive for Enhanced Cards */
+    @media (max-width: 768px) {
+        .poke-card-hero {
+            padding: 1.5rem;
+        }
+        
+        .hero-content {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+        
+        .poke-sprite-large {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .poke-name-hero {
+            font-size: 1.5rem;
+        }
+        
+        .battle-stats-grid {
+            grid-template-columns: 1fr;
+            padding: 1rem;
+        }
+        
+        .moves-grid-enhanced {
+            grid-template-columns: 1fr;
+            padding: 0 1rem 1rem 1rem;
+        }
+        
+        .ev-bars-enhanced {
+            padding: 0 1rem 1rem 1rem;
+        }
+        
+        .section-divider-enhanced {
+            padding: 1rem;
+        }
+        
+        .strategy-section-enhanced {
+            margin: 1rem;
         }
     }
     </style>
