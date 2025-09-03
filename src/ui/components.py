@@ -275,7 +275,7 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     st.markdown(
         f'''
         <div class="battle-stats-grid">
-            <div class="stat-card ability-card {"empty" if ability == "Not specified" else ""}">
+            <div class="stat-card ability-card {'empty' if ability == 'Not specified' else ''}">
                 <div class="stat-icon-wrapper">
                     <span class="stat-icon">🧬</span>
                 </div>
@@ -286,7 +286,7 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
                 <div class="stat-accent"></div>
             </div>
             
-            <div class="stat-card item-card prominent {"empty" if item == "Not specified" else ""}">
+            <div class="stat-card item-card prominent {'empty' if item == 'Not specified' else ''}">
                 <div class="stat-icon-wrapper">
                     <span class="stat-icon">🎒</span>
                 </div>
@@ -297,7 +297,7 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
                 <div class="stat-accent golden"></div>
             </div>
             
-            <div class="stat-card nature-card {"empty" if nature == "Not specified" else ""}">
+            <div class="stat-card nature-card {'empty' if nature == 'Not specified' else ''}">
                 <div class="stat-icon-wrapper">
                     <span class="stat-icon">🌟</span>
                 </div>
