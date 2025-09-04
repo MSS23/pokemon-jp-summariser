@@ -179,17 +179,32 @@ class ArticleScraper:
         """Enhanced content processing from HTTP response with note.com specialization"""
         try:
             
-            # Enhanced encoding detection and handling
+            # Enhanced encoding detection and handling with special Hatenablog support
             if response.encoding is None or response.encoding.lower() in ['iso-8859-1', 'ascii']:
                 # Force UTF-8 for Japanese content
                 response.encoding = 'utf-8'
             
-            # Use response.content with explicit UTF-8 decoding for better Japanese handling
+            # Enhanced Japanese text handling - especially critical for Hatenablog
             try:
+                # First attempt: Direct UTF-8 decoding
                 html_content = response.content.decode('utf-8', errors='ignore')
             except UnicodeDecodeError:
-                # Fallback to response.text with encoding set
-                html_content = response.text
+                try:
+                    # Second attempt: Try with different encodings common in Japanese sites
+                    html_content = response.content.decode('shift_jis', errors='ignore')
+                except UnicodeDecodeError:
+                    try:
+                        # Third attempt: EUC-JP encoding
+                        html_content = response.content.decode('euc-jp', errors='ignore')
+                    except UnicodeDecodeError:
+                        # Final fallback to response.text with encoding set
+                        html_content = response.text
+            
+            # Additional encoding fix for Hatenablog domains
+            if any(domain in response.url for domain in ["hatenablog.com", "hatenablog.jp", "hatenadiary.jp"]):
+                # Ensure proper Unicode normalization for Japanese content
+                import unicodedata
+                html_content = unicodedata.normalize('NFKC', html_content)
 
             soup = BeautifulSoup(html_content, "html.parser")
             
@@ -203,6 +218,17 @@ class ArticleScraper:
                     return note_content
                 else:
                     logger.warning("Note.com specialized extraction failed, falling back to generic extraction")
+
+            # Special handling for Hatenablog articles (NEW - addresses missing Hatenablog support)
+            if any(domain in response.url for domain in ["hatenablog.com", "hatenablog.jp", "hatenadiary.jp"]):
+                logger.info("Detected Hatenablog URL, using specialized extraction")
+                hatenablog_content = self._extract_hatenablog_content_specialized(soup)
+                if hatenablog_content:
+                    logger.info(f"Hatenablog specialized extraction successful: {len(hatenablog_content)} characters")
+                    logger.debug(f"Hatenablog content preview: {hatenablog_content[:300]}...")
+                    return hatenablog_content
+                else:
+                    logger.warning("Hatenablog specialized extraction failed, falling back to generic extraction")
 
             # Remove unwanted elements but be more selective for dynamic content
             for element in soup(
@@ -748,4 +774,224 @@ class ArticleScraper:
             if unique_ratio < 0.4:  # Too repetitive
                 return False
                 
+        return True
+
+    def _extract_hatenablog_content_specialized(self, soup) -> Optional[str]:
+        """
+        SPECIALIZED Hatenablog content extraction optimized for Pokemon VGC articles
+        Addresses the missing Hatenablog support that was causing scraping failures
+        """
+        try:
+            # STRATEGY 1: Hatenablog-specific article content selectors
+            hatenablog_specific_selectors = [
+                # Primary Hatenablog article content selectors
+                ".entry-content",  # Main article content container
+                ".entry-body",     # Article body content
+                ".entry-inner",    # Inner content wrapper
+                
+                # Alternative Hatenablog patterns
+                ".hatena-body",    # Hatena blog body
+                ".entry-content-container",  # Content container
+                "#main-content .entry-content",  # Main content area
+                
+                # More specific Hatenablog selectors
+                "article .entry-content",
+                "main .entry-content", 
+                ".hentry .entry-content",  # hentry is common in Hatenablog
+                ".post-content",
+                ".blog-entry-content",
+                
+                # Fallback selectors for various Hatenablog themes
+                ".entry",
+                ".post-body",
+                ".article-body",
+                "#content .entry-content"
+            ]
+            
+            best_content = None
+            best_score = 0
+            
+            for selector in hatenablog_specific_selectors:
+                try:
+                    elements = soup.select(selector)
+                    logger.info(f"Trying Hatenablog selector: {selector} - found {len(elements)} elements")
+                    for element in elements:
+                        text_content = element.get_text(separator=" ", strip=True)
+                        if len(text_content) > 200:  # Minimum length threshold
+                            # Score this content for VGC relevance
+                            content_score = self._calculate_content_score(text_content)
+                            logger.debug(f"Hatenablog element content score: {content_score} for {len(text_content)} chars")
+                            if content_score > best_score:
+                                best_score = content_score
+                                best_content = element
+                                logger.info(f"New best Hatenablog content found with score {best_score}")
+                except Exception as e:
+                    logger.debug(f"Hatenablog selector {selector} failed: {e}")
+                    continue
+            
+            if best_content and best_score > 30:  # Higher threshold for Hatenablog
+                # Extract and clean the content
+                text = best_content.get_text(separator=" ", strip=True)
+                
+                # Specialized Hatenablog text cleaning
+                text = self._clean_hatenablog_content_specialized(text)
+                
+                # Validate that we got meaningful VGC content
+                if self._validate_hatenablog_content(text):
+                    return text
+            
+            # STRATEGY 2: If direct extraction failed, try broader content search
+            # Look for any element with substantial Japanese VGC content
+            all_potential_elements = soup.find_all(['div', 'section', 'article', 'main'])
+            
+            for element in all_potential_elements:
+                try:
+                    text = element.get_text(separator=" ", strip=True)
+                    if len(text) > 300:  # Longer content for broader search
+                        content_score = self._calculate_content_score(text)
+                        if content_score > 60:  # Higher threshold for broader search
+                            cleaned_text = self._clean_hatenablog_content_specialized(text)
+                            if self._validate_hatenablog_content(cleaned_text):
+                                logger.info(f"Hatenablog broad search successful with score {content_score}")
+                                return cleaned_text
+                except Exception:
+                    continue
+                    
+            return None
+            
+        except Exception as e:
+            logger.error(f"Hatenablog specialized extraction failed: {e}")
+            return None
+    
+    def _clean_hatenablog_content_specialized(self, text: str) -> str:
+        """Ultra-specialized cleaning for Hatenablog Pokemon VGC content"""
+        if not text:
+            return text
+        
+        # Remove Hatenablog specific boilerplate and UI elements
+        hatenablog_removal_patterns = [
+            # Hatenablog-specific UI elements
+            r"はてなブログ.*?",
+            r"hatena.*?blog.*?",
+            r"ブログトップ.*?",
+            r"記事一覧.*?",
+            r"プロフィール.*?",
+            r"読者になる.*?",
+            r"購読する.*?",
+            r"スター.*?",
+            r"ブックマーク.*?",
+            r"コメント.*?を書く",
+            r"シェア.*?",
+            r"ツイート.*?",
+            r"はてブ.*?",
+            
+            # Date and metadata patterns
+            r"\d{4}-\d{2}-\d{2}.*?\d{2}:\d{2}.*?",
+            r"投稿日.*?",
+            r"更新日.*?",
+            r"カテゴリ.*?",
+            r"タグ.*?",
+            
+            # Navigation and sidebar elements
+            r"前の記事.*?",
+            r"次の記事.*?",
+            r"関連記事.*?",
+            r"おすすめ記事.*?",
+            r"人気記事.*?",
+            r"最新記事.*?",
+            r"アーカイブ.*?",
+            
+            # Common Hatenablog widgets and ads
+            r"サイドバー.*?",
+            r"フッター.*?",
+            r"ヘッダー.*?",
+            r"広告.*?",
+            r"スポンサー.*?",
+        ]
+        
+        lines = text.split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Skip lines matching removal patterns
+            should_skip = False
+            for pattern in hatenablog_removal_patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    should_skip = True
+                    break
+            
+            # Skip very short lines that are likely navigation/UI
+            if len(line) < 5:
+                should_skip = True
+            
+            # Skip lines that are just dates, numbers, or symbols
+            if re.match(r'^[\d\s\-\/\(\)\.:\→←]+$', line):
+                should_skip = True
+                
+            if not should_skip:
+                cleaned_lines.append(line)
+        
+        # Join and normalize whitespace
+        result = '\n'.join(cleaned_lines)
+        
+        # Final cleanup
+        import unicodedata
+        result = unicodedata.normalize('NFKC', result)
+        result = re.sub(r'\s+', ' ', result)
+        result = re.sub(r'\n\s*\n', '\n', result)
+        
+        return result.strip()
+    
+    def _validate_hatenablog_content(self, text: str) -> bool:
+        """Validate that extracted Hatenablog content is meaningful VGC content"""
+        if not text or len(text) < 150:
+            return False
+            
+        # Check for VGC/Pokemon indicators with broader terms for blog content
+        vgc_indicators = [
+            # Core Pokemon/VGC terms
+            'ポケモン', '構築', 'VGC', 'ダブル', 'バトル', '調整', '努力値',
+            'pokemon', 'team', 'battle', 'regulation', 'tournament', 'double',
+            
+            # Popular VGC Pokemon that frequently appear in team articles
+            'ガブリアス', 'ランドロス', 'ガオガエン', 'パオジアン', 'チオンジェン',
+            'コライドン', 'ミライドン', 'ザマゼンタ', 'ザシアン', 'テツノ', 'ハバタクカミ',
+            'サーフゴー', 'エルフーン', 'モロバレル', 'イエッサン', 'ドラパルト',
+            
+            # Competition and ranking terms common in Japanese VGC blogs
+            '最終', '順位', 'ランクマ', 'シーズン', 'レート', '使用', '採用',
+            'final', 'season', 'ranking', 'ladder', 'series', 'regulation',
+            
+            # Move and stat terms
+            'とくこう', 'すばやさ', 'こうげき', 'ぼうぎょ', 'とくぼう', '特性',
+            '性格', '持ち物', 'テラス', 'tera', 'ability', 'nature', 'item'
+        ]
+        
+        found_indicators = sum(1 for indicator in vgc_indicators 
+                              if indicator in text.lower())
+        
+        # Need at least 3 VGC indicators for valid Hatenablog content (higher threshold than note.com)
+        if found_indicators < 3:
+            logger.debug(f"Hatenablog content validation failed: only {found_indicators} VGC indicators found")
+            return False
+            
+        # Check that content has reasonable Japanese character content for Japanese VGC blog
+        japanese_chars = sum(1 for char in text[:1500] if ord(char) > 127)
+        if japanese_chars < 100:  # Need substantial Japanese content for Hatenablog article
+            logger.debug(f"Hatenablog content validation failed: only {japanese_chars} Japanese characters")
+            return False
+            
+        # Check for excessive repetition (indicates scraped navigation/UI)
+        words = text.lower().split()
+        if len(words) > 30:
+            unique_ratio = len(set(words)) / len(words)
+            if unique_ratio < 0.35:  # Allow slightly more repetition than note.com
+                logger.debug(f"Hatenablog content validation failed: repetition ratio {unique_ratio}")
+                return False
+                
+        logger.info(f"Hatenablog content validation passed: {found_indicators} indicators, {japanese_chars} JP chars")
         return True
