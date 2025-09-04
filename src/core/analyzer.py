@@ -461,6 +461,19 @@ class GeminiVGCAnalyzer:
     
     def _validate_and_enhance_result(self, result: Dict[str, Any], content: str, url: str = None) -> Dict[str, Any]:
         """Enhanced validation with confidence scoring and improvements"""
+        # CRITICAL FIX: Validate that result is a dictionary before processing
+        if not isinstance(result, dict):
+            print(f"Warning: _validate_and_enhance_result received non-dict type: {type(result)}")
+            return {
+                "title": "Type Error in Validation",
+                "pokemon_team": [],
+                "overall_strategy": "Unable to process due to type error in validation",
+                "regulation": "Not specified",
+                "translation_notes": f"Validation error: expected dict, got {type(result).__name__}",
+                "analysis_confidence": 0.0,
+                "parsing_error": True
+            }
+        
         # Apply original validation
         result = self._validate_and_clean_result(result)
         result = self.pokemon_validator.fix_pokemon_name_translations(result)
@@ -1149,7 +1162,7 @@ Please analyze the following content and provide your response in the exact JSON
         for strategy in strategies:
             try:
                 result = strategy(response_text)
-                if result:
+                if result and isinstance(result, dict):
                     return result
             except Exception:
                 continue
@@ -1183,7 +1196,15 @@ Please analyze the following content and provide your response in the exact JSON
         """Attempt to parse partial or malformed JSON"""
         # Implementation for partial JSON recovery
         # This is a simplified version - could be more sophisticated
-        return {"parsing_error": "Partial JSON recovery attempted"}
+        return {
+            "title": "Partial JSON Recovery",
+            "parsing_error": True,
+            "error_details": "Partial JSON recovery attempted",
+            "pokemon_team": [],
+            "overall_strategy": "Unable to extract due to partial parsing",
+            "regulation": "Not specified",
+            "translation_notes": "Partial JSON parsing attempted but failed"
+        }
     
     def _clean_json_text(self, text: str) -> str:
         """Clean text for better JSON parsing"""

@@ -369,6 +369,16 @@ class PokemonValidator:
         Returns:
             Updated result with corrected Pokemon names
         """
+        # Type validation to prevent attribute errors
+        if not isinstance(result, dict):
+            return {
+                "title": "Type Error in Name Translation",
+                "pokemon_team": [],
+                "overall_strategy": "Unable to process due to type error",
+                "regulation": "Not specified",
+                "translation_notes": f"Name translation error: expected dict, got {type(result).__name__}"
+            }
+        
         if not isinstance(result.get("pokemon_team"), list):
             return result
         
@@ -402,6 +412,19 @@ class PokemonValidator:
         Returns:
             Updated result with translated stat abbreviations in ev_explanation fields
         """
+        # CRITICAL FIX: Validate that result is actually a dictionary
+        if not isinstance(result, dict):
+            # Log the error for debugging but don't crash the application
+            print(f"Warning: translate_strategic_reasoning_stats received non-dict type: {type(result)}")
+            # Return a minimal valid result structure
+            return {
+                "title": "Type Error in Analysis",
+                "pokemon_team": [],
+                "overall_strategy": "Unable to process due to type error",
+                "regulation": "Not specified",
+                "translation_notes": f"Type validation error: expected dict, got {type(result).__name__}"
+            }
+        
         if not isinstance(result.get("pokemon_team"), list):
             return result
         
@@ -586,6 +609,16 @@ class PokemonValidator:
         Returns:
             Updated result with move-based validation and corrections
         """
+        # Type validation to prevent attribute errors
+        if not isinstance(result, dict):
+            return {
+                "title": "Type Error in Move Validation",
+                "pokemon_team": [],
+                "overall_strategy": "Unable to process due to type error",
+                "regulation": "Not specified",
+                "translation_notes": f"Move validation error: expected dict, got {type(result).__name__}"
+            }
+        
         if not isinstance(result.get("pokemon_team"), list):
             return result
         
@@ -683,6 +716,16 @@ class PokemonValidator:
         Returns:
             Updated result with validation applied
         """
+        # Type validation to prevent attribute errors
+        if not isinstance(result, dict):
+            return {
+                "title": "Type Error in Pokemon Validation",
+                "pokemon_team": [],
+                "overall_strategy": "Unable to process due to type error",
+                "regulation": "Not specified",
+                "translation_notes": f"Pokemon validation error: expected dict, got {type(result).__name__}"
+            }
+        
         if not isinstance(result.get("pokemon_team"), list):
             return result
         
