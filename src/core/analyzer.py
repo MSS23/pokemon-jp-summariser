@@ -4,6 +4,7 @@ Core VGC analysis engine using Google Gemini AI.
 
 import json
 import re
+import logging
 from typing import Dict, Optional, Any, List
 import google.generativeai as genai
 
@@ -18,17 +19,34 @@ from utils.image_analyzer import (
     extract_ev_spreads_from_image_analysis
 )
 
+# Configure logging for analysis pipeline debugging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 class GeminiVGCAnalyzer:
     """Pokemon VGC analyzer using Google Gemini AI"""
 
     def __init__(self):
         """Initialize the analyzer with Gemini configuration"""
-        self.api_key = Config.get_google_api_key()
-        genai.configure(api_key=self.api_key)
+        logger.info("Initializing GeminiVGCAnalyzer")
+        
+        try:
+            self.api_key = Config.get_google_api_key()
+            if not self.api_key:
+                logger.error("No Google API key found")
+                raise ValueError("Google API key is required for analysis")
+                
+            logger.info("API key found, configuring Gemini")
+            genai.configure(api_key=self.api_key)
 
-        # Configure the text model with Gemini 2.5 Flash (latest model)
-        self.model = genai.GenerativeModel("gemini-2.5-flash")
+            # Configure the text model with Gemini 2.5 Flash (latest model)
+            self.model = genai.GenerativeModel("gemini-2.5-flash")
+            logger.info("Gemini model initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize Gemini analyzer: {str(e)}")
+            raise
         
         # Configure the vision model with 2.5 Flash for enhanced image processing
         self.vision_model = genai.GenerativeModel("gemini-2.5-flash")
@@ -64,14 +82,21 @@ class GeminiVGCAnalyzer:
         Returns:
             Analysis result as dictionary
         """
-        # Enhanced content validation with more helpful messages
+        # Enhanced content validation with comprehensive logging
+        logger.info(f"Starting analysis for content of length {len(content) if content else 0} chars")
+        logger.info(f"URL: {url if url else 'Direct text input'}")
+        
         if not content:
+            logger.error("No content provided for analysis")
             raise ValueError(
                 "No content provided for analysis. Please check that the article was successfully extracted."
             )
         
         content_length = len(content.strip())
+        logger.info(f"Content length: {content_length} characters")
+        
         if content_length < 50:
+            logger.error(f"Content too short: {content_length} chars")
             raise ValueError(
                 f"Content too short for meaningful analysis ({content_length} characters). "
                 f"Please provide more substantial content or try a different article."
@@ -407,14 +432,43 @@ class GeminiVGCAnalyzer:
     
     def _generate_standard(self, prompt: str, content: str) -> Dict[str, Any]:
         """Standard generation approach"""
-        response = self.model.generate_content(
-            prompt, generation_config=self.generation_config
-        )
+        logger.info("Making standard API call to Gemini")
+        logger.debug(f"Prompt length: {len(prompt)} chars")
+        
+        try:
+            response = self.model.generate_content(
+                prompt, generation_config=self.generation_config
+            )
+            logger.info("Gemini API call successful")
+            
+            if not response or not hasattr(response, 'text'):
+                logger.error("Invalid response object from Gemini API")
+                raise ValueError("Invalid response from Gemini API")
+                
+            if not response.text:
+                logger.error("Empty response text from Gemini API")
+                raise ValueError("Empty response from Gemini API")
 
-        if not response.text:
-            raise ValueError("Empty response from Gemini API")
-
-        return self._parse_json_response(response.text)
+            logger.info(f"Received response: {len(response.text)} chars")
+            logger.debug(f"Response preview: {response.text[:200]}...")
+            
+            return self._parse_json_response(response.text)
+            
+        except Exception as e:
+            # Enhanced error logging for different API failure types
+            error_msg = str(e).lower()
+            if 'api key' in error_msg or 'authentication' in error_msg:
+                logger.error(f"API authentication error: {str(e)}")
+                raise ValueError("API authentication failed. Please check your Google API key.")
+            elif 'quota' in error_msg or 'rate' in error_msg:
+                logger.error(f"API quota/rate limit error: {str(e)}")
+                raise ValueError("API quota exceeded. Please try again later.")
+            elif 'service_disabled' in error_msg:
+                logger.error(f"API service disabled: {str(e)}")
+                raise ValueError("Gemini API service is disabled. Please enable it in Google Cloud Console.")
+            else:
+                logger.error(f"General API error: {str(e)}")
+                raise ValueError(f"API call failed: {str(e)}")
     
     def _generate_with_reduced_content(self, prompt: str, content: str) -> Dict[str, Any]:
         """Fallback with reduced content size"""
@@ -1150,6 +1204,9 @@ Please analyze the following content and provide your response in the exact JSON
 
     def _parse_json_response(self, response_text: str) -> Dict[str, Any]:
         """Enhanced JSON response parsing with comprehensive error recovery"""
+        logger.info("Starting JSON parsing of API response")
+        logger.debug(f"Response text length: {len(response_text)} chars")
+        
         # Try multiple parsing strategies
         strategies = [
             self._parse_direct_json,
@@ -1159,15 +1216,23 @@ Please analyze the following content and provide your response in the exact JSON
             self._create_fallback_result
         ]
         
-        for strategy in strategies:
+        for i, strategy in enumerate(strategies):
             try:
+                logger.debug(f"Trying parsing strategy {i+1}: {strategy.__name__}")
                 result = strategy(response_text)
                 if result and isinstance(result, dict):
+                    logger.info(f"JSON parsing successful with strategy: {strategy.__name__}")
+                    pokemon_team_count = len(result.get('pokemon_team', []))
+                    logger.info(f"Parsed result contains {pokemon_team_count} Pokemon")
                     return result
-            except Exception:
+                else:
+                    logger.debug(f"Strategy {strategy.__name__} returned invalid result")
+            except Exception as e:
+                logger.debug(f"Strategy {strategy.__name__} failed: {str(e)}")
                 continue
         
         # If all strategies fail, create minimal fallback
+        logger.warning("All JSON parsing strategies failed, returning minimal fallback")
         return self._create_minimal_fallback()
     
     def _parse_direct_json(self, text: str) -> Dict[str, Any]:
@@ -1193,18 +1258,69 @@ Please analyze the following content and provide your response in the exact JSON
         raise ValueError("No JSON found")
     
     def _parse_partial_json(self, text: str) -> Dict[str, Any]:
-        """Attempt to parse partial or malformed JSON"""
-        # Implementation for partial JSON recovery
-        # This is a simplified version - could be more sophisticated
-        return {
-            "title": "Partial JSON Recovery",
-            "parsing_error": True,
-            "error_details": "Partial JSON recovery attempted",
-            "pokemon_team": [],
-            "overall_strategy": "Unable to extract due to partial parsing",
-            "regulation": "Not specified",
-            "translation_notes": "Partial JSON parsing attempted but failed"
-        }
+        """Attempt to parse partial or malformed JSON with advanced recovery"""
+        logger.debug("Attempting partial JSON recovery")
+        
+        # Try to find and extract key-value pairs using regex
+        extracted_data = {}
+        
+        # Extract title
+        title_match = re.search(r'"title"\s*:\s*"([^"]*)"', text)
+        if title_match:
+            extracted_data["title"] = title_match.group(1)
+            
+        # Extract regulation 
+        regulation_match = re.search(r'"regulation"\s*:\s*"([^"]*)"', text)
+        if regulation_match:
+            extracted_data["regulation"] = regulation_match.group(1)
+            
+        # Extract overall strategy
+        strategy_match = re.search(r'"overall_strategy"\s*:\s*"([^"]*)"', text)
+        if strategy_match:
+            extracted_data["overall_strategy"] = strategy_match.group(1)
+            
+        # Try to extract pokemon team array
+        team_match = re.search(r'"pokemon_team"\s*:\s*(\[.*?\])', text, re.DOTALL)
+        if team_match:
+            try:
+                team_json = team_match.group(1)
+                # Simple cleanup for common issues
+                team_json = re.sub(r',\s*}', '}', team_json)  # Remove trailing commas
+                team_json = re.sub(r',\s*]', ']', team_json)  # Remove trailing commas in arrays
+                pokemon_team = json.loads(team_json)
+                extracted_data["pokemon_team"] = pokemon_team
+                logger.debug(f"Recovered {len(pokemon_team)} Pokemon from partial JSON")
+            except json.JSONDecodeError:
+                logger.debug("Failed to parse pokemon_team from partial JSON")
+                extracted_data["pokemon_team"] = []
+        else:
+            extracted_data["pokemon_team"] = []
+            
+        # If we got some meaningful data, return it
+        if extracted_data and (extracted_data.get("title") or extracted_data.get("pokemon_team")):
+            # Fill in missing required fields
+            result = {
+                "title": extracted_data.get("title", "Partial Analysis Recovery"),
+                "pokemon_team": extracted_data.get("pokemon_team", []),
+                "overall_strategy": extracted_data.get("overall_strategy", "Partial analysis recovered"),
+                "regulation": extracted_data.get("regulation", "Not specified"),
+                "team_strengths": "Not fully recovered",
+                "team_weaknesses": "Not fully recovered", 
+                "team_synergies": "Not fully recovered",
+                "meta_analysis": "Not fully recovered",
+                "tournament_context": "Not specified",
+                "full_translation": "Not fully recovered",
+                "translation_notes": "Partial JSON recovery successful - some data may be incomplete",
+                "content_summary": "Recovered from partial JSON parsing",
+                "parsing_error": True,
+                "recovery_successful": True
+            }
+            logger.info("Partial JSON recovery successful")
+            return result
+        
+        # If no meaningful data recovered, raise error to try next strategy
+        logger.debug("No meaningful data recovered in partial JSON parsing")
+        raise ValueError("Partial JSON recovery failed")
     
     def _clean_json_text(self, text: str) -> str:
         """Clean text for better JSON parsing"""

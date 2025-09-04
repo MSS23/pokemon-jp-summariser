@@ -29,9 +29,9 @@ class Config:
     def init_config(cls):
         """Initialize configuration from environment and Streamlit secrets"""
         try:
-            # Try to get from Streamlit secrets first
-            cls.GOOGLE_API_KEY = st.secrets.get("google_api_key")
-        except (KeyError, FileNotFoundError):
+            # Try to get from Streamlit secrets first (check both cases)
+            cls.GOOGLE_API_KEY = st.secrets.get("google_api_key") or st.secrets.get("GOOGLE_API_KEY")
+        except (KeyError, FileNotFoundError, AttributeError):
             # Fall back to environment variable
             cls.GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 

@@ -114,13 +114,43 @@ try:
                     result = analyzer.analyze_article(content)
                     st.session_state.current_url = None
 
-                if result and result.get("pokemon_team"):
-                    st.session_state.analysis_result = result
-                    st.session_state.analysis_complete = True
-                    st.success("✅ Analysis complete! Results displayed below.")
-                    st.rerun()
+                # Enhanced result validation to handle partial results
+                if result and isinstance(result, dict):
+                    pokemon_team = result.get("pokemon_team", [])
+                    has_recovery_flag = result.get("recovery_successful", False)
+                    has_parsing_error = result.get("parsing_error", False)
+                    
+                    # Accept results with Pokemon team OR successful partial recovery
+                    if pokemon_team or has_recovery_flag:
+                        st.session_state.analysis_result = result
+                        st.session_state.analysis_complete = True
+                        
+                        # Provide appropriate success message based on result quality
+                        if pokemon_team and not has_parsing_error:
+                            st.success("✅ Analysis complete! Results displayed below.")
+                        elif pokemon_team and has_parsing_error:
+                            st.warning("⚠️ Analysis completed with some parsing issues. Results may be incomplete.")
+                        elif has_recovery_flag:
+                            st.info("ℹ️ Partial analysis recovered. Some information may be missing.")
+                        else:
+                            st.success("✅ Analysis complete! Results displayed below.")
+                            
+                        st.rerun()
+                    else:
+                        # No meaningful data found
+                        st.error("❌ Analysis failed or no team data found. Please check your content and try again.")
+                        
+                        # Provide helpful diagnostics if available
+                        if has_parsing_error:
+                            st.error("The analysis encountered parsing difficulties. Try using the 'Article Text' input method if you used a URL.")
+                        
+                        # Show any error details for debugging
+                        error_details = result.get("error_details")
+                        if error_details:
+                            with st.expander("🔍 Error Details"):
+                                st.text(error_details)
                 else:
-                    st.error("❌ Analysis failed or no team data found. Please check your content and try again.")
+                    st.error("❌ Analysis failed - invalid result format. Please try again.")
 
         except Exception as e:
             st.error(f"❌ Analysis error: {str(e)}")
