@@ -95,6 +95,10 @@ class PokemonValidator:
             'ミライドン': 'Miraidon',
             'ザシアン': 'Zacian',
             'ザマゼンタ': 'Zamazenta',
+            
+            # Missing Pokemon from takoyaki-games article
+            'ジュペッタ': 'Banette',
+            'エルレイド': 'Gallade',
         }
         
         # Form correction patterns

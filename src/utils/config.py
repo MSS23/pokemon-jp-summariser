@@ -230,6 +230,22 @@ POKEMON_NAME_TRANSLATIONS = {
     "ナットレイ": "Ferrothorn",
     "バンギラス": "Tyranitar",
     
+    # Missing Pokemon from takoyaki-games article
+    "ジュペッタ": "Banette",
+    "エルレイド": "Gallade",
+    
+    # Ogerpon forms (from validator to main config)
+    "オーガポン": "Ogerpon",
+    "オーガポン-いしずえのめん": "Ogerpon-Cornerstone",
+    "オーガポン-いどのめん": "Ogerpon-Wellspring", 
+    "オーガポン-かまどのめん": "Ogerpon-Hearthflame",
+    "オーガポン-みどりのめん": "Ogerpon",
+    "いしずえのめん": "Ogerpon-Cornerstone",  # Short form
+    
+    # Calyrex shorthand (from validator to main config)
+    "白馬": "Calyrex-Ice",      # Short form meaning "White Horse"
+    "黒馬": "Calyrex-Shadow",   # Short form meaning "Black Horse"
+    
     # Flutter Mane and Paradox Pokemon (ULTRA COMPREHENSIVE Iron Valiant fixes)
     "ハバタクカミ": "Flutter Mane",
     "Flutter-Mane": "Flutter Mane",
