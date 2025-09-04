@@ -829,7 +829,7 @@ class ArticleScraper:
                     logger.debug(f"Hatenablog selector {selector} failed: {e}")
                     continue
             
-            if best_content and best_score > 30:  # Higher threshold for Hatenablog
+            if best_content and best_score > 20:  # FIXED: Reduced from 30 to 20 for better compatibility
                 # Extract and clean the content
                 text = best_content.get_text(separator=" ", strip=True)
                 
@@ -847,9 +847,9 @@ class ArticleScraper:
             for element in all_potential_elements:
                 try:
                     text = element.get_text(separator=" ", strip=True)
-                    if len(text) > 300:  # Longer content for broader search
+                    if len(text) > 250:  # FIXED: Reduced from 300 to 250 for better compatibility
                         content_score = self._calculate_content_score(text)
-                        if content_score > 60:  # Higher threshold for broader search
+                        if content_score > 40:  # FIXED: Reduced from 60 to 40 for broader compatibility
                             cleaned_text = self._clean_hatenablog_content_specialized(text)
                             if self._validate_hatenablog_content(cleaned_text):
                                 logger.info(f"Hatenablog broad search successful with score {content_score}")
@@ -948,7 +948,7 @@ class ArticleScraper:
     
     def _validate_hatenablog_content(self, text: str) -> bool:
         """Validate that extracted Hatenablog content is meaningful VGC content"""
-        if not text or len(text) < 150:
+        if not text or len(text) < 100:  # FIXED: Reduced from 150 to match note.com
             return False
             
         # Check for VGC/Pokemon indicators with broader terms for blog content
@@ -974,14 +974,14 @@ class ArticleScraper:
         found_indicators = sum(1 for indicator in vgc_indicators 
                               if indicator in text.lower())
         
-        # Need at least 3 VGC indicators for valid Hatenablog content (higher threshold than note.com)
-        if found_indicators < 3:
+        # FIXED: Need at least 2 VGC indicators (same as note.com) instead of 3
+        if found_indicators < 2:
             logger.debug(f"Hatenablog content validation failed: only {found_indicators} VGC indicators found")
             return False
             
-        # Check that content has reasonable Japanese character content for Japanese VGC blog
+        # FIXED: Check that content has reasonable Japanese character content (reduced from 100 to 60)
         japanese_chars = sum(1 for char in text[:1500] if ord(char) > 127)
-        if japanese_chars < 100:  # Need substantial Japanese content for Hatenablog article
+        if japanese_chars < 60:  # Slightly higher than note.com (50) but much more reasonable
             logger.debug(f"Hatenablog content validation failed: only {japanese_chars} Japanese characters")
             return False
             
@@ -989,7 +989,8 @@ class ArticleScraper:
         words = text.lower().split()
         if len(words) > 30:
             unique_ratio = len(set(words)) / len(words)
-            if unique_ratio < 0.35:  # Allow slightly more repetition than note.com
+            # FIXED: Increased from 0.35 to 0.40 to match note.com standards
+            if unique_ratio < 0.40:  # Same as note.com now
                 logger.debug(f"Hatenablog content validation failed: repetition ratio {unique_ratio}")
                 return False
                 
