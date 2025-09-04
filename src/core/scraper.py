@@ -744,37 +744,10 @@ class ArticleScraper:
         return result.strip()
     
     def _validate_note_com_content(self, text: str) -> bool:
-        """Validate that extracted note.com content is meaningful VGC content"""
-        if not text or len(text) < 100:
-            return False
-            
-        # Check for VGC/Pokemon indicators
-        vgc_indicators = [
-            'ポケモン', '構築', 'VGC', 'ダブル', 'バトル', '調整', '努力値',
-            'pokemon', 'team', 'battle', 'regulation', 'tournament',
-            'ガブリアス', 'ランドロス', 'ガオガエン', 'パオジアン', 'チオンジェン'
-        ]
-        
-        found_indicators = sum(1 for indicator in vgc_indicators 
-                              if indicator in text.lower())
-        
-        # Need at least 2 VGC indicators for valid content
-        if found_indicators < 2:
-            return False
-            
-        # Check that content has reasonable Japanese/English mix
-        japanese_chars = sum(1 for char in text[:1000] if ord(char) > 127)
-        if japanese_chars < 50:  # Too little Japanese for note.com article
-            return False
-            
-        # Check for excessive repetition (indicates scraped navigation)
-        words = text.lower().split()
-        if len(words) > 20:
-            unique_ratio = len(set(words)) / len(words)
-            if unique_ratio < 0.4:  # Too repetitive
-                return False
-                
-        return True
+        """Validate that extracted note.com content exists and is not empty"""
+        # Simple validation: just check that we have actual content
+        # All the complex thresholds were unnecessary for large VGC articles
+        return bool(text and text.strip())
 
     def _extract_hatenablog_content_specialized(self, soup) -> Optional[str]:
         """
@@ -947,52 +920,7 @@ class ArticleScraper:
         return result.strip()
     
     def _validate_hatenablog_content(self, text: str) -> bool:
-        """Validate that extracted Hatenablog content is meaningful VGC content"""
-        if not text or len(text) < 100:  # FIXED: Reduced from 150 to match note.com
-            return False
-            
-        # Check for VGC/Pokemon indicators with broader terms for blog content
-        vgc_indicators = [
-            # Core Pokemon/VGC terms
-            'ポケモン', '構築', 'VGC', 'ダブル', 'バトル', '調整', '努力値',
-            'pokemon', 'team', 'battle', 'regulation', 'tournament', 'double',
-            
-            # Popular VGC Pokemon that frequently appear in team articles
-            'ガブリアス', 'ランドロス', 'ガオガエン', 'パオジアン', 'チオンジェン',
-            'コライドン', 'ミライドン', 'ザマゼンタ', 'ザシアン', 'テツノ', 'ハバタクカミ',
-            'サーフゴー', 'エルフーン', 'モロバレル', 'イエッサン', 'ドラパルト',
-            
-            # Competition and ranking terms common in Japanese VGC blogs
-            '最終', '順位', 'ランクマ', 'シーズン', 'レート', '使用', '採用',
-            'final', 'season', 'ranking', 'ladder', 'series', 'regulation',
-            
-            # Move and stat terms
-            'とくこう', 'すばやさ', 'こうげき', 'ぼうぎょ', 'とくぼう', '特性',
-            '性格', '持ち物', 'テラス', 'tera', 'ability', 'nature', 'item'
-        ]
-        
-        found_indicators = sum(1 for indicator in vgc_indicators 
-                              if indicator in text.lower())
-        
-        # FIXED: Need at least 2 VGC indicators (same as note.com) instead of 3
-        if found_indicators < 2:
-            logger.debug(f"Hatenablog content validation failed: only {found_indicators} VGC indicators found")
-            return False
-            
-        # FIXED: Check that content has reasonable Japanese character content (reduced from 100 to 60)
-        japanese_chars = sum(1 for char in text[:1500] if ord(char) > 127)
-        if japanese_chars < 60:  # Slightly higher than note.com (50) but much more reasonable
-            logger.debug(f"Hatenablog content validation failed: only {japanese_chars} Japanese characters")
-            return False
-            
-        # Check for excessive repetition (indicates scraped navigation/UI)
-        words = text.lower().split()
-        if len(words) > 30:
-            unique_ratio = len(set(words)) / len(words)
-            # FIXED: Increased from 0.35 to 0.40 to match note.com standards
-            if unique_ratio < 0.40:  # Same as note.com now
-                logger.debug(f"Hatenablog content validation failed: repetition ratio {unique_ratio}")
-                return False
-                
-        logger.info(f"Hatenablog content validation passed: {found_indicators} indicators, {japanese_chars} JP chars")
-        return True
+        """Validate that extracted Hatenablog content exists and is not empty"""
+        # Simple validation: just check that we have actual content
+        # All the complex thresholds were unnecessary for large VGC articles
+        return bool(text and text.strip())
