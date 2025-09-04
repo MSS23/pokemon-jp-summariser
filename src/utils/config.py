@@ -175,6 +175,16 @@ POKEMON_NAME_TRANSLATIONS = {
     "Arcanine-H": "Arcanine-Hisui",
     "モロバレル": "Amoonguss",
     "エルフーン": "Whimsicott",
+    
+    # Hoppip evolution line (missing translation fix)
+    "ハネッコ": "Hoppip",
+    "ポポッコ": "Skiploom", 
+    "ワタッコ": "Jumpluff",
+    "Watakko": "Jumpluff",  # Romanized variant
+    
+    # Cottonee evolution line (add missing Cottonee)
+    "モンメン": "Cottonee",
+    
     "カイリュー": "Dragonite",
     "ハリテヤマ": "Hariyama",
     "クレッフィ": "Klefki",
@@ -271,6 +281,22 @@ POKEMON_NAME_TRANSLATIONS = {
     "サケブシッポ": "Roaring Moon",
     "Roaring-Moon": "Roaring Moon",
     "トドロクツキ": "Roaring Moon",
+    
+    # Missing Paradox Pokemon (Ancient forms)
+    "ウガツホムラ": "Gouging Fire",
+    
+    # Missing Paradox Pokemon (Future/Iron forms) 
+    "テツノツツミ": "Iron Bundle",
+    "テツノカイナ": "Iron Hands",
+    "テツノワダチ": "Iron Treads",
+    "テツノイバラ": "Iron Thorns",
+    "テツノコウベ": "Iron Crown",
+    "テツノイサハ": "Iron Boulder",
+    
+    # Romanization variants for Gouging Fire
+    "Ugatsuhomura": "Gouging Fire",
+    "Ugatsu Homura": "Gouging Fire",
+    "ugatsu homura": "Gouging Fire",
     
     # Popular Gen 9 Pokemon
     "ドオー": "Dondozo",

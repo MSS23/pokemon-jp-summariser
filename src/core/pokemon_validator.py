@@ -31,6 +31,25 @@ class PokemonValidator:
             # CRITICAL FIXES: Missing Pokemon
             'オーロンゲ': 'Grimmsnarl',  # CRITICAL: Was completely missing
             
+            # Hoppip evolution line (missing translation fix)
+            'ハネッコ': 'Hoppip',
+            'ポポッコ': 'Skiploom', 
+            'ワタッコ': 'Jumpluff',
+            'Watakko': 'Jumpluff',  # Romanized variant
+            
+            # Paradox Pokemon (missing translations)
+            'ウガツホムラ': 'Gouging Fire',
+            'テツノツツミ': 'Iron Bundle',
+            'テツノカイナ': 'Iron Hands',
+            'テツノワダチ': 'Iron Treads',
+            'テツノイバラ': 'Iron Thorns',
+            'テツノコウベ': 'Iron Crown',
+            'テツノイサハ': 'Iron Boulder',
+            
+            # Romanization variants
+            'Ugatsuhomura': 'Gouging Fire',
+            'Ugatsu Homura': 'Gouging Fire',
+            
             # CALYREX FORMS - ULTRA-CRITICAL for restricted Pokemon identification
             'バドレックス': 'Calyrex',  # Base form
             'バドレックス-はくばじょう': 'Calyrex-Ice',   # Calyrex riding Glastrier (Ice horse)
