@@ -453,7 +453,8 @@ def render_article_summary(analysis_result: Dict[str, Any]):
     
     with col1:
         team_strengths = analysis_result.get("team_strengths", "")
-        if team_strengths:
+        # Show team strengths if we have meaningful content or indicate when not available
+        if team_strengths and not team_strengths.startswith("Team strengths analysis not available"):
             st.markdown(
                 f"""
                 <div style="background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); 
@@ -469,7 +470,8 @@ def render_article_summary(analysis_result: Dict[str, Any]):
     
     with col2:
         team_weaknesses = analysis_result.get("team_weaknesses", "")
-        if team_weaknesses:
+        # Show team weaknesses if we have meaningful content or indicate when not available
+        if team_weaknesses and not team_weaknesses.startswith("Team weaknesses analysis not available"):
             st.markdown(
                 f"""
                 <div style="background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); 
@@ -485,7 +487,7 @@ def render_article_summary(analysis_result: Dict[str, Any]):
     
     # Team Synergies
     team_synergies = analysis_result.get("team_synergies", "")
-    if team_synergies:
+    if team_synergies and not team_synergies.startswith("Team synergies analysis not available"):
         st.markdown(
             f"""
             <div style="background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 40%); 
@@ -501,7 +503,7 @@ def render_article_summary(analysis_result: Dict[str, Any]):
     
     # Meta Analysis
     meta_analysis = analysis_result.get("meta_analysis", "")
-    if meta_analysis:
+    if meta_analysis and not meta_analysis.startswith("Meta analysis not available"):
         st.markdown(
             f"""
             <div style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); 
@@ -517,7 +519,7 @@ def render_article_summary(analysis_result: Dict[str, Any]):
     
     # Full Translation Section
     full_translation = analysis_result.get("full_translation", "")
-    if full_translation:
+    if full_translation and not full_translation.startswith("Full translation not available"):
         with st.expander("📖 Complete Article Translation", expanded=False):
             st.markdown(
                 f"""

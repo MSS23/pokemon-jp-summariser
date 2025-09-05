@@ -1322,6 +1322,26 @@ Please analyze the following content and provide your response in the exact JSON
                 extracted_data["pokemon_team"] = []
         else:
             extracted_data["pokemon_team"] = []
+        
+        # Try to extract other analysis fields with enhanced validation
+        analysis_fields = {
+            "team_strengths": r'"team_strengths"\s*:\s*"([^"]{30,})"',  # Minimum 30 chars for meaningful content
+            "team_weaknesses": r'"team_weaknesses"\s*:\s*"([^"]{30,})"', 
+            "team_synergies": r'"team_synergies"\s*:\s*"([^"]{30,})"',
+            "meta_analysis": r'"meta_analysis"\s*:\s*"([^"]{30,})"',
+            "full_translation": r'"full_translation"\s*:\s*"([^"]{50,})"',  # Higher threshold for translations
+        }
+        
+        for field_name, pattern in analysis_fields.items():
+            match = re.search(pattern, text, re.DOTALL)
+            if match:
+                content = match.group(1).strip()
+                # Additional validation to avoid extracting generic/template content
+                if (content and 
+                    not content.lower().startswith(('analysis', 'recovered', 'not available', 'error')) and
+                    len(content.split()) >= 5):  # At least 5 words for meaningful content
+                    extracted_data[field_name] = content
+                    logger.debug(f"Recovered {field_name} from partial JSON ({len(content)} chars)")
             
         # If we got some meaningful data, return it
         if extracted_data and (extracted_data.get("title") or extracted_data.get("pokemon_team")):
@@ -1331,21 +1351,22 @@ Please analyze the following content and provide your response in the exact JSON
             has_strategy = bool(extracted_data.get("overall_strategy"))
             has_regulation = bool(extracted_data.get("regulation"))
             
-            # Consider recovery "successful" if we have Pokemon team + at least one other field
-            is_substantial_recovery = pokemon_team and (has_title or has_strategy)
+            # Consider recovery "successful" if we have Pokemon team + substantial analysis content
+            has_analysis_content = any(extracted_data.get(field) for field in ["team_strengths", "team_weaknesses", "team_synergies", "meta_analysis", "full_translation"])
+            is_substantial_recovery = pokemon_team and (has_title or has_strategy or has_analysis_content)
             
-            # Fill in missing required fields
+            # Fill in missing required fields, using extracted content where available
             result = {
                 "title": extracted_data.get("title", "VGC Team Analysis"),
                 "pokemon_team": pokemon_team,
                 "overall_strategy": extracted_data.get("overall_strategy", "Team strategy analysis recovered"),
                 "regulation": extracted_data.get("regulation", "Not specified"),
-                "team_strengths": "Analysis recovered successfully",
-                "team_weaknesses": "Analysis recovered successfully", 
-                "team_synergies": "Analysis recovered successfully",
-                "meta_analysis": "Analysis recovered successfully",
+                "team_strengths": extracted_data.get("team_strengths", "Team strengths analysis not available"),
+                "team_weaknesses": extracted_data.get("team_weaknesses", "Team weaknesses analysis not available"), 
+                "team_synergies": extracted_data.get("team_synergies", "Team synergies analysis not available"),
+                "meta_analysis": extracted_data.get("meta_analysis", "Meta analysis not available"),
                 "tournament_context": "Not specified",
-                "full_translation": "Analysis recovered successfully",
+                "full_translation": extracted_data.get("full_translation", "Full translation not available"),
                 "translation_notes": f"JSON parsing recovered successfully with {len(pokemon_team)} Pokemon",
                 "content_summary": "Successfully recovered from minor JSON formatting issues",
                 "parsing_error": not is_substantial_recovery,  # Only flag as error if recovery is truly minimal
