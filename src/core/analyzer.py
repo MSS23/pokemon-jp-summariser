@@ -1306,21 +1306,50 @@ Please analyze the following content and provide your response in the exact JSON
         if strategy_match:
             extracted_data["overall_strategy"] = strategy_match.group(1)
             
-        # Try to extract pokemon team array
-        team_match = re.search(r'"pokemon_team"\s*:\s*(\[.*?\])', text, re.DOTALL)
-        if team_match:
+        # Try to extract pokemon team array with balanced bracket matching
+        team_start_match = re.search(r'"pokemon_team"\s*:\s*\[', text, re.DOTALL)
+        if team_start_match:
             try:
-                team_json = team_match.group(1)
-                # Simple cleanup for common issues
-                team_json = re.sub(r',\s*}', '}', team_json)  # Remove trailing commas
-                team_json = re.sub(r',\s*]', ']', team_json)  # Remove trailing commas in arrays
-                pokemon_team = json.loads(team_json)
-                extracted_data["pokemon_team"] = pokemon_team
-                logger.debug(f"Recovered {len(pokemon_team)} Pokemon from partial JSON")
-            except json.JSONDecodeError:
-                logger.debug("Failed to parse pokemon_team from partial JSON")
+                start_pos = team_start_match.start()
+                bracket_start = text.find('[', team_start_match.end() - 1)
+                
+                # Find matching closing bracket with proper nesting
+                bracket_count = 0
+                bracket_end = -1
+                for i in range(bracket_start, len(text)):
+                    if text[i] == '[':
+                        bracket_count += 1
+                    elif text[i] == ']':
+                        bracket_count -= 1
+                        if bracket_count == 0:
+                            bracket_end = i
+                            break
+                
+                if bracket_end != -1:
+                    team_json = text[bracket_start:bracket_end + 1]
+                    logger.debug(f"Extracted pokemon_team JSON fragment: {team_json[:200]}...")
+                    
+                    # Enhanced cleanup for common issues
+                    team_json = re.sub(r',\s*}', '}', team_json)  # Remove trailing commas from objects
+                    team_json = re.sub(r',\s*]', ']', team_json)  # Remove trailing commas from arrays
+                    team_json = re.sub(r'}\s*{', '},{', team_json)  # Fix missing commas between objects
+                    
+                    pokemon_team = json.loads(team_json)
+                    
+                    # Validate and enhance Pokemon team structure
+                    validated_team = self._validate_pokemon_team_structure(pokemon_team)
+                    extracted_data["pokemon_team"] = validated_team
+                    
+                    complete_pokemon = len([p for p in validated_team if self._is_complete_pokemon(p)])
+                    logger.info(f"Successfully recovered {len(validated_team)} Pokemon from partial JSON ({complete_pokemon} complete)")
+                else:
+                    logger.debug("Could not find matching closing bracket for pokemon_team")
+                    extracted_data["pokemon_team"] = []
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.debug(f"Failed to parse pokemon_team from partial JSON: {e}")
                 extracted_data["pokemon_team"] = []
         else:
+            logger.debug("No pokemon_team field found in partial JSON")
             extracted_data["pokemon_team"] = []
         
         # Try to extract other analysis fields with enhanced validation
@@ -1431,6 +1460,69 @@ Please analyze the following content and provide your response in the exact JSON
             "regulation": "Not specified"
         }
     
+    def _validate_pokemon_team_structure(self, pokemon_team: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Validate and enhance Pokemon team structure"""
+        if not isinstance(pokemon_team, list):
+            logger.warning(f"Pokemon team is not a list: {type(pokemon_team)}")
+            return []
+        
+        validated_team = []
+        for i, pokemon in enumerate(pokemon_team):
+            if not isinstance(pokemon, dict):
+                logger.warning(f"Pokemon {i} is not a dict: {type(pokemon)}")
+                continue
+            
+            # Ensure required fields exist with defaults
+            validated_pokemon = {
+                "name": pokemon.get("name", f"Unknown Pokemon {i+1}"),
+                "ability": pokemon.get("ability", "Not specified"),
+                "held_item": pokemon.get("held_item", pokemon.get("item", "Not specified")),
+                "nature": pokemon.get("nature", "Not specified"),
+                "tera_type": pokemon.get("tera_type", pokemon.get("teratype", "Unknown")),
+                "role": pokemon.get("role", "Not specified"),
+                "moves": pokemon.get("moves", []),
+                "evs": self._normalize_ev_format(pokemon.get("evs", "Not specified")),
+                "ev_explanation": pokemon.get("ev_explanation", "No explanation provided")
+            }
+            
+            validated_team.append(validated_pokemon)
+            
+        return validated_team
+    
+    def _normalize_ev_format(self, evs) -> str:
+        """Normalize EV format to HP/Atk/Def/SpA/SpD/Spe"""
+        if evs == "Not specified" or not evs:
+            return "Not specified"
+        
+        # If it's already in string format, return as-is
+        if isinstance(evs, str):
+            # Check if it matches expected format (6 numbers separated by /)
+            if "/" in evs and len(evs.split("/")) == 6:
+                return evs
+            return evs  # Return as-is for now, let rendering handle it
+        
+        # If it's a dict, convert to string format
+        if isinstance(evs, dict):
+            stat_order = ["hp", "attack", "defense", "special_attack", "special_defense", "speed"]
+            ev_values = []
+            for stat in stat_order:
+                # Try different possible key names
+                value = evs.get(stat, evs.get(stat.replace("_", ""), evs.get(stat[:3], 0)))
+                ev_values.append(str(value))
+            return "/".join(ev_values)
+        
+        return str(evs)
+    
+    def _is_complete_pokemon(self, pokemon: Dict[str, Any]) -> bool:
+        """Check if a Pokemon has complete information for rendering"""
+        required_fields = ["name", "ability", "held_item", "moves", "evs"]
+        has_essential_data = all(
+            pokemon.get(field) and pokemon.get(field) != "Not specified" 
+            for field in ["name", "moves"]
+        )
+        has_some_stats = pokemon.get("evs") != "Not specified" or len(pokemon.get("moves", [])) > 0
+        return has_essential_data and has_some_stats
+
     def _validate_and_clean_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and clean the analysis result"""
         # Ensure required fields exist
