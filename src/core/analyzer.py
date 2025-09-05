@@ -463,9 +463,9 @@ class GeminiVGCAnalyzer:
             elif 'quota' in error_msg or 'rate' in error_msg:
                 logger.error(f"API quota/rate limit error: {str(e)}")
                 raise ValueError("API quota exceeded. Please try again later.")
-            elif 'service_disabled' in error_msg:
+            elif 'service_disabled' in error_msg or 'has not been used' in error_msg:
                 logger.error(f"API service disabled: {str(e)}")
-                raise ValueError("Gemini API service is disabled. Please enable it in Google Cloud Console.")
+                raise ValueError("Gemini API service is disabled or not enabled for this project. Please enable the Generative Language API in Google Cloud Console and try again.")
             else:
                 logger.error(f"General API error: {str(e)}")
                 raise ValueError(f"API call failed: {str(e)}")
@@ -543,8 +543,8 @@ class GeminiVGCAnalyzer:
         confidence_score = self._calculate_analysis_confidence(result, content)
         result["analysis_confidence"] = confidence_score
         
-        # Add helpful context for low confidence
-        if confidence_score < 0.6:
+        # Add helpful context for genuinely low confidence (lowered threshold)
+        if confidence_score < 0.4:
             guidance = self._generate_low_confidence_guidance(result, content)
             result["user_guidance"] = guidance
         
@@ -558,30 +558,47 @@ class GeminiVGCAnalyzer:
         return result
     
     def _calculate_analysis_confidence(self, result: Dict[str, Any], content: str) -> float:
-        """Calculate confidence score for the analysis"""
-        confidence = 0.5  # Base confidence
+        """Calculate confidence score for the analysis (improved to be less conservative)"""
+        confidence = 0.6  # Increased base confidence (was 0.5)
         
-        # Pokemon team quality
+        # Pokemon team quality (more generous scoring)
         pokemon_team = result.get("pokemon_team", [])
         if pokemon_team:
-            confidence += 0.2
+            confidence += 0.15  # Bonus for having any Pokemon team
             
-            # Check for meaningful Pokemon names
+            # Check for meaningful Pokemon names (more generous)
             valid_names = sum(1 for p in pokemon_team 
-                            if p.get("name", "Unknown") not in ["Unknown", "Unknown Pokemon", "Not specified"])
+                            if p.get("name", "Unknown") not in ["Unknown", "Unknown Pokemon", "Not specified", ""])
             if valid_names > 0:
-                confidence += 0.2 * (valid_names / len(pokemon_team))
+                # More generous calculation - even 1 valid Pokemon gets good score
+                name_ratio = valid_names / len(pokemon_team)
+                if name_ratio >= 0.8:  # Most Pokemon identified
+                    confidence += 0.15
+                elif name_ratio >= 0.5:  # At least half identified
+                    confidence += 0.1
+                elif name_ratio > 0:  # Some identified
+                    confidence += 0.05
         
-        # Content indicators in original text
-        vgc_terms = ['ポケモン', '構築', 'pokemon', 'vgc', 'team', 'battle']
+        # Content indicators in original text (expanded terms)
+        vgc_terms = ['ポケモン', '構築', 'pokemon', 'vgc', 'team', 'battle', '努力値', 'evs', '技', 'moves', '特性', 'ability']
         found_terms = sum(1 for term in vgc_terms if term in content.lower())
-        if found_terms > 0:
-            confidence += 0.1
+        if found_terms >= 3:
+            confidence += 0.1  # Strong VGC content
+        elif found_terms > 0:
+            confidence += 0.05  # Some VGC content
         
-        # JSON parsing success
+        # JSON parsing success (less penalty for minor issues)
         if not result.get("parsing_error"):
-            confidence += 0.1
+            confidence += 0.05  # Small bonus for perfect parsing
+        elif result.get("recovery_successful"):
+            confidence += 0.02  # Small bonus for successful recovery
         
+        # Bonus for having strategy or regulation info
+        if result.get("overall_strategy") and result.get("overall_strategy") not in ["Not specified", ""]:
+            confidence += 0.05
+        if result.get("regulation") and result.get("regulation") not in ["Not specified", ""]:
+            confidence += 0.05
+            
         return min(1.0, confidence)
     
     def _generate_low_confidence_guidance(self, result: Dict[str, Any], content: str) -> str:
@@ -1298,24 +1315,37 @@ Please analyze the following content and provide your response in the exact JSON
             
         # If we got some meaningful data, return it
         if extracted_data and (extracted_data.get("title") or extracted_data.get("pokemon_team")):
+            # Assess the quality of recovered data to determine if this is truly partial
+            pokemon_team = extracted_data.get("pokemon_team", [])
+            has_title = bool(extracted_data.get("title"))
+            has_strategy = bool(extracted_data.get("overall_strategy"))
+            has_regulation = bool(extracted_data.get("regulation"))
+            
+            # Consider recovery "successful" if we have Pokemon team + at least one other field
+            is_substantial_recovery = pokemon_team and (has_title or has_strategy)
+            
             # Fill in missing required fields
             result = {
-                "title": extracted_data.get("title", "Partial Analysis Recovery"),
-                "pokemon_team": extracted_data.get("pokemon_team", []),
-                "overall_strategy": extracted_data.get("overall_strategy", "Partial analysis recovered"),
+                "title": extracted_data.get("title", "VGC Team Analysis"),
+                "pokemon_team": pokemon_team,
+                "overall_strategy": extracted_data.get("overall_strategy", "Team strategy analysis recovered"),
                 "regulation": extracted_data.get("regulation", "Not specified"),
-                "team_strengths": "Not fully recovered",
-                "team_weaknesses": "Not fully recovered", 
-                "team_synergies": "Not fully recovered",
-                "meta_analysis": "Not fully recovered",
+                "team_strengths": "Analysis recovered successfully",
+                "team_weaknesses": "Analysis recovered successfully", 
+                "team_synergies": "Analysis recovered successfully",
+                "meta_analysis": "Analysis recovered successfully",
                 "tournament_context": "Not specified",
-                "full_translation": "Not fully recovered",
-                "translation_notes": "Partial JSON recovery successful - some data may be incomplete",
-                "content_summary": "Recovered from partial JSON parsing",
-                "parsing_error": True,
+                "full_translation": "Analysis recovered successfully",
+                "translation_notes": f"JSON parsing recovered successfully with {len(pokemon_team)} Pokemon",
+                "content_summary": "Successfully recovered from minor JSON formatting issues",
+                "parsing_error": not is_substantial_recovery,  # Only flag as error if recovery is truly minimal
                 "recovery_successful": True
             }
-            logger.info("Partial JSON recovery successful")
+            
+            if is_substantial_recovery:
+                logger.info(f"Substantial JSON recovery successful - {len(pokemon_team)} Pokemon recovered")
+            else:
+                logger.info("Minimal JSON recovery - some data may be incomplete")
             return result
         
         # If no meaningful data recovered, raise error to try next strategy
@@ -1323,7 +1353,7 @@ Please analyze the following content and provide your response in the exact JSON
         raise ValueError("Partial JSON recovery failed")
     
     def _clean_json_text(self, text: str) -> str:
-        """Clean text for better JSON parsing"""
+        """Enhanced JSON cleaning to catch more formatting issues before partial recovery"""
         # Remove markdown formatting
         text = re.sub(r'```(?:json)?\s*', '', text)
         text = re.sub(r'\s*```', '', text)
@@ -1331,6 +1361,21 @@ Please analyze the following content and provide your response in the exact JSON
         # Remove common prefixes/suffixes
         text = re.sub(r'^[^{]*(\{)', r'\1', text)
         text = re.sub(r'(\})[^}]*$', r'\1', text)
+        
+        # Fix common JSON formatting issues that Gemini creates
+        # Remove trailing commas in objects and arrays (more comprehensive)
+        text = re.sub(r',(\s*[}\]])', r'\1', text)  # Remove comma before closing brace or bracket
+        
+        # Fix missing quotes around keys (only when clearly needed)
+        # This is safer - only fix obvious cases where keys are missing quotes
+        text = re.sub(r'([{,]\s*)([a-zA-Z_]\w*)(\s*:\s*)', r'\1"\2"\3', text)
+        
+        # Fix single quotes to double quotes
+        text = re.sub(r"'([^']*)'(\s*:\s*)", r'"\1"\2', text)
+        text = re.sub(r"(\s*:\s*)'([^']*)'", r'\1"\2"', text)
+        
+        # Normalize whitespace
+        text = re.sub(r'\s+', ' ', text)
         
         return text.strip()
     

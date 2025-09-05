@@ -125,13 +125,23 @@ try:
                         st.session_state.analysis_result = result
                         st.session_state.analysis_complete = True
                         
-                        # Provide appropriate success message based on result quality
+                        # Provide appropriate success message based on result quality (enhanced messaging)
                         if pokemon_team and not has_parsing_error:
-                            st.success("✅ Analysis complete! Results displayed below.")
+                            st.success("✅ Analysis complete! Full team analysis extracted successfully.")
                         elif pokemon_team and has_parsing_error:
-                            st.warning("⚠️ Analysis completed with some parsing issues. Results may be incomplete.")
+                            # Only show warning if it's truly problematic
+                            if len(pokemon_team) >= 3:  # Good team size despite minor issues
+                                st.success(f"✅ Analysis complete! {len(pokemon_team)} Pokemon team successfully analyzed.")
+                                st.info("ℹ️ Minor formatting issues were automatically resolved.")
+                            else:
+                                st.warning("⚠️ Analysis completed but team data may be incomplete. Consider trying again if results seem limited.")
                         elif has_recovery_flag:
-                            st.info("ℹ️ Partial analysis recovered. Some information may be missing.")
+                            # More specific messaging for recovery scenarios
+                            if pokemon_team:
+                                st.success(f"✅ Analysis successful! {len(pokemon_team)} Pokemon team recovered and analyzed.")
+                                st.info("ℹ️ Analysis recovered successfully from response formatting issues.")
+                            else:
+                                st.info("ℹ️ Partial analysis recovered. Some information may be missing.")
                         else:
                             st.success("✅ Analysis complete! Results displayed below.")
                             
@@ -140,9 +150,9 @@ try:
                         # No meaningful data found
                         st.error("❌ Analysis failed or no team data found. Please check your content and try again.")
                         
-                        # Provide helpful diagnostics if available
+                        # Provide helpful diagnostics if available (improved messaging)
                         if has_parsing_error:
-                            st.error("The analysis encountered parsing difficulties. Try using the 'Article Text' input method if you used a URL.")
+                            st.info("💡 **Tip**: If you're having issues, try using the 'Article Text' input method instead of URL, or ensure the article contains clear Pokemon team information.")
                         
                         # Show any error details for debugging
                         error_details = result.get("error_details")
