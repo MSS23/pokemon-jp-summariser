@@ -348,14 +348,35 @@ class GeminiVGCAnalyzer:
                             "source": f"image_analysis_{best_image_spread.get('confidence', 'medium')}"
                         }
                         
-                        # Update EV explanation
+                        # Preserve existing strategic reasoning from article text
+                        existing_explanation = pokemon.get("ev_explanation", "")
+                        has_meaningful_explanation = self._has_meaningful_strategic_reasoning(existing_explanation)
+                        
                         confidence = best_image_spread.get("confidence", "medium")
-                        pokemon["ev_explanation"] = f"EV spread detected from team image ({confidence} confidence): {best_image_spread['format']}"
+                        
+                        if has_meaningful_explanation:
+                            # Preserve article reasoning, just note EV source confirmation
+                            pokemon["ev_explanation"] = f"{existing_explanation} (EVs confirmed from image analysis)"
+                            logger.debug(f"Preserved article reasoning for Pokemon {i+1}, added image confirmation")
+                        else:
+                            # No meaningful reasoning from text, use image-based description as fallback
+                            pokemon["ev_explanation"] = f"EV spread detected from team image ({confidence} confidence): {best_image_spread['format']}"
+                            logger.debug(f"Used image-based EV description for Pokemon {i+1} (no article reasoning found)")
                         
                         ev_assignment_log.append(f"Pokemon {i+1} ({pokemon.get('name', 'Unknown')}): Assigned {confidence} confidence EVs from image")
                     else:
-                        # Image EV failed validation - suspicious pattern detected
-                        pokemon["ev_explanation"] = "Image EV data failed validation (potential AI generation detected)"
+                        # Image EV failed validation - preserve existing reasoning if meaningful
+                        existing_explanation = pokemon.get("ev_explanation", "")
+                        has_meaningful_explanation = self._has_meaningful_strategic_reasoning(existing_explanation)
+                        
+                        if has_meaningful_explanation:
+                            # Keep the meaningful article reasoning, note image validation failure
+                            pokemon["ev_explanation"] = f"{existing_explanation} (Note: Image EV data failed validation)"
+                            logger.debug(f"Preserved article reasoning for Pokemon {i+1} despite image validation failure")
+                        else:
+                            # No meaningful reasoning to preserve, use validation failure message
+                            pokemon["ev_explanation"] = "Image EV data failed validation (potential AI generation detected)"
+                        
                         ev_assignment_log.append(f"Pokemon {i+1} ({pokemon.get('name', 'Unknown')}): Image EVs rejected due to suspicious pattern")
                 
                 # Even if we don't replace EVs, log the decision
@@ -1884,6 +1905,74 @@ Please analyze the following content and provide your response in the exact JSON
                 warnings.append("All Pokemon have identical maximum EV totals - verify authenticity")
         
         return warnings
+    
+    def _has_meaningful_strategic_reasoning(self, explanation: str) -> bool:
+        """
+        Determine if an EV explanation contains meaningful strategic reasoning from article text
+        
+        Args:
+            explanation: The ev_explanation string to evaluate
+            
+        Returns:
+            True if the explanation contains meaningful strategic reasoning from article text
+        """
+        if not explanation or not isinstance(explanation, str):
+            return False
+        
+        explanation_lower = explanation.lower().strip()
+        
+        # Generic/empty explanations that should be replaced
+        generic_phrases = [
+            "no explanation provided",
+            "not specified", 
+            "ev reasoning not specified in article",
+            "not available",
+            "no strategic reasoning found",
+            "no explanation available",
+            "",
+        ]
+        
+        # Check if explanation exactly matches generic phrases (not just contains)
+        if explanation_lower in generic_phrases or explanation_lower.strip() == "":
+            return False
+        
+        # Too short to be meaningful (less than 20 characters)
+        if len(explanation) < 20:
+            return False
+        
+        # Indicators of meaningful strategic reasoning from articles
+        meaningful_indicators = [
+            # Damage calculations
+            "survives", "ohko", "2hko", "確定", "乱数", "耐え",
+            
+            # Speed benchmarks  
+            "outspeeds", "outspeed", "faster than", "slower than", "speed tier",
+            "最速", "準速", "抜き", "base", "族",
+            
+            # Defensive benchmarks
+            "bulk", "tanky", "defensive", "special defense", "physical defense",
+            "物理耐久", "特殊耐久", "耐久",
+            
+            # Technical optimization
+            "16n-1", "11n", "substitute", "weather", "残飯", "leftovers",
+            
+            # Specific Pokemon/move names
+            "garchomp", "landorus", "earthquake", "flamethrower", "thunderbolt",
+            "ガブリアス", "ランドロス", "じしん", "かえんほうしゃ", "10まんボルト",
+            
+            # Competitive terms
+            "choice", "scarf", "band", "specs", "assault vest", "life orb",
+            "こだわり", "スカーフ", "ハチマキ", "メガネ", "とつげきチョッキ", "いのちのたま",
+        ]
+        
+        # Check for meaningful indicators
+        meaningful_count = sum(1 for indicator in meaningful_indicators 
+                             if indicator in explanation_lower)
+        
+        # Consider meaningful if it has strategic indicators or is substantial
+        # Lowered thresholds to catch more genuine strategic reasoning
+        return (meaningful_count >= 1 or  # Even one strategic indicator is meaningful
+                len(explanation) >= 60)   # Or if it's quite long and detailed
 
     def _validate_and_clean_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and clean the analysis result"""
