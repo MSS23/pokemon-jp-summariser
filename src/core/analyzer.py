@@ -120,7 +120,15 @@ class GeminiVGCAnalyzer:
             # Enhanced content preprocessing for better analysis
             processed_content = self._preprocess_content_for_analysis(content)
             
+            # Detect content formats for intelligent extraction
+            detected_formats = self._detect_content_formats(content)
+            logger.info(f"Format detection scores: {detected_formats}")
+            
+            # Create format-aware prompt with extraction hints
             prompt = self._get_analysis_prompt()
+            if any(score > 0.3 for score in detected_formats.values()):
+                format_hints = self._create_format_hints(detected_formats)
+                prompt = f"{prompt}\n\n{format_hints}"
             full_prompt = f"{prompt}\n\nCONTENT TO ANALYZE:\n{processed_content}"
 
             # Generate response with retry logic
@@ -389,6 +397,183 @@ class GeminiVGCAnalyzer:
         
         return merged_result
     
+    def _detect_content_formats(self, content: str) -> Dict[str, float]:
+        """
+        Intelligent format detection to determine EV extraction strategy
+        
+        Returns:
+            Dictionary of format types with confidence scores (0.0-1.0)
+        """
+        format_scores = {
+            "image_stats": 0.0,          # H177 +252 format from images
+            "japanese_direct": 0.0,      # 努力値:252-0-4-252-0-0
+            "abbreviated_hybrid": 0.0,   # 努力値：H252 A4 S252  
+            "technical_calc": 0.0,       # 実数値: followed by 努力値:
+            "japanese_grid": 0.0,        # ＨＰ: 252  こうげき: 0
+            "standard_slash": 0.0,       # HP: 252 / Attack: 0
+            "written_format": 0.0        # HP252振り, すばやさ252
+        }
+        
+        # Count occurrences of each format pattern
+        
+        # Image stats format detection
+        image_patterns = [
+            r'[HABCDS]\d{3}\s*\+\d{1,3}',  # H177 +252
+            r'\d{3}\s*\+\d{1,3}',          # 177 +252
+            r'\(\d{1,3}\)',                # (252) in parentheses
+        ]
+        for pattern in image_patterns:
+            matches = len(re.findall(pattern, content))
+            format_scores["image_stats"] += matches * 0.2
+        
+        # Japanese direct format (highest priority)
+        japanese_direct_patterns = [
+            r'努力値\s*[:：]\s*\d+-\d+-\d+-\d+-\d+-\d+',
+            r'個体値調整\s*[:：]\s*\d+-\d+-\d+-\d+-\d+-\d+',
+            r'EV配分\s*[:：]\s*\d+-\d+-\d+-\d+-\d+-\d+',
+        ]
+        for pattern in japanese_direct_patterns:
+            matches = len(re.findall(pattern, content))
+            format_scores["japanese_direct"] += matches * 0.5
+        
+        # Abbreviated hybrid format
+        hybrid_patterns = [
+            r'努力値\s*[:：]\s*[HABCDS]\d+\s+[HABCDS]\d+',
+            r'個体値調整\s*[:：]\s*[HABCDS]\d+',
+            r'[HABCDS]\d{1,3}\s+[HABCDS]\d{1,3}',  # H252 A4 pattern
+        ]
+        for pattern in hybrid_patterns:
+            matches = len(re.findall(pattern, content))
+            format_scores["abbreviated_hybrid"] += matches * 0.3
+        
+        # Technical calculation format
+        if re.search(r'実数値\s*[:：]', content):
+            # Look for 努力値: within next few lines after 実数値:
+            tech_matches = len(re.findall(r'実数値.*?努力値', content, re.DOTALL))
+            format_scores["technical_calc"] += tech_matches * 0.4
+        
+        # Japanese grid format
+        grid_patterns = [
+            r'ＨＰ\s*[:：]\s*\d+',
+            r'こうげき\s*[:：]\s*\d+',
+            r'とくこう\s*[:：]\s*\d+',
+            r'すばやさ\s*[:：]\s*\d+',
+        ]
+        for pattern in grid_patterns:
+            matches = len(re.findall(pattern, content))
+            format_scores["japanese_grid"] += matches * 0.2
+        
+        # Standard slash format
+        slash_patterns = [
+            r'HP\s*[:：]\s*\d+\s*/\s*Attack',
+            r'\d+/\d+/\d+/\d+/\d+/\d+',  # Standard 6-number format
+        ]
+        for pattern in slash_patterns:
+            matches = len(re.findall(pattern, content))
+            format_scores["standard_slash"] += matches * 0.3
+        
+        # Written format (HP252振り style)
+        written_patterns = [
+            r'[ＨHP]\d+振り',
+            r'すばやさ\d+',
+            r'特攻\d+',
+            r'物理耐久',
+            r'特殊耐久',
+        ]
+        for pattern in written_patterns:
+            matches = len(re.findall(pattern, content))
+            format_scores["written_format"] += matches * 0.2
+        
+        # Normalize scores (cap at 1.0)
+        for format_type in format_scores:
+            format_scores[format_type] = min(1.0, format_scores[format_type])
+        
+        # Log detected formats for debugging
+        detected_formats = [f for f, score in format_scores.items() if score > 0.1]
+        if detected_formats:
+            logger.info(f"Detected EV formats: {detected_formats}")
+        
+        return format_scores
+    
+    def _create_format_hints(self, detected_formats: Dict[str, float]) -> str:
+        """
+        Create format-specific extraction hints based on detected formats
+        
+        Args:
+            detected_formats: Dictionary of format types with confidence scores
+            
+        Returns:
+            String with specific extraction instructions for detected formats
+        """
+        hints = []
+        sorted_formats = sorted(detected_formats.items(), key=lambda x: x[1], reverse=True)
+        
+        for format_type, score in sorted_formats:
+            if score < 0.3:
+                continue
+                
+            if format_type == "japanese_direct":
+                hints.append("""
+🚨 HIGH PRIORITY: Japanese Direct EV Format Detected (努力値:252-0-4-252-0-0)
+- Look specifically for patterns like "努力値:252-0-4-252-0-0" or "個体値調整:244-0-12-252-0-0"
+- These are in HP/Attack/Defense/SpA/SpD/Speed order
+- This format has HIGHEST extraction priority - scan every line for these patterns""")
+            
+            elif format_type == "abbreviated_hybrid":
+                hints.append("""
+🎯 HYBRID FORMAT DETECTED: Japanese prefix + abbreviated stats (努力値：H252 A4 S252)  
+- Look for patterns like "努力値：H252 A4 B156 D68 S28"
+- Convert stat letters: H=HP, A=Attack, B=Defense, C=Special Attack, D=Special Defense, S=Speed
+- May have Japanese prefixes followed by abbreviated English stats""")
+            
+            elif format_type == "technical_calc":
+                hints.append("""
+⚙️ TECHNICAL CALCULATION FORMAT DETECTED: 実数値: followed by 努力値:
+- Look for "実数値:" lines followed by "努力値:" within 2-3 lines  
+- The second line contains the actual EV distribution to extract
+- May include speed benchmarks and damage calculations nearby""")
+            
+            elif format_type == "image_stats":
+                hints.append("""
+📊 IMAGE STATS FORMAT DETECTED: Calculated stats with EV indicators
+- Look for patterns like "H177 +252" or "177 +252" or "(252)"
+- Numbers in parentheses are usually EV values
+- Numbers with + signs may indicate EV investments""")
+            
+            elif format_type == "japanese_grid":
+                hints.append("""
+📋 JAPANESE GRID FORMAT DETECTED: Full stat names with values
+- Look for "ＨＰ: 252", "こうげき: 0", "とくこう: 252" patterns
+- Extract values after colons for each Japanese stat name
+- May be arranged in table/grid layout""")
+        
+        # Add move extraction guidance for all formats
+        hints.append("""
+🎮 ADVANCED MOVE EXTRACTION PROTOCOL:
+**Primary Strategy**: Look for structured move lists
+- "わざ1:", "わざ2:", "わざ3:", "わざ4:" (highest priority)
+- "技:" sections with move names listed
+- Move names near Pokemon names in context
+
+**Secondary Strategy**: Context-based detection
+- Damage calculation mentions (e.g., "イカサマで確定1発")
+- Strategic discussions mentioning specific moves
+- Signature move references that identify Pokemon
+
+**Tertiary Strategy**: Pattern recognition
+- Japanese move names followed by explanations
+- Move effects described in strategic context
+- Type effectiveness discussions
+
+**Validation Requirements**:
+- Each Pokemon must have exactly 4 moves
+- Move names must be translated to official English names
+- Flag incomplete movesets for manual review""")
+        
+        if hints:
+            return f"**INTELLIGENT EXTRACTION SYSTEM - DETECTED FORMATS & PROTOCOLS:**\n" + "\n".join(hints)
+        return ""
+
     def _preprocess_content_for_analysis(self, content: str) -> str:
         """Preprocess content to improve analysis accuracy"""
         # Remove excessive whitespace
@@ -1340,8 +1525,17 @@ Please analyze the following content and provide your response in the exact JSON
                     validated_team = self._validate_pokemon_team_structure(pokemon_team)
                     extracted_data["pokemon_team"] = validated_team
                     
+                    # Run comprehensive validation
+                    validation_report = self._validate_extraction_completeness(validated_team)
+                    cross_validation_warnings = self._cross_validate_team_data(validated_team)
+                    
                     complete_pokemon = len([p for p in validated_team if self._is_complete_pokemon(p)])
                     logger.info(f"Successfully recovered {len(validated_team)} Pokemon from partial JSON ({complete_pokemon} complete)")
+                    logger.info(f"Extraction quality: {validation_report['overall_quality']} (score: {validation_report['completeness_score']:.2f})")
+                    
+                    if validation_report["warnings"] or cross_validation_warnings:
+                        all_warnings = validation_report["warnings"] + cross_validation_warnings
+                        logger.warning(f"Validation warnings: {all_warnings[:3]}")  # Log first 3 warnings
                 else:
                     logger.debug("Could not find matching closing bracket for pokemon_team")
                     extracted_data["pokemon_team"] = []
@@ -1522,6 +1716,174 @@ Please analyze the following content and provide your response in the exact JSON
         )
         has_some_stats = pokemon.get("evs") != "Not specified" or len(pokemon.get("moves", [])) > 0
         return has_essential_data and has_some_stats
+    
+    def _validate_extraction_completeness(self, pokemon_team: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Comprehensive validation of extraction completeness with cross-reference checks
+        
+        Args:
+            pokemon_team: List of Pokemon data
+            
+        Returns:
+            Dictionary with validation results and recommendations
+        """
+        validation_report = {
+            "overall_quality": "high",
+            "issues": [],
+            "warnings": [],
+            "recommendations": [],
+            "completeness_score": 1.0,
+            "pokemon_reports": []
+        }
+        
+        if not pokemon_team:
+            validation_report["overall_quality"] = "failed"
+            validation_report["issues"].append("No Pokemon team found")
+            validation_report["completeness_score"] = 0.0
+            return validation_report
+        
+        total_quality_score = 0
+        for i, pokemon in enumerate(pokemon_team):
+            pokemon_report = self._validate_single_pokemon(pokemon, i)
+            validation_report["pokemon_reports"].append(pokemon_report)
+            total_quality_score += pokemon_report["quality_score"]
+            
+            # Collect issues and warnings
+            validation_report["issues"].extend(pokemon_report["issues"])
+            validation_report["warnings"].extend(pokemon_report["warnings"])
+        
+        # Calculate overall completeness
+        avg_quality = total_quality_score / len(pokemon_team)
+        validation_report["completeness_score"] = avg_quality
+        
+        # Determine overall quality
+        if avg_quality >= 0.8:
+            validation_report["overall_quality"] = "high"
+        elif avg_quality >= 0.6:
+            validation_report["overall_quality"] = "medium"
+        elif avg_quality >= 0.3:
+            validation_report["overall_quality"] = "low"
+        else:
+            validation_report["overall_quality"] = "failed"
+        
+        # Generate recommendations
+        if validation_report["issues"]:
+            validation_report["recommendations"].append("Consider manual review of Pokemon with critical issues")
+        if avg_quality < 0.7:
+            validation_report["recommendations"].append("Extraction may be incomplete - verify source article format")
+        
+        return validation_report
+    
+    def _validate_single_pokemon(self, pokemon: Dict[str, Any], index: int) -> Dict[str, Any]:
+        """Validate a single Pokemon's data completeness and consistency"""
+        report = {
+            "pokemon_index": index,
+            "name": pokemon.get("name", f"Pokemon {index+1}"),
+            "quality_score": 1.0,
+            "issues": [],
+            "warnings": [],
+            "missing_fields": []
+        }
+        
+        # Check required fields
+        required_fields = ["name", "ability", "held_item", "moves", "evs"]
+        missing_count = 0
+        
+        for field in required_fields:
+            value = pokemon.get(field)
+            if not value or value == "Not specified":
+                report["missing_fields"].append(field)
+                missing_count += 1
+        
+        # Check move count
+        moves = pokemon.get("moves", [])
+        if len(moves) == 0:
+            report["issues"].append(f"Pokemon {index+1}: No moves found")
+            report["quality_score"] -= 0.3
+        elif len(moves) < 4:
+            report["warnings"].append(f"Pokemon {index+1}: Only {len(moves)}/4 moves found")
+            report["quality_score"] -= 0.1 * (4 - len(moves))
+        
+        # Check EV validity
+        evs = pokemon.get("evs", "Not specified")
+        if evs == "Not specified":
+            report["warnings"].append(f"Pokemon {index+1}: No EV spread found")
+            report["quality_score"] -= 0.2
+        else:
+            ev_validation = self._validate_ev_spread(evs)
+            if not ev_validation["valid"]:
+                report["issues"].append(f"Pokemon {index+1}: Invalid EV spread - {ev_validation['reason']}")
+                report["quality_score"] -= 0.2
+        
+        # Penalize for missing critical fields
+        if missing_count > 2:
+            report["quality_score"] -= 0.3
+        elif missing_count > 0:
+            report["quality_score"] -= 0.1 * missing_count
+        
+        # Ensure score doesn't go below 0
+        report["quality_score"] = max(0.0, report["quality_score"])
+        
+        return report
+    
+    def _validate_ev_spread(self, evs: str) -> Dict[str, Any]:
+        """Validate EV spread format and values"""
+        if evs == "Not specified":
+            return {"valid": False, "reason": "No EV spread provided"}
+        
+        # Check if it's in standard format (e.g., "252/0/4/252/0/0")
+        if "/" in evs:
+            try:
+                ev_values = [int(x.strip()) for x in evs.split("/")]
+                if len(ev_values) != 6:
+                    return {"valid": False, "reason": f"Expected 6 EV values, got {len(ev_values)}"}
+                
+                total_evs = sum(ev_values)
+                if total_evs > 508:
+                    return {"valid": False, "reason": f"EV total {total_evs} exceeds maximum of 508"}
+                
+                # Check individual values
+                if any(ev > 252 for ev in ev_values):
+                    return {"valid": False, "reason": "Individual EV values cannot exceed 252"}
+                
+                if any(ev < 0 for ev in ev_values):
+                    return {"valid": False, "reason": "EV values cannot be negative"}
+                
+                return {"valid": True, "total": total_evs, "values": ev_values}
+                
+            except ValueError:
+                return {"valid": False, "reason": "EV values contain non-numeric data"}
+        
+        # For other formats, just check it's not empty
+        return {"valid": True if evs.strip() else False, "reason": "Non-standard EV format"}
+    
+    def _cross_validate_team_data(self, pokemon_team: List[Dict[str, Any]]) -> List[str]:
+        """Cross-validate team data for consistency and competitive viability"""
+        warnings = []
+        
+        # Check for duplicate Pokemon (except legitimate forms)
+        pokemon_names = [p.get("name", "") for p in pokemon_team]
+        duplicates = [name for name in set(pokemon_names) if pokemon_names.count(name) > 1 and name != ""]
+        if duplicates:
+            warnings.append(f"Duplicate Pokemon detected: {duplicates}")
+        
+        # Check EV distribution patterns
+        ev_totals = []
+        for pokemon in pokemon_team:
+            evs = pokemon.get("evs", "Not specified")
+            if "/" in evs:
+                try:
+                    total = sum(int(x.strip()) for x in evs.split("/"))
+                    ev_totals.append(total)
+                except ValueError:
+                    continue
+        
+        if len(ev_totals) > 1:
+            # Check for suspiciously similar totals (might indicate AI generation)
+            if len(set(ev_totals)) == 1 and ev_totals[0] == 508:
+                warnings.append("All Pokemon have identical maximum EV totals - verify authenticity")
+        
+        return warnings
 
     def _validate_and_clean_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and clean the analysis result"""

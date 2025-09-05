@@ -98,6 +98,19 @@ class PokemonValidator:
             
             # Missing Pokemon from takoyaki-games article
             'ジュペッタ': 'Banette',
+            
+            # URSALUNA FORMS - CRITICAL DISTINCTION
+            'ガチグマ': 'Ursaluna',                           # Regular Ursaluna
+            'ガチグマ（アカツキ）': 'Ursaluna-Bloodmoon',      # Bloodmoon form with parentheses
+            'ガチグマ(アカツキ)': 'Ursaluna-Bloodmoon',       # Alternative parentheses style
+            'ガチグマアカツキ': 'Ursaluna-Bloodmoon',         # No parentheses variant
+            'アカツキガチグマ': 'Ursaluna-Bloodmoon',         # Reversed order
+            'ガチグマ-アカツキ': 'Ursaluna-Bloodmoon',        # Dash separator
+            
+            # English variants
+            'Ursaluna Bloodmoon': 'Ursaluna-Bloodmoon',
+            'Ursaluna-Blood Moon': 'Ursaluna-Bloodmoon',     # Alternative spacing
+            'Bloodmoon Ursaluna': 'Ursaluna-Bloodmoon',
             'エルレイド': 'Gallade',
         }
         
@@ -833,6 +846,15 @@ class PokemonValidator:
                 return 'Thundurus-Incarnate'
             else:
                 return 'Thundurus-Therian'  # Default for VGC
+        
+        # Enhanced Ursaluna form disambiguation
+        if 'ursaluna' in name_lower or 'ガチグマ' in name:
+            # Check for Bloodmoon indicators
+            bloodmoon_indicators = ['bloodmoon', 'blood moon', 'アカツキ', '（アカツキ）', '(アカツキ)']
+            if any(indicator in name_lower or indicator in name for indicator in bloodmoon_indicators):
+                return 'Ursaluna-Bloodmoon'
+            else:
+                return 'Ursaluna'  # Regular form
         
         # Fix Hisuian forms
         if 'hisui' in name_lower or 'ヒスイ' in name:
