@@ -129,6 +129,11 @@ class GeminiVGCAnalyzer:
             # Enhanced validation with confidence scoring
             result = self._validate_and_enhance_result(result, content, url)
 
+            # Add fresh analysis metadata
+            from datetime import datetime
+            result["is_cached_result"] = False
+            result["analysis_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+
             # Cache the result
             cache.set(content, result, url)
 
@@ -184,6 +189,11 @@ class GeminiVGCAnalyzer:
             
             # ULTRA-CRITICAL: Apply validation pipeline including stat abbreviation translation
             text_result = self._validate_and_enhance_result(text_result, content, url)
+
+            # Add fresh analysis metadata  
+            from datetime import datetime
+            text_result["is_cached_result"] = False
+            text_result["analysis_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M")
                     
             return text_result
             

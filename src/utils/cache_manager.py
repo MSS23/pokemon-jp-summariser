@@ -174,6 +174,11 @@ class CacheManager:
             # Verify the cached data structure
             if all(key in cached_data for key in ["result", "timestamp", "content_hash"]):
                 result = cached_data["result"]
+                cache_timestamp = cached_data["timestamp"]
+                
+                # Add cache metadata to result
+                result["is_cached_result"] = True
+                result["analysis_timestamp"] = cache_timestamp.strftime("%Y-%m-%d %H:%M")
                 
                 # Add to memory cache for faster future access
                 self._add_to_memory_cache(content_hash, result)

@@ -12,8 +12,11 @@ import streamlit as st
 
 
 def create_content_hash(content: str) -> str:
-    """Create hash for content caching"""
-    return hashlib.sha256(content.encode()).hexdigest()
+    """Create hash for content caching with validation version"""
+    # Add validation version to cache key to invalidate old results
+    validation_version = "v2.1.0"  # Updated after validation improvements
+    versioned_content = f"{content}|validation_version:{validation_version}"
+    return hashlib.sha256(versioned_content.encode()).hexdigest()
 
 
 def ensure_cache_directory() -> str:
