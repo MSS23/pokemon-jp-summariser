@@ -127,23 +127,29 @@ This is completely normal with API usage - just take a quick break and try again
     elif error.error_type == "quota_exceeded":
         return {
             "icon": "📊", 
-            "title": "Daily API Quota Exceeded",
-            "message": """You've reached your daily limit for the Google Gemini API. This happens when you've done many analyses in one day.
+            "title": "API Limit Reached",
+            "message": """**You've hit your daily API limit!** The Google Gemini free tier allows 250 requests per day for VGC analysis.
 
-**What happened?** Your API key has used up its daily allowance of requests.
+**What this means:**
+• You've successfully analyzed many Pokemon articles today
+• Your daily quota is now used up (this is normal with heavy usage)
+• The limit automatically resets at midnight Pacific Time
 
-**What you can do:**
-• **Wait until tomorrow** for the quota to reset (resets at midnight Pacific Time)
-• **Try shorter articles** to use less quota per analysis
-• **Save your current results** - they'll stay in your session until you refresh
-• **Consider upgrading** to a paid Google Cloud plan for much higher limits
+**What you can do right now:**
+• **Wait until tomorrow** - your quota resets automatically 
+• **Save any current analysis** - your results stay until page refresh
+• **Try again in a few hours** if it's late in the day
 
-Your analysis history is still available in this session!""",
+**For more analysis capacity:**
+• Upgrade to a paid Google Cloud plan for thousands of daily requests
+• Shorter articles use less quota, so focus on concise content
+
+Don't worry - this just means you've been actively using the analysis tool!""",
             "tips": [
-                "Daily quotas reset at midnight Pacific Time",
-                "Shorter content uses less of your daily quota", 
-                "Paid Google Cloud accounts have much higher limits",
-                "Your session data is preserved until page refresh"
+                "Free tier = 250 requests daily (plenty for most users)",
+                "Quota resets automatically at midnight Pacific", 
+                "Paid plans offer 50,000+ daily requests",
+                "Your current session data is safely preserved"
             ]
         }
     
@@ -901,13 +907,25 @@ class GeminiVGCAnalyzer:
                     retry_after=retry_after
                 )
             
-            # Detect quota exceeded errors (daily/monthly limits)
+            # Detect quota exceeded errors (daily/monthly limits) - Enhanced patterns for Google API
             elif ('quota' in error_msg or 'resource has been exhausted' in error_msg or
-                  'quota exceeded for quota metric' in error_msg or 'resource_exhausted' in error_msg):
+                  'quota exceeded for quota metric' in error_msg or 'resource_exhausted' in error_msg or
+                  'exceeded your current quota' in error_msg or 'billing details' in error_msg or
+                  'quota_metric' in error_msg or 'violations' in error_msg or 
+                  ('429' in error_msg and ('quota' in error_msg or 'exceeded' in error_msg))):
                 logger.error(f"API quota exceeded: {original_error}")
+                
+                # Try to extract retry delay from Google API error response
+                retry_after = None
+                import re
+                retry_match = re.search(r'retry_delay.*?seconds[:\s]+(\d+)', original_error)
+                if retry_match:
+                    retry_after = int(retry_match.group(1))
+                
                 raise APILimitError(
                     "API quota exceeded. You've reached your daily or monthly limit.",
-                    error_type="quota_exceeded"
+                    error_type="quota_exceeded",
+                    retry_after=retry_after
                 )
             
             # Detect service disabled errors
