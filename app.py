@@ -114,13 +114,14 @@ try:
     # Check for admin access (with fallback for compatibility)
     is_admin = False
     try:
-        # Try different query param methods for Streamlit compatibility
-        if hasattr(st, 'experimental_get_query_params'):
-            query_params = st.experimental_get_query_params()
-            is_admin = query_params.get("admin", [False])[0] in ["true", "1", "yes"]
-        elif hasattr(st, 'query_params'):
+        # Use modern st.query_params (st.experimental_get_query_params deprecated after 2024-04-11)
+        if hasattr(st, 'query_params'):
             query_params = st.query_params
             is_admin = query_params.get("admin", [False])[0] in ["true", "1", "yes"] if isinstance(query_params, dict) else False
+        # Fallback for older Streamlit versions (legacy support)
+        elif hasattr(st, 'experimental_get_query_params'):
+            query_params = st.experimental_get_query_params()
+            is_admin = query_params.get("admin", [False])[0] in ["true", "1", "yes"]
         # Fallback: check URL manually if available
         else:
             # Admin features disabled for this Streamlit version
@@ -263,10 +264,10 @@ try:
         try:
             # Safely check for page parameter
             page_param = ""
-            if hasattr(st, 'experimental_get_query_params'):
-                page_param = st.experimental_get_query_params().get("page", [""])[0]
-            elif hasattr(st, 'query_params') and hasattr(st.query_params, 'get'):
+            if hasattr(st, 'query_params') and hasattr(st.query_params, 'get'):
                 page_param = st.query_params.get("page", [""])[0]
+            elif hasattr(st, 'experimental_get_query_params'):
+                page_param = st.experimental_get_query_params().get("page", [""])[0]
                 
             if page_param == "feedback":
                 render_feedback_viewer()
