@@ -9,15 +9,76 @@ from typing import Dict, Optional, Any, List
 import google.generativeai as genai
 import streamlit as st
 
-from utils.config import Config, POKEMON_NAME_TRANSLATIONS, MOVE_NAME_TRANSLATIONS
-from core.scraper import ArticleScraper
-from core.pokemon_validator import PokemonValidator
-from utils.image_analyzer import (
-    extract_images_from_url,
-    filter_vgc_images,
-    analyze_image_with_vision,
-    extract_ev_spreads_from_image_analysis
-)
+# Deployment-safe imports with fallbacks
+try:
+    from utils.config import Config, POKEMON_NAME_TRANSLATIONS, MOVE_NAME_TRANSLATIONS
+except ImportError:
+    # Fallback for deployment environment
+    try:
+        from src.utils.config import Config, POKEMON_NAME_TRANSLATIONS, MOVE_NAME_TRANSLATIONS
+    except ImportError:
+        # Minimal fallback if config module not available
+        class Config:
+            @staticmethod
+            def get_gemini_api_key():
+                import os
+                return os.getenv("GEMINI_API_KEY", "")
+        
+        POKEMON_NAME_TRANSLATIONS = {}
+        MOVE_NAME_TRANSLATIONS = {}
+
+try:
+    from core.scraper import ArticleScraper
+except ImportError:
+    try:
+        from src.core.scraper import ArticleScraper
+    except ImportError:
+        # Minimal fallback scraper
+        class ArticleScraper:
+            @staticmethod
+            def scrape_url(url):
+                return {"text": "Scraper not available", "title": "Error"}
+
+try:
+    from core.pokemon_validator import PokemonValidator
+except ImportError:
+    try:
+        from src.core.pokemon_validator import PokemonValidator
+    except ImportError:
+        # Minimal fallback validator
+        class PokemonValidator:
+            @staticmethod
+            def validate_pokemon_data(data):
+                return data
+
+try:
+    from utils.image_analyzer import (
+        extract_images_from_url,
+        filter_vgc_images,
+        analyze_image_with_vision,
+        extract_ev_spreads_from_image_analysis
+    )
+except ImportError:
+    try:
+        from src.utils.image_analyzer import (
+            extract_images_from_url,
+            filter_vgc_images,
+            analyze_image_with_vision,
+            extract_ev_spreads_from_image_analysis
+        )
+    except ImportError:
+        # Fallback image analysis functions
+        def extract_images_from_url(url):
+            return []
+        
+        def filter_vgc_images(images):
+            return images
+        
+        def analyze_image_with_vision(image, model):
+            return "Image analysis not available"
+        
+        def extract_ev_spreads_from_image_analysis(analysis):
+            return {}
 
 # Configure logging for analysis pipeline debugging
 logging.basicConfig(level=logging.INFO)

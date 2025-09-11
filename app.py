@@ -39,7 +39,28 @@ st.set_page_config(
 # Direct imports to avoid complex import chains
 try:    
     # Import the application components with enhanced error handling
-    from core.analyzer import GeminiVGCAnalyzer, APILimitError, get_user_friendly_api_error_message
+    from core.analyzer import GeminiVGCAnalyzer
+    
+    # Try to import the API error handling components with fallback
+    try:
+        from core.analyzer import APILimitError, get_user_friendly_api_error_message
+    except ImportError:
+        # Fallback implementations for deployment compatibility
+        class APILimitError(Exception):
+            """Fallback API limit error class"""
+            def __init__(self, message: str, error_type: str = "unknown", retry_after: int = None):
+                super().__init__(message)
+                self.error_type = error_type
+                self.retry_after = retry_after
+        
+        def get_user_friendly_api_error_message(error: APILimitError):
+            """Fallback user-friendly error message function"""
+            return {
+                "icon": "⚠️",
+                "title": "API Error",
+                "message": f"An API error occurred: {str(error)}\n\nPlease try again in a moment.",
+                "tips": ["Try again in a few moments", "Check your internet connection"]
+            }
     from ui.components import (
         render_page_header,
         render_analysis_input,
@@ -90,9 +111,23 @@ try:
     current_page = render_sidebar()
     st.session_state.current_page = current_page
 
-    # Check for admin access
-    query_params = st.experimental_get_query_params() if hasattr(st, 'experimental_get_query_params') else st.query_params
-    is_admin = query_params.get("admin", [False])[0] in ["true", "1", "yes"] if isinstance(query_params, dict) else False
+    # Check for admin access (with fallback for compatibility)
+    is_admin = False
+    try:
+        # Try different query param methods for Streamlit compatibility
+        if hasattr(st, 'experimental_get_query_params'):
+            query_params = st.experimental_get_query_params()
+            is_admin = query_params.get("admin", [False])[0] in ["true", "1", "yes"]
+        elif hasattr(st, 'query_params'):
+            query_params = st.query_params
+            is_admin = query_params.get("admin", [False])[0] in ["true", "1", "yes"] if isinstance(query_params, dict) else False
+        # Fallback: check URL manually if available
+        else:
+            # Admin features disabled for this Streamlit version
+            is_admin = False
+    except Exception as e:
+        # If admin access fails, just disable it - don't break the app
+        is_admin = False
     
     # Route to appropriate page
     def process_analysis(input_type: str, content: str):
@@ -222,40 +257,56 @@ try:
         # Export section
         render_export_section(result)
 
-    # Admin-only access to feedback viewer
-    if is_admin and query_params.get("page", [""])[0] == "feedback":
-        render_feedback_viewer()
-        st.sidebar.markdown("---")
-        st.sidebar.markdown("**🔒 Admin Mode Active**")
-        st.sidebar.markdown("[📝 View Feedback](?admin=true&page=feedback)")
-        st.sidebar.markdown("[🏠 Back to App](?)")
+    # Admin-only access to feedback viewer (with error handling)
+    admin_page_rendered = False
+    if is_admin:
+        try:
+            # Safely check for page parameter
+            page_param = ""
+            if hasattr(st, 'experimental_get_query_params'):
+                page_param = st.experimental_get_query_params().get("page", [""])[0]
+            elif hasattr(st, 'query_params') and hasattr(st.query_params, 'get'):
+                page_param = st.query_params.get("page", [""])[0]
+                
+            if page_param == "feedback":
+                render_feedback_viewer()
+                st.sidebar.markdown("---")
+                st.sidebar.markdown("**🔒 Admin Mode Active**")
+                st.sidebar.markdown("[📝 View Feedback](?admin=true&page=feedback)")
+                st.sidebar.markdown("[🏠 Back to App](?)")
+                admin_page_rendered = True
+        except Exception as e:
+            # If admin features fail, show error but continue with main app
+            st.error("Admin features unavailable in this deployment environment.")
+            admin_page_rendered = False
     
-    # Page routing
-    elif current_page == "🏠 Analysis Home":
-        # Main analysis page
-        render_page_header()
-        
-        input_type, content = render_analysis_input()
-        
-        if st.button("🔍 Analyze", type="primary", use_container_width=True):
-            if content and content.strip():
-                process_analysis(input_type, content)
-            else:
-                st.warning("⚠️ Please provide a URL or paste article text to analyze!")
-        
-        if st.session_state.analysis_result:
-            display_analysis_results()
+    # Page routing (only if admin page wasn't rendered)
+    if not admin_page_rendered:
+        if current_page == "🏠 Analysis Home":
+            # Main analysis page
+            render_page_header()
             
-    elif current_page == "🎮 Switch Translation":
-        render_switch_translation_page()
-        
-    elif current_page == "⚙️ Settings":  
-        render_settings_page()
-        
-    elif current_page == "📖 Help & Guide":
-        st.header("📖 Help & User Guide")
-        
-        st.markdown("""
+            input_type, content = render_analysis_input()
+            
+            if st.button("🔍 Analyze", type="primary", use_container_width=True):
+                if content and content.strip():
+                    process_analysis(input_type, content)
+                else:
+                    st.warning("⚠️ Please provide a URL or paste article text to analyze!")
+            
+            if st.session_state.analysis_result:
+                display_analysis_results()
+                
+        elif current_page == "🎮 Switch Translation":
+            render_switch_translation_page()
+            
+        elif current_page == "⚙️ Settings":  
+            render_settings_page()
+            
+        elif current_page == "📖 Help & Guide":
+            st.header("📖 Help & User Guide")
+            
+            st.markdown("""
         ## 🚀 Getting Started
         
         ### Step 1: Input Your Content
