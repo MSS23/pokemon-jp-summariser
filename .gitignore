@@ -95,3 +95,9 @@ dev_secrets*
 
 # Claude Code configuration (optional - contains permissions)
 # .claude/ (commented out - user may want to keep this)
+
+# Feedback system data files (user privacy protection)
+feedback_data.json
+feedback_log.txt
+feedback_*.json
+feedback_*.txt

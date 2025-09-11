@@ -24,6 +24,134 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+class APILimitError(Exception):
+    """Custom exception for API rate limit and quota errors"""
+    def __init__(self, message: str, error_type: str = "unknown", retry_after: Optional[int] = None):
+        super().__init__(message)
+        self.error_type = error_type  # 'rate_limit', 'quota_exceeded', 'service_disabled', etc.
+        self.retry_after = retry_after
+
+
+def get_user_friendly_api_error_message(error: APILimitError) -> Dict[str, str]:
+    """
+    Convert API limit errors into user-friendly messages with clear guidance
+    
+    Returns:
+        Dict with 'title', 'message', 'icon', and 'tips' keys
+    """
+    if error.error_type == "rate_limit":
+        retry_minutes = (error.retry_after or 60) // 60
+        retry_text = f"{retry_minutes} minute{'s' if retry_minutes != 1 else ''}" if retry_minutes > 0 else "a moment"
+        
+        return {
+            "icon": "⏱️",
+            "title": "API Rate Limit Reached",
+            "message": f"""You've made too many requests in a short time. The Google Gemini API has limits to ensure fair usage for everyone.
+
+**What happened?** The API temporarily blocked new requests to prevent overload.
+
+**What you can do:**
+• **Wait {retry_text}** and try again - the limit resets automatically  
+• **Use shorter articles** to reduce processing time per request
+• **Spread out your analyses** rather than doing many at once
+
+This is completely normal with API usage - just take a quick break and try again!""",
+            "tips": [
+                "Rate limits reset automatically after a short wait",
+                "Shorter content = faster processing = fewer API calls",
+                "Free tier has stricter limits than paid accounts"
+            ]
+        }
+    
+    elif error.error_type == "quota_exceeded":
+        return {
+            "icon": "📊", 
+            "title": "Daily API Quota Exceeded",
+            "message": """You've reached your daily limit for the Google Gemini API. This happens when you've done many analyses in one day.
+
+**What happened?** Your API key has used up its daily allowance of requests.
+
+**What you can do:**
+• **Wait until tomorrow** for the quota to reset (resets at midnight Pacific Time)
+• **Try shorter articles** to use less quota per analysis
+• **Save your current results** - they'll stay in your session until you refresh
+• **Consider upgrading** to a paid Google Cloud plan for much higher limits
+
+Your analysis history is still available in this session!""",
+            "tips": [
+                "Daily quotas reset at midnight Pacific Time",
+                "Shorter content uses less of your daily quota", 
+                "Paid Google Cloud accounts have much higher limits",
+                "Your session data is preserved until page refresh"
+            ]
+        }
+    
+    elif error.error_type == "authentication":
+        return {
+            "icon": "🔐",
+            "title": "API Key Authentication Failed", 
+            "message": """There's an issue with your Google API key configuration.
+
+**What happened?** The API key couldn't be verified or is invalid.
+
+**What you can do:**
+• **Check your API key** in the Google Cloud Console
+• **Verify the key has permissions** for the Gemini API
+• **Make sure it's correctly set** in your environment or configuration
+• **Try regenerating the key** if the issue persists
+
+Contact support if you continue having authentication issues.""",
+            "tips": [
+                "API keys must have Gemini API permissions enabled",
+                "Keys can expire or be revoked in Google Cloud Console",
+                "Environment variables need to be set correctly"
+            ]
+        }
+    
+    elif error.error_type == "service_disabled":
+        return {
+            "icon": "🔧",
+            "title": "Gemini API Service Not Enabled",
+            "message": """The Gemini API service isn't enabled for your Google Cloud project.
+
+**What happened?** The API needs to be activated in your Google Cloud Console.
+
+**What you can do:**
+• **Go to Google Cloud Console** → APIs & Services → Library
+• **Search for "Gemini API"** or "Generative Language API"  
+• **Click "Enable"** on the API service
+• **Wait a few minutes** for the service to activate
+• **Try your analysis again**
+
+This is a one-time setup step for new projects.""",
+            "tips": [
+                "API enablement is required once per Google Cloud project",
+                "Changes can take a few minutes to take effect",
+                "Free tier includes generous Gemini API usage"
+            ]
+        }
+    
+    else:
+        return {
+            "icon": "⚠️",
+            "title": "API Error Occurred",
+            "message": f"""An unexpected API error occurred: {str(error)}
+
+**What you can do:**
+• **Try again** in a moment - temporary issues often resolve quickly
+• **Check your internet connection**
+• **Try with shorter content** if the article was very long
+• **Contact support** if the issue persists
+
+The error details have been logged for troubleshooting.""",
+            "tips": [
+                "Many API errors are temporary and resolve quickly",
+                "Network issues can cause API failures",
+                "Shorter content is more reliable to process"
+            ]
+        }
+
+
 @st.cache_data
 def get_pokemon_name_translations() -> Dict[str, str]:
     """Get Pokemon name translations (cached for performance)"""
@@ -681,20 +809,59 @@ class GeminiVGCAnalyzer:
             return self._parse_json_response(response.text)
             
         except Exception as e:
-            # Enhanced error logging for different API failure types
+            # Enhanced error detection for different API failure types
             error_msg = str(e).lower()
-            if 'api key' in error_msg or 'authentication' in error_msg:
-                logger.error(f"API authentication error: {str(e)}")
-                raise ValueError("API authentication failed. Please check your Google API key.")
-            elif 'quota' in error_msg or 'rate' in error_msg:
-                logger.error(f"API quota/rate limit error: {str(e)}")
-                raise ValueError("API quota exceeded. Please try again later.")
-            elif 'service_disabled' in error_msg or 'has not been used' in error_msg:
-                logger.error(f"API service disabled: {str(e)}")
-                raise ValueError("Gemini API service is disabled or not enabled for this project. Please enable the Generative Language API in Google Cloud Console and try again.")
+            original_error = str(e)
+            
+            # Detect API authentication errors
+            if ('api key' in error_msg or 'authentication' in error_msg or 
+                'unauthorized' in error_msg or 'invalid_api_key' in error_msg):
+                logger.error(f"API authentication error: {original_error}")
+                raise APILimitError(
+                    "API authentication failed. Please check your Google API key.",
+                    error_type="authentication"
+                )
+            
+            # Detect rate limiting errors (requests per minute/second)
+            elif (('429' in error_msg or 'rate' in error_msg or 'requests per minute' in error_msg or
+                   'rate_limit_exceeded' in error_msg or 'too many requests' in error_msg) and
+                  'quota' not in error_msg):
+                logger.error(f"API rate limit error: {original_error}")
+                # Try to extract retry-after time if available
+                retry_after = 60  # Default to 1 minute
+                import re
+                retry_match = re.search(r'retry.after[:\s]+(\d+)', error_msg)
+                if retry_match:
+                    retry_after = int(retry_match.group(1))
+                    
+                raise APILimitError(
+                    "API rate limit exceeded. Too many requests in a short time.",
+                    error_type="rate_limit",
+                    retry_after=retry_after
+                )
+            
+            # Detect quota exceeded errors (daily/monthly limits)
+            elif ('quota' in error_msg or 'resource has been exhausted' in error_msg or
+                  'quota exceeded for quota metric' in error_msg or 'resource_exhausted' in error_msg):
+                logger.error(f"API quota exceeded: {original_error}")
+                raise APILimitError(
+                    "API quota exceeded. You've reached your daily or monthly limit.",
+                    error_type="quota_exceeded"
+                )
+            
+            # Detect service disabled errors
+            elif ('service_disabled' in error_msg or 'has not been used' in error_msg or
+                  'api has not been used' in error_msg or 'enable the api' in error_msg):
+                logger.error(f"API service disabled: {original_error}")
+                raise APILimitError(
+                    "Gemini API service is disabled or not enabled for this project. Please enable the Generative Language API in Google Cloud Console.",
+                    error_type="service_disabled"
+                )
+                
+            # Generic API errors
             else:
-                logger.error(f"General API error: {str(e)}")
-                raise ValueError(f"API call failed: {str(e)}")
+                logger.error(f"General API error: {original_error}")
+                raise ValueError(f"API call failed: {original_error}")
     
     def _generate_with_reduced_content(self, prompt: str, content: str) -> Dict[str, Any]:
         """Fallback with reduced content size"""
@@ -1579,11 +1746,11 @@ Please analyze the following content and provide your response in the exact JSON
         
         # Try to extract other analysis fields with enhanced validation
         analysis_fields = {
-            "team_strengths": r'"team_strengths"\s*:\s*"([^"]{30,})"',  # Minimum 30 chars for meaningful content
-            "team_weaknesses": r'"team_weaknesses"\s*:\s*"([^"]{30,})"', 
-            "team_synergies": r'"team_synergies"\s*:\s*"([^"]{30,})"',
-            "meta_analysis": r'"meta_analysis"\s*:\s*"([^"]{30,})"',
-            "full_translation": r'"full_translation"\s*:\s*"([^"]{50,})"',  # Higher threshold for translations
+            "team_strengths": r'"team_strengths"\s*:\s*"([^"]{15,})"',  # Reduced threshold for better extraction
+            "team_weaknesses": r'"team_weaknesses"\s*:\s*"([^"]{15,})"', 
+            "team_synergies": r'"team_synergies"\s*:\s*"([^"]{15,})"',
+            "meta_analysis": r'"meta_analysis"\s*:\s*"([^"]{15,})"',
+            "full_translation": r'"full_translation"\s*:\s*"([^"]{30,})"',  # Moderate threshold for translations
         }
         
         for field_name, pattern in analysis_fields.items():
@@ -1610,15 +1777,23 @@ Please analyze the following content and provide your response in the exact JSON
             is_substantial_recovery = pokemon_team and (has_title or has_strategy or has_analysis_content)
             
             # Fill in missing required fields, using extracted content where available
+            # Try fallback extraction methods for missing strategy content
+            if not extracted_data.get("overall_strategy"):
+                extracted_data["overall_strategy"] = self._extract_fallback_strategy(text)
+            if not extracted_data.get("team_strengths"):
+                extracted_data["team_strengths"] = self._extract_fallback_strengths(text)
+            if not extracted_data.get("team_weaknesses"):
+                extracted_data["team_weaknesses"] = self._extract_fallback_weaknesses(text)
+            
             result = {
                 "title": extracted_data.get("title", "VGC Team Analysis"),
                 "pokemon_team": pokemon_team,
-                "overall_strategy": extracted_data.get("overall_strategy", "Team strategy analysis recovered"),
+                "overall_strategy": extracted_data.get("overall_strategy", "Team strategy details not fully extracted"),
                 "regulation": extracted_data.get("regulation", "Not specified"),
-                "team_strengths": extracted_data.get("team_strengths", "Team strengths analysis not available"),
-                "team_weaknesses": extracted_data.get("team_weaknesses", "Team weaknesses analysis not available"), 
-                "team_synergies": extracted_data.get("team_synergies", "Team synergies analysis not available"),
-                "meta_analysis": extracted_data.get("meta_analysis", "Meta analysis not available"),
+                "team_strengths": extracted_data.get("team_strengths", "Team strengths analysis not fully extracted"),
+                "team_weaknesses": extracted_data.get("team_weaknesses", "Team weaknesses analysis not fully extracted"), 
+                "team_synergies": extracted_data.get("team_synergies", "Team synergies analysis not fully extracted"),
+                "meta_analysis": extracted_data.get("meta_analysis", "Meta analysis not fully extracted"),
                 "tournament_context": "Not specified",
                 "full_translation": extracted_data.get("full_translation", "Full translation not available"),
                 "translation_notes": f"JSON parsing recovered successfully with {len(pokemon_team)} Pokemon",
@@ -1636,6 +1811,75 @@ Please analyze the following content and provide your response in the exact JSON
         # If no meaningful data recovered, raise error to try next strategy
         logger.debug("No meaningful data recovered in partial JSON parsing")
         raise ValueError("Partial JSON recovery failed")
+    
+    def _extract_fallback_strategy(self, text: str) -> str:
+        """Extract strategy information using fallback patterns when JSON parsing fails"""
+        # Look for common strategy indicators in Japanese and English
+        strategy_patterns = [
+            # Look for strategic discussion patterns
+            r'(?:戦術|戦略|アプローチ|コンセプト)[\s]*[:：]?\s*([^\n]{20,200})',
+            r'(?:strategy|approach|concept|gameplan)[\s]*[:：]?\s*([^\n]{20,200})',
+            # Look for team composition explanations
+            r'(?:構築|チーム)(?:の|について)[\s]*([^\n]{30,200})',
+            r'(?:team composition|team building)[\s]*[:：]?\s*([^\n]{30,200})',
+            # Look for match explanations
+            r'(?:対戦|勝負|ゲーム)(?:では|で|において)[\s]*([^\n]{20,200})',
+            r'(?:in matches|during games)[\s]*([^\n]{20,200})',
+        ]
+        
+        for pattern in strategy_patterns:
+            match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
+            if match:
+                strategy_text = match.group(1).strip()
+                if len(strategy_text) >= 20:  # Minimum meaningful length
+                    return strategy_text
+        
+        # Look for any paragraph that mentions strategy-related terms
+        strategy_keywords = ['戦術', '戦略', 'strategy', 'approach', 'gameplan', '構築', 'team', 'チーム']
+        paragraphs = text.split('\n')
+        for paragraph in paragraphs:
+            if any(keyword in paragraph.lower() for keyword in strategy_keywords):
+                cleaned = paragraph.strip()
+                if 20 <= len(cleaned) <= 300:  # Reasonable length
+                    return cleaned
+        
+        return ""  # Return empty string if no strategy found
+    
+    def _extract_fallback_strengths(self, text: str) -> str:
+        """Extract team strengths using fallback patterns"""
+        strength_patterns = [
+            r'(?:強み|長所|利点|メリット)[\s]*[:：]?\s*([^\n]{15,200})',
+            r'(?:strength|advantage|benefit)s?[\s]*[:：]?\s*([^\n]{15,200})',
+            r'(?:good|strong|effective)(?:\s+against|\s+vs)[\s]*([^\n]{15,200})',
+            r'(?:有効|効果的)(?:な|に)[\s]*([^\n]{15,200})',
+        ]
+        
+        for pattern in strength_patterns:
+            match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
+            if match:
+                strength_text = match.group(1).strip()
+                if len(strength_text) >= 15:
+                    return strength_text
+        
+        return ""
+    
+    def _extract_fallback_weaknesses(self, text: str) -> str:
+        """Extract team weaknesses using fallback patterns"""
+        weakness_patterns = [
+            r'(?:弱点|欠点|問題|課題|デメリット)[\s]*[:：]?\s*([^\n]{15,200})',
+            r'(?:weakness|disadvantage|problem|issue)es?[\s]*[:：]?\s*([^\n]{15,200})',
+            r'(?:weak|vulnerable|bad)(?:\s+against|\s+vs|\s+to)[\s]*([^\n]{15,200})',
+            r'(?:苦手|困難)(?:な|に)[\s]*([^\n]{15,200})',
+        ]
+        
+        for pattern in weakness_patterns:
+            match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
+            if match:
+                weakness_text = match.group(1).strip()
+                if len(weakness_text) >= 15:
+                    return weakness_text
+        
+        return ""
     
     def _clean_json_text(self, text: str) -> str:
         """Enhanced JSON cleaning to catch more formatting issues before partial recovery"""

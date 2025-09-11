@@ -25,9 +25,13 @@ class Config:
     LOG_LEVEL = "INFO"
     LOG_DIR = "streamlit-app/logs"
 
+    # Feedback System (Simple file-based logging)
+    FEEDBACK_ENABLED = True
+
     @classmethod
     def init_config(cls):
         """Initialize configuration from environment and Streamlit secrets"""
+        # Google API Key (required)
         try:
             # Try to get from Streamlit secrets first (check both cases)
             cls.GOOGLE_API_KEY = st.secrets.get("google_api_key") or st.secrets.get("GOOGLE_API_KEY")
@@ -42,12 +46,14 @@ class Config:
             )
             st.stop()
 
+
     @classmethod
     def get_google_api_key(cls) -> str:
         """Get Google API key, initializing if needed"""
         if cls.GOOGLE_API_KEY is None:
             cls.init_config()
         return cls.GOOGLE_API_KEY
+
 
     @classmethod
     def ensure_log_directory(cls):

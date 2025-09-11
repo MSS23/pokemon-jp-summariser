@@ -39,7 +39,7 @@ st.set_page_config(
 # Direct imports to avoid complex import chains
 try:    
     # Import the application components with enhanced error handling
-    from core.analyzer import GeminiVGCAnalyzer
+    from core.analyzer import GeminiVGCAnalyzer, APILimitError, get_user_friendly_api_error_message
     from ui.components import (
         render_page_header,
         render_analysis_input,
@@ -51,7 +51,7 @@ try:
         render_sidebar,
         apply_custom_css
     )
-    from ui.pages import render_switch_translation_page, render_settings_page
+    from ui.pages import render_switch_translation_page, render_settings_page, render_feedback_viewer
     from utils.config import Config
     
     # Force cache invalidation for deployment (v2.0.1 - deployment optimized)
@@ -90,6 +90,10 @@ try:
     current_page = render_sidebar()
     st.session_state.current_page = current_page
 
+    # Check for admin access
+    query_params = st.experimental_get_query_params() if hasattr(st, 'experimental_get_query_params') else st.query_params
+    is_admin = query_params.get("admin", [False])[0] in ["true", "1", "yes"] if isinstance(query_params, dict) else False
+    
     # Route to appropriate page
     def process_analysis(input_type: str, content: str):
         """Process analysis request"""
@@ -161,8 +165,44 @@ try:
                 else:
                     st.error("❌ Analysis failed - invalid result format. Please try again.")
 
+        except APILimitError as e:
+            # Handle API limit errors with user-friendly messages
+            error_info = get_user_friendly_api_error_message(e)
+            
+            # Display the error with proper formatting
+            st.error(f"{error_info['icon']} **{error_info['title']}**")
+            
+            # Show the detailed message in an expandable section
+            with st.expander("📖 **What does this mean and how to fix it**", expanded=True):
+                st.markdown(error_info['message'])
+                
+                # Show helpful tips
+                if error_info.get('tips'):
+                    st.markdown("**💡 Pro Tips:**")
+                    for tip in error_info['tips']:
+                        st.markdown(f"• {tip}")
+            
+            # Show retry suggestion for rate limits
+            if e.error_type == "rate_limit":
+                retry_time = e.retry_after or 60
+                if retry_time <= 120:  # Less than 2 minutes
+                    st.info(f"⏰ Try again in about {retry_time // 60 if retry_time > 60 else 1} minute{'s' if retry_time > 60 else ''}. The rate limit will reset automatically.")
+                    
         except Exception as e:
+            # Handle other types of errors with the original simple message
             st.error(f"❌ Analysis error: {str(e)}")
+            
+            # Provide generic troubleshooting help
+            with st.expander("🔍 Troubleshooting Help"):
+                st.markdown("""
+                **Common solutions:**
+                • **Check your internet connection** - API calls require stable connectivity
+                • **Try shorter content** - Very long articles can cause processing issues  
+                • **Refresh the page** - Sometimes a clean start resolves temporary issues
+                • **Try the 'Article Text' input** instead of URL if you used a link
+                
+                If the problem persists, the error details above can help with troubleshooting.
+                """)
 
     def display_analysis_results():
         """Display analysis results"""
@@ -182,8 +222,16 @@ try:
         # Export section
         render_export_section(result)
 
+    # Admin-only access to feedback viewer
+    if is_admin and query_params.get("page", [""])[0] == "feedback":
+        render_feedback_viewer()
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("**🔒 Admin Mode Active**")
+        st.sidebar.markdown("[📝 View Feedback](?admin=true&page=feedback)")
+        st.sidebar.markdown("[🏠 Back to App](?)")
+    
     # Page routing
-    if current_page == "🏠 Analysis Home":
+    elif current_page == "🏠 Analysis Home":
         # Main analysis page
         render_page_header()
         
@@ -238,11 +286,37 @@ try:
         - **Image Analysis**: Team cards and screenshots
         - **Export Tools**: Pokepaste format support
         
+        ## 🔧 API Usage & Limits
+        
+        This application uses Google's Gemini API for analysis. Here's what you need to know:
+        
+        ### Rate Limits & Quotas
+        - **Free tier**: Limited requests per minute and per day
+        - **Rate limits reset**: Automatically after 1-2 minutes  
+        - **Daily quotas reset**: At midnight Pacific Time
+        - **Tip**: Shorter articles use fewer API resources
+        
+        ### Common API Issues
+        **⏱️ Rate Limit Reached**
+        - Wait 1-2 minutes and try again
+        - Use shorter content to reduce processing time
+        - Spread out your analyses
+        
+        **📊 Quota Exceeded** 
+        - Wait until tomorrow for reset
+        - Consider upgrading to paid Google Cloud plan
+        - Your session data stays until page refresh
+        
+        **🔐 Authentication Issues**
+        - Check API key in Google Cloud Console
+        - Verify Gemini API permissions are enabled
+        
         ## ❓ Need Help?
         If you encounter issues, try:
         1. Check that the URL is accessible
         2. Verify the content contains VGC team information
         3. Use the Switch Translation feature for team screenshots
+        4. Wait a moment and retry if you see API limit messages
         """)
         
     else:

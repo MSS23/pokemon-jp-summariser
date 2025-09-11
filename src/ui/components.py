@@ -4,6 +4,8 @@ UI Components for Pokemon VGC Analysis application
 
 import streamlit as st
 from typing import Dict, List, Any
+import os
+from datetime import datetime
 from utils import (
     get_pokemon_sprite_url,
     format_moves_html,
@@ -426,7 +428,10 @@ def render_article_summary(analysis_result: Dict[str, Any]):
     
     # Team Strategy
     overall_strategy = analysis_result.get("overall_strategy", "")
-    if overall_strategy:
+    # Only display if strategy contains meaningful content, not generic placeholders
+    if (overall_strategy and 
+        overall_strategy not in ["Team strategy analysis recovered", "Team strategy details not fully extracted", 
+                               "Strategy not specified", "Unable to process due to type error in validation", ""]):
         st.markdown(
             f"""
             <div style="background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%); 
@@ -445,8 +450,10 @@ def render_article_summary(analysis_result: Dict[str, Any]):
     
     with col1:
         team_strengths = analysis_result.get("team_strengths", "")
-        # Show team strengths if we have meaningful content or indicate when not available
-        if team_strengths and not team_strengths.startswith("Team strengths analysis not available"):
+        # Show team strengths if we have meaningful content, not generic placeholders
+        if (team_strengths and 
+            team_strengths not in ["Team strengths analysis not available", "Team strengths analysis not fully extracted", 
+                                 "Team strengths not specified", ""]):
             st.markdown(
                 f"""
                 <div style="background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); 
@@ -462,8 +469,10 @@ def render_article_summary(analysis_result: Dict[str, Any]):
     
     with col2:
         team_weaknesses = analysis_result.get("team_weaknesses", "")
-        # Show team weaknesses if we have meaningful content or indicate when not available
-        if team_weaknesses and not team_weaknesses.startswith("Team weaknesses analysis not available"):
+        # Show team weaknesses if we have meaningful content, not generic placeholders
+        if (team_weaknesses and 
+            team_weaknesses not in ["Team weaknesses analysis not available", "Team weaknesses analysis not fully extracted", 
+                                  "Team weaknesses not specified", ""]):
             st.markdown(
                 f"""
                 <div style="background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); 
@@ -917,6 +926,76 @@ def create_translation_export(analysis_result: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def log_user_feedback(url: str, problem_type: str, description: str) -> bool:
+    """
+    Log user feedback to local file for developer review
+    
+    Args:
+        url: The article URL that had issues
+        problem_type: Category of the problem
+        description: Detailed problem description
+        
+    Returns:
+        True if logging successful, False otherwise
+    """
+    try:
+        import json
+        
+        feedback_file = "feedback_log.txt"
+        feedback_json = "feedback_data.json"
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Create structured feedback entry
+        feedback_entry = {
+            "timestamp": timestamp,
+            "url": url,
+            "problem_type": problem_type,
+            "description": description,
+            "id": hash(f"{timestamp}{url}{description}") % 10000  # Simple ID for tracking
+        }
+        
+        # Log to human-readable text file
+        text_entry = f"""
+{'='*50}
+FEEDBACK #{feedback_entry['id']} - {timestamp}
+{'='*50}
+URL: {url}
+Problem Type: {problem_type}
+Description: {description}
+{'='*50}
+
+"""
+        
+        with open(feedback_file, "a", encoding="utf-8") as f:
+            f.write(text_entry)
+        
+        # Also log to JSON for easier programmatic access
+        try:
+            # Try to read existing JSON data
+            try:
+                with open(feedback_json, "r", encoding="utf-8") as f:
+                    feedback_data = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                feedback_data = {"feedback": []}
+            
+            # Add new entry
+            feedback_data["feedback"].append(feedback_entry)
+            
+            # Write back to JSON file
+            with open(feedback_json, "w", encoding="utf-8") as f:
+                json.dump(feedback_data, f, indent=2, ensure_ascii=False)
+                
+        except Exception as json_error:
+            # JSON logging is optional - don't fail if it doesn't work
+            pass
+        
+        return True
+        
+    except Exception as e:
+        st.error(f"Failed to log feedback: {str(e)}")
+        return False
+
+
 def render_sidebar():
     """Clean and user-friendly sidebar with essential navigation"""
     with st.sidebar:
@@ -994,6 +1073,111 @@ def render_sidebar():
             """,
             unsafe_allow_html=True
         )
+        
+        # Feedback Section
+        st.markdown("---")
+        with st.expander("📝 **Report Issue**", expanded=False):
+            st.markdown("**Help us improve!** Report analysis issues with specific examples.")
+            st.markdown("<small>Both URL and detailed description are required. Feedback is logged for developer review.</small>", unsafe_allow_html=True)
+            
+            # Initialize session state for feedback form
+            if "feedback_url" not in st.session_state:
+                st.session_state.feedback_url = ""
+            if "feedback_description" not in st.session_state:
+                st.session_state.feedback_description = ""
+            if "feedback_submitted" not in st.session_state:
+                st.session_state.feedback_submitted = False
+            
+            # URL Input with validation
+            feedback_url = st.text_input(
+                "Article URL *", 
+                value=st.session_state.feedback_url,
+                placeholder="https://liberty-note.com/article-url",
+                help="Paste the URL of the article that had analysis issues",
+                key="feedback_url_input"
+            )
+            
+            # Real-time URL validation
+            url_valid = feedback_url and (feedback_url.startswith("http://") or feedback_url.startswith("https://"))
+            if feedback_url and not url_valid:
+                st.markdown("❌ <small style='color: #ef4444;'>Please enter a valid URL starting with http:// or https://</small>", unsafe_allow_html=True)
+            elif url_valid:
+                st.markdown("✅ <small style='color: #22c55e;'>Valid URL format</small>", unsafe_allow_html=True)
+            
+            # Problem category
+            problem_type = st.selectbox(
+                "Issue Type",
+                ["Analysis Quality", "Missing Pokemon", "Wrong Strategy", "Translation Error", "App Bug", "Other"],
+                help="Select the category that best describes your issue"
+            )
+            
+            # Problem description with validation
+            feedback_description = st.text_area(
+                "Describe the Problem *",
+                value=st.session_state.feedback_description,
+                placeholder="Please describe exactly what was wrong with the analysis. Be specific about what you expected vs what you got. Example: 'The analysis said the team had 5 Pokemon but I counted 6, and it missed the Garchomp completely.'",
+                help="Minimum 20 characters required. The more detail, the better we can help!",
+                key="feedback_description_input",
+                height=80
+            )
+            
+            # Real-time description validation
+            description_valid = feedback_description and len(feedback_description.strip()) >= 20
+            current_length = len(feedback_description.strip()) if feedback_description else 0
+            
+            if feedback_description:
+                if description_valid:
+                    st.markdown(f"✅ <small style='color: #22c55e;'>{current_length} characters (minimum met)</small>", unsafe_allow_html=True)
+                else:
+                    remaining = 20 - current_length
+                    st.markdown(f"❌ <small style='color: #ef4444;'>{current_length}/20 characters (need {remaining} more)</small>", unsafe_allow_html=True)
+            else:
+                st.markdown("<small style='color: #6b7280;'>0/20 characters</small>", unsafe_allow_html=True)
+            
+            # Update session state
+            st.session_state.feedback_url = feedback_url
+            st.session_state.feedback_description = feedback_description
+            
+            # Submission button with validation
+            can_submit = url_valid and description_valid
+            
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                if st.button("📤 Submit Feedback", 
+                           disabled=not can_submit,
+                           use_container_width=True,
+                           type="primary" if can_submit else "secondary"):
+                    
+                    # Submit the feedback
+                    success = log_user_feedback(feedback_url, problem_type, feedback_description)
+                    
+                    if success:
+                        st.session_state.feedback_submitted = True
+                        st.success("✅ Feedback submitted successfully!")
+                        st.info("📝 Your feedback has been recorded and will be reviewed by the development team.")
+                        st.info("🙏 Thank you for helping us improve the analysis quality!")
+                        
+                        # Clear the form
+                        st.session_state.feedback_url = ""
+                        st.session_state.feedback_description = ""
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to submit feedback. Please try again.")
+            
+            with col2:
+                if st.button("🗑️ Clear Form", use_container_width=True):
+                    st.session_state.feedback_url = ""
+                    st.session_state.feedback_description = ""
+                    st.rerun()
+            
+            # Show submission requirements if form is incomplete
+            if not can_submit:
+                st.markdown("---")
+                st.markdown("<small>**Requirements to submit:**</small>", unsafe_allow_html=True)
+                url_icon = "✅" if url_valid else "❌"
+                desc_icon = "✅" if description_valid else "❌"
+                st.markdown(f"<small>{url_icon} Valid article URL</small>", unsafe_allow_html=True)
+                st.markdown(f"<small>{desc_icon} Problem description (20+ characters)</small>", unsafe_allow_html=True)
         
         # Add session reset section
         st.markdown("---")
