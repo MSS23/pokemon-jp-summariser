@@ -41,8 +41,8 @@ def test_imports():
         from utils import validate_url, get_pokemon_sprite_url
         print("+ Utils module imported")
         
-        from utils import cache
-        print("+ Cache Manager module imported")
+        # Cache manager removed - now using Streamlit session state
+        print("+ Cache system replaced with session state")
         
         return True
         

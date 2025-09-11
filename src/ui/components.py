@@ -204,7 +204,7 @@ def render_analysis_input() -> tuple[str, str]:
             
             **💡 Pro Tips:**
             - **Best Sources**: note.com, Japanese Pokemon blogs, tournament reports
-            - **Speed Boost**: Recently analyzed content is cached for faster loading
+            - **Session Storage**: Your analysis results are kept during your session
             - **Team Building**: Use export features to get pokepaste format for easy importing
             - **For Screenshots**: Use the 🎮 Switch Translation page for Nintendo Switch team screenshots
             
@@ -356,25 +356,17 @@ def render_article_summary(analysis_result: Dict[str, Any]):
     Args:
         analysis_result: Complete analysis result from VGC analyzer
     """
-    # Analysis header with cache status
+    # Analysis header
     col1, col2 = st.columns([3, 1])
     with col1:
         st.header("📋 Article Summary")
     with col2:
-        # Add cache status indicator
-        is_cached = analysis_result.get("is_cached_result", False)
+        # Add analysis timestamp
         analysis_timestamp = analysis_result.get("analysis_timestamp", "Unknown")
-        
-        if is_cached:
-            st.markdown(
-                f'<div style="text-align: right; margin-top: 1rem;"><small>💾 <b>Cached Result</b><br>🕐 {analysis_timestamp}</small></div>',
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                f'<div style="text-align: right; margin-top: 1rem;"><small>✨ <b>Fresh Analysis</b><br>🕐 {analysis_timestamp}</small></div>',
-                unsafe_allow_html=True
-            )
+        st.markdown(
+            f'<div style="text-align: right; margin-top: 1rem;"><small>🕐 Analyzed: {analysis_timestamp}</small></div>',
+            unsafe_allow_html=True
+        )
     
     # Main summary card with gradient background
     title = analysis_result.get("title", "VGC Team Analysis")
@@ -1003,32 +995,23 @@ def render_sidebar():
             unsafe_allow_html=True
         )
         
-        # Add cache clearing section
+        # Add session reset section
         st.markdown("---")
         st.markdown("**🛠️ Troubleshooting**")
         
-        if st.button("🗑️ Clear Cache & Reset", 
+        if st.button("🔄 Reset Session", 
                     use_container_width=True, 
-                    help="Clear all cached results and reset the application. Use this if you see old analysis results."):
+                    help="Clear current analysis results and reset the application."):
             
-            # Import cache at the point of use to avoid circular imports
-            try:
-                from utils import cache
-                
-                # Clear all caches
-                st.session_state.clear()  # Clear session state
-                cache.clear_all()         # Clear file cache
-                
-                # Show success message
-                st.success("✅ Cache cleared! Application reset complete.")
-                st.info("📝 The page will refresh to load fresh data.")
-                
-                # Force rerun to reset everything
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"❌ Error clearing cache: {str(e)}")
-                st.info("💡 Try refreshing the page manually.")
+            # Clear session state
+            st.session_state.clear()
+            
+            # Show success message
+            st.success("✅ Session reset complete!")
+            st.info("📝 The page will refresh to start fresh.")
+            
+            # Force rerun to reset everything
+            st.rerun()
         
         return page
 

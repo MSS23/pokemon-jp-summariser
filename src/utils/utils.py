@@ -19,12 +19,6 @@ def create_content_hash(content: str) -> str:
     return hashlib.sha256(versioned_content.encode()).hexdigest()
 
 
-def ensure_cache_directory() -> str:
-    """Ensure cache directory exists and return path"""
-    cache_dir = "cache"
-    os.makedirs(cache_dir, exist_ok=True)
-    return cache_dir
-
 
 def get_pokemon_sprite_url(pokemon_name: str, form: str = None, use_cache: bool = True) -> str:
     """

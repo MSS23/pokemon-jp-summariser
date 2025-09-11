@@ -52,7 +52,6 @@ try:
         apply_custom_css
     )
     from ui.pages import render_switch_translation_page, render_settings_page
-    from utils import cache
     from utils.config import Config
     
     # Force cache invalidation for deployment (v2.0.1 - deployment optimized)

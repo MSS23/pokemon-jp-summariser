@@ -14,7 +14,10 @@
       "Read(/C:\\Users\\msidh\\Documents\\LLM work\\Pokemon Translation Web App\\cache/**)",
       "Read(/C:\\Users\\msidh\\Documents\\LLM work\\Pokemon Translation Web App\\llm_env/**)",
       "Read(/C:\\Users\\msidh\\Documents\\LLM work\\Pokemon Translation Web App\\src/**)",
-      "Read(/C:\\Users\\msidh\\Documents\\LLM work\\Pokemon Translation Web App/**)"
+      "Read(/C:\\Users\\msidh\\Documents\\LLM work\\Pokemon Translation Web App/**)",
+      "Bash(python:*)",
+      "Bash(timeout 10 streamlit run:*)",
+      "Bash(find:*)"
     ],
     "defaultMode": "acceptEdits"
   }

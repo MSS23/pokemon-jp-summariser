@@ -7,9 +7,9 @@ import re
 import logging
 from typing import Dict, Optional, Any, List
 import google.generativeai as genai
+import streamlit as st
 
 from utils.config import Config, POKEMON_NAME_TRANSLATIONS, MOVE_NAME_TRANSLATIONS
-from utils.cache_manager import cache
 from core.scraper import ArticleScraper
 from core.pokemon_validator import PokemonValidator
 from utils.image_analyzer import (
@@ -22,6 +22,27 @@ from utils.image_analyzer import (
 # Configure logging for analysis pipeline debugging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+@st.cache_data
+def get_pokemon_name_translations() -> Dict[str, str]:
+    """Get Pokemon name translations (cached for performance)"""
+    return POKEMON_NAME_TRANSLATIONS
+
+
+@st.cache_data
+def get_move_name_translations() -> Dict[str, str]:
+    """Get move name translations (cached for performance)"""
+    return MOVE_NAME_TRANSLATIONS
+
+
+@st.cache_resource
+def initialize_gemini_model(api_key: str) -> tuple:
+    """Initialize Gemini models (cached as resource for all users)"""
+    genai.configure(api_key=api_key)
+    text_model = genai.GenerativeModel("gemini-2.5-flash")
+    vision_model = genai.GenerativeModel("gemini-2.5-flash")
+    return text_model, vision_model
 
 
 class GeminiVGCAnalyzer:
@@ -37,19 +58,14 @@ class GeminiVGCAnalyzer:
                 logger.error("No Google API key found")
                 raise ValueError("Google API key is required for analysis")
                 
-            logger.info("API key found, configuring Gemini")
-            genai.configure(api_key=self.api_key)
-
-            # Configure the text model with Gemini 2.5 Flash (latest model)
-            self.model = genai.GenerativeModel("gemini-2.5-flash")
-            logger.info("Gemini model initialized successfully")
+            logger.info("API key found, initializing cached models")
+            # Use cached model initialization
+            self.model, self.vision_model = initialize_gemini_model(self.api_key)
+            logger.info("Gemini models initialized successfully via cache")
             
         except Exception as e:
             logger.error(f"Failed to initialize Gemini analyzer: {str(e)}")
             raise
-        
-        # Configure the vision model with 2.5 Flash for enhanced image processing
-        self.vision_model = genai.GenerativeModel("gemini-2.5-flash")
 
         # Generation config for consistent output
         self.generation_config = {
@@ -111,10 +127,6 @@ class GeminiVGCAnalyzer:
                 "Try refreshing the page or using the 'Article Text' input method instead."
             )
 
-        # Check cache first
-        cached_result = cache.get(content, url)
-        if cached_result:
-            return cached_result
 
         try:
             # Enhanced content preprocessing for better analysis
@@ -142,8 +154,6 @@ class GeminiVGCAnalyzer:
             result["is_cached_result"] = False
             result["analysis_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-            # Cache the result
-            cache.set(content, result, url)
 
             return result
 

@@ -9,32 +9,6 @@ def render_settings_page():
     """Render the settings page"""
     st.header("⚙️ Settings")
     
-    # Cache settings
-    st.subheader("💾 Cache Management")
-    
-    from utils import cache
-    cache_stats = cache.get_stats()
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total Cache Files", cache_stats['total_files'])
-    with col2:
-        st.metric("Valid Files", cache_stats['valid_files'])
-    with col3:
-        st.metric("Cache Size (MB)", cache_stats['total_size_mb'])
-        
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🗑️ Clear All Cache", use_container_width=True):
-            cache.clear_all()
-            st.success("Cache cleared successfully!")
-            st.rerun()
-            
-    with col2:
-        if st.button("🧹 Clear Expired Only", use_container_width=True):
-            cleared = cache.clear_expired()
-            st.success(f"Cleared {cleared} expired files!")
-            st.rerun()
     
     # Display settings
     st.subheader("🎨 Display Preferences")
