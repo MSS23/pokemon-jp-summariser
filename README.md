@@ -1,248 +1,506 @@
-# Pokemon VGC Analysis Platform
+# 🔒 Pokemon VGC Article Translator - Compliant Version 2.0
 
-🎮 **AI-powered analysis platform for Japanese Pokemon VGC tournament reports and team compositions.**
+**AI-powered analysis platform for Japanese Pokemon VGC content with full Google Gemini API compliance**
 
-## Overview
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
+[![Compliance](https://img.shields.io/badge/Compliance-Google%20Gemini%20API-success.svg)](https://ai.google.dev/)
 
-This application uses Google Gemini AI to analyze Japanese Pokemon VGC (Video Game Championships) articles, providing comprehensive team analysis, translations, and strategic insights. Built with modern Python technologies and designed for competitive Pokemon players and analysts.
+## 🚨 Compliance Notice
 
-## ✨ Key Features
+This application has been **completely refactored** to comply with:
+- **Google Gemini API Additional Terms**
+- **Google APIs Terms of Service**
+- **Generative AI Prohibited Use Policy**
+- **COPPA (Children's Online Privacy Protection Act)**
+- **Website robots.txt policies and crawling ethics**
 
-- **🤖 Advanced AI Analysis**: Google Gemini 2.0 Flash integration with specialized 780+ line VGC prompts for accurate team analysis
-- **🌐 Multi-Strategy Web Scraping**: Robust content extraction with multiple fallback strategies for Japanese sites (note.com, VGC community sites)
-- **🔍 Enhanced Pokemon Recognition**: Gen 9 complete Pokemon identification including Ogerpon variants, Hisuian forms, Treasures of Ruin, and regional variants
-- **📱 Modern Web Interface**: Professional Streamlit-based UI with custom CSS, responsive design, and real-time status updates
-- **🖼️ Multi-Modal Analysis**: Integrated text analysis + Nintendo Switch screenshot recognition using Gemini Vision API
-- **📊 Advanced EV Analysis**: Comprehensive EV spread extraction with strategic reasoning and competitive context
-- **💾 Intelligent Caching System**: File-based performance optimization with automatic cache management and expiration
-- **🎮 Switch Translation**: Dedicated Nintendo Switch screenshot translation for team cards and battle screens
-- **📁 Export Functionality**: Multiple export formats including Pokepaste integration and JSON data export
-- **🔧 Deployment Ready**: Streamlit Cloud optimized with environment detection and graceful error handling
+## 🏗️ Architecture Overview
+
+```
+📁 app/
+├── 🖥️ streamlit_app.py          # Clean frontend (no API keys)
+├── ⚙️ backend/                  # FastAPI compliance server
+│   ├── main.py                  # API routes & health checks
+│   ├── gemini_client.py         # Server-side Gemini API calls
+│   ├── compliance.py            # Domain allowlist + robots.txt
+│   ├── safety.py                # Content moderation + PII redaction
+│   ├── rate_limit.py            # Redis rate limiting
+│   └── fetcher.py               # Safe HTML content extraction
+├── 🔧 shared/                   # Shared models & utilities
+│   ├── models.py                # Pydantic schemas
+│   └── logging.py               # Structured compliance logging
+├── 🔐 .env.example              # Environment configuration
+├── 📦 pyproject.toml            # Modern Python dependencies
+└── 📖 README.md                 # This file
+```
+
+## 🛡️ Compliance Features
+
+### 1. **🔞 Age Verification (18+)**
+- **Modal gate** blocks users under 18
+- **24-hour persistence** via URL parameters
+- **Session state management** for seamless UX
+- **COPPA compliance** enforced at application level
+
+### 2. **🔐 Server-Side API Key Protection**
+- **Gemini API keys** never exposed to frontend
+- **All LLM calls** processed server-side only
+- **Environment-based configuration** with fallbacks
+- **Provider enable/disable control** for graceful degradation
+
+### 3. **🌐 Domain Allowlist & robots.txt Compliance**
+- **Curated allowlist** of approved Pokemon community sites
+- **Real-time robots.txt checking** with caching
+- **Automatic blocking** of disallowed URLs
+- **Paywall/login detection** heuristics
+
+### 4. **🛡️ Content Safety & Moderation**
+- **Scope validation**: Only Pokemon VGC content processed
+- **PII redaction**: Emails, phones, addresses automatically removed
+- **Prohibited content filtering**: Blocks harassment, NSFW, medical advice, etc.
+- **Input sanitization**: HTML cleaning and text extraction
+
+### 5. **⚡ Rate Limiting & Abuse Prevention**
+- **5 analyses per hour** per IP address
+- **1 concurrent request** limit per user
+- **Redis-backed quotas** with in-memory fallback
+- **Structured logging** of all rate limit violations
+
+### 6. **📊 Comprehensive Audit Logging**
+- **JSON structured logs** for compliance tracking
+- **Request tracing** with hashed IPs (privacy-preserving)
+- **Compliance decision logging** for all checks
+- **Error tracking** with detailed context
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Python 3.8+** (Python 3.11+ recommended for best performance)
-- **Google Gemini API key** (Google AI Studio - free tier available)
-- **Git** for version control
+- **Python 3.11+**
+- **Google Gemini API key** ([Get yours here](https://aistudio.google.com/app/apikey))
+- **Redis** (optional, for enhanced rate limiting)
 
-### Installation
+### 1. Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd pokemon-vgc-analyzer
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-   
-   *Note: Uses Streamlit Cloud optimized dependency versions*
-
-3. **Configure API key**
-   
-   **Option A: Create secrets file (Recommended)**
-   ```bash
-   mkdir -p config/.streamlit
-   ```
-   Create `config/.streamlit/secrets.toml`:
-   ```toml
-   google_api_key = "your_gemini_api_key_here"
-   ```
-   
-   **Option B: Environment variable**
-   ```bash
-   export GOOGLE_API_KEY="your_gemini_api_key_here"
-   ```
-
-4. **Run the application**
-   ```bash
-   streamlit run app.py
-   ```
-   
-   The application will be available at `http://localhost:8501`
-
-### Getting a Google Gemini API Key
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
-4. Copy the generated key to your configuration
-
-## 🏗️ Architecture
-
-### Clean Modular Structure
-```
-pokemon-vgc-analyzer/
-├── app.py                        # Main Streamlit application entry point
-├── src/                          # Main application source
-│   ├── core/                     # Core business logic
-│   │   ├── analyzer.py           # Gemini VGC analysis engine (780+ line prompts)
-│   │   ├── scraper.py           # Multi-strategy web scraping with fallbacks
-│   │   └── pokemon_validator.py  # Enhanced Gen 9 Pokemon form validation
-│   ├── ui/                       # User interface layer
-│   │   ├── components.py         # Streamlit UI components & styling
-│   │   └── pages.py             # Page routing & Switch translation
-│   ├── utils/                    # Utility modules
-│   │   ├── config.py            # Configuration & Pokemon translations
-│   │   ├── cache_manager.py     # Intelligent file-based caching
-│   │   ├── image_analyzer.py    # Vision API & screenshot analysis
-│   │   └── utils.py             # Helper functions & data processing
-│   └── vgc_analyzer.db          # SQLite database for team storage
-├── requirements.txt              # Streamlit Cloud optimized dependencies
-├── runtime.txt                   # Python version specification
-├── packages.txt                  # System packages for deployment
-└── config/                       # Configuration files
-    └── .streamlit/               # Streamlit secrets & settings
-        └── secrets.toml          # API keys (not in repository)
-```
-
-### Key Architecture Principles
-- **Separation of Concerns**: Clear division between analysis, UI, and utilities
-- **Gemini AI Integration**: Advanced prompt engineering for VGC-specific analysis
-- **Multi-Modal Processing**: Text analysis + vision capabilities for screenshots
-- **Robust Error Handling**: Graceful fallbacks for deployment environments
-- **Performance Optimization**: Intelligent caching and async operations
-
-## 🎯 Real-World Performance
-
-Based on comprehensive testing with 8 diverse Japanese VGC articles:
-
-- **✅ 62% Total Success Rate** (38% complete + 25% partial)
-- **📊 25,601+ characters** of VGC content successfully extracted
-- **🎯 340 average quality score** accurately reflecting VGC relevance
-- **🔧 Zero UI contamination** on successful extractions
-
-### Successful Site Types:
-- ✅ **note.com** dynamic content (major improvement)
-- ✅ **Tournament reports** with detailed team data
-- ✅ **Player spotlights** and mixed content types
-- ✅ **Team construction** articles with EV spreads
-
-## 🛠️ Technologies Used
-
-- **Backend**: Python 3.8+, Google Gemini 2.0 Flash AI SDK
-- **Frontend**: Streamlit 1.28+ with custom CSS styling and responsive design
-- **AI Models**: Google Gemini 2.0 Flash (text analysis & vision processing)
-- **Web Scraping**: BeautifulSoup4, Requests, lxml with multi-strategy fallbacks
-- **Database**: SQLite (vgc_analyzer.db) with SQLAlchemy ORM
-- **Image Processing**: Pillow 10.0+, Google Gemini Vision API
-- **Caching**: Custom intelligent file-based caching system
-- **APIs**: Google Generative AI, PokeAPI for sprites
-- **Data Processing**: Pandas 2.0+, aiohttp for async operations
-- **Testing**: Comprehensive real-world validation with Japanese VGC sites
-
-## 📖 Documentation
-
-- **[Development Guide](docs/CLAUDE.md)**: Complete development setup and architecture
-- **[API Documentation](docs/API.md)**: Detailed API reference
-- **[Architecture Overview](docs/ARCHITECTURE.md)**: System design and patterns
-
-## 🧪 Testing
-
-Run the test suite:
 ```bash
-python -m pytest tests/
+# Clone the repository
+git clone <your-repo-url>
+cd pokemon-vgc-translator
+
+# Install dependencies
+pip install -e .
+
+# Or with poetry
+poetry install
 ```
 
-### Test Coverage
-- **Integration Tests**: End-to-end workflow validation
-- **EV Extraction Tests**: Comprehensive EV spread parsing
-- **Real-World Validation**: Tested against 8 diverse Japanese VGC sites
+### 2. Configuration
 
-## 🚀 Deployment
-
-### Streamlit Cloud Deployment
-The application is optimized for Streamlit Cloud deployment:
-
-1. **Fork the repository** on GitHub
-2. **Connect to Streamlit Cloud**:
-   - Visit [share.streamlit.io](https://share.streamlit.io)
-   - Connect your GitHub account
-   - Select your forked repository
-3. **Configure secrets**:
-   - In Streamlit Cloud dashboard, go to app settings
-   - Add secret: `google_api_key = "your_api_key_here"`
-4. **Deploy**: The app will automatically deploy with optimized settings
-
-### Local Development
 ```bash
-# Clone and setup
-git clone <repository-url>
-cd pokemon-vgc-analyzer
-pip install -r requirements.txt
+# Copy environment template
+cp .env.example .env
 
-# Configure API key (choose one method)
-echo 'google_api_key = "your_key_here"' > config/.streamlit/secrets.toml
-# OR
-export GOOGLE_API_KEY="your_key_here"
-
-# Run locally
-streamlit run app.py
+# Edit .env with your settings
+nano .env
 ```
 
-## 🔧 Troubleshooting
+**Required settings:**
+```env
+GEMINI_API_KEY=your_actual_gemini_api_key_here
+PROVIDER_ENABLED_GEMINI=true
+```
+
+### 3. Start the Backend
+
+```bash
+# Development
+uvicorn app.backend.main:app --reload --host 127.0.0.1 --port 8000
+
+# Production
+uvicorn app.backend.main:app --host 0.0.0.0 --port 8000 --workers 1
+```
+
+### 4. Start the Frontend
+
+```bash
+# In a new terminal
+streamlit run app/streamlit_app.py
+```
+
+### 5. Access the Application
+
+- **Frontend**: http://localhost:8501
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+
+## 📋 Compliance Checklist
+
+### ✅ Google Gemini API Terms Compliance
+
+- [x] **API keys server-side only** - Never exposed to client
+- [x] **Proper error handling** - User-friendly error messages
+- [x] **Rate limiting implemented** - Prevents quota abuse
+- [x] **Content safety enforced** - Prohibited content blocked
+- [x] **Age verification** - 18+ requirement enforced
+- [x] **Request logging** - Full audit trail maintained
+
+### ✅ Website Crawling Ethics
+
+- [x] **robots.txt respected** - Automatic checking before crawl
+- [x] **Domain allowlist** - Only approved community sites
+- [x] **Rate limiting** - Prevents server overload
+- [x] **Paywall detection** - Avoids gated content
+- [x] **Content-type validation** - Only processes HTML
+
+### ✅ Privacy & Security
+
+- [x] **PII redaction** - Personal information automatically removed
+- [x] **Session-only tracking** - No persistent user identification
+- [x] **Secure headers** - HTTPS-ready deployment
+- [x] **Input validation** - Prevents injection attacks
+- [x] **Error sanitization** - No sensitive data in error messages
+
+## 🔧 Configuration Reference
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `GEMINI_API_KEY` | ✅ Yes | - | Google Gemini API key |
+| `PROVIDER_ENABLED_GEMINI` | ✅ Yes | `true` | Enable/disable AI features |
+| `REDIS_URL` | No | `redis://localhost:6379/0` | Redis connection for rate limiting |
+| `ALLOWED_DOMAINS` | No | Built-in list | Comma-separated allowed domains |
+| `RATE_LIMIT_PER_HOUR` | No | `5` | Max requests per hour per IP |
+| `CONCURRENT_LIMIT` | No | `1` | Max concurrent requests per IP |
+| `MAX_CONTENT_SIZE` | No | `3000000` | Max content size in bytes |
+| `REQUEST_TIMEOUT` | No | `10` | Request timeout in seconds |
+| `LOG_DIR` | No | `logs` | Directory for log files |
+
+### Domain Allowlist (Default)
+
+The application includes a comprehensive allowlist of Pokemon community sites:
+
+**Official & Major Sites:**
+- `pokemon.com`, `pokemon-gl.com`
+- `smogon.com`, `bulbagarden.net`, `pkmn.news`
+- `victoryroadvgc.com`, `trainertower.com`, `nuggetbridge.com`
+
+**Japanese Pokemon Sites:**
+- `note.com`, `liberty-note.com`
+- `hatenablog.com`, `hatenablog.jp`, `hateblo.jp`
+- Various Pokemon blogger domains
+
+**Social/Community Platforms:**
+- `youtube.com`, `youtu.be` (team showcases)
+- `twitter.com`, `x.com` (VGC posts)
+- `reddit.com` (Pokemon communities)
+
+## 🚦 API Endpoints
+
+### Backend Routes
+
+**Health Check**
+```http
+GET /health
+```
+Returns provider status and system health.
+
+**URL Compliance Check**
+```http
+POST /check
+Content-Type: application/json
+
+{
+  "url": "https://note.com/example/pokemon-team"
+}
+```
+
+**Content Analysis**
+```http
+POST /analyze
+Content-Type: application/json
+
+{
+  "url": "https://note.com/example/pokemon-team",
+  "options": {}
+}
+```
+
+### Response Examples
+
+**Compliance Check (Success)**
+```json
+{
+  "status": "allowed",
+  "step_failed": null,
+  "reason": "All compliance checks passed",
+  "domain": "note.com",
+  "robots_allowed": true,
+  "content_type": "text/html; charset=utf-8",
+  "size_estimate": "15240"
+}
+```
+
+**Analysis Result (Success)**
+```json
+{
+  "status": "success",
+  "analysis": {
+    "title": "VGC World Championships Team",
+    "regulation": "Series 1",
+    "pokemon_team": [
+      {
+        "name": "Garchomp",
+        "item": "Choice Scarf",
+        "ability": "Rough Skin",
+        "nature": "Jolly",
+        "ev_spread": {
+          "HP": 0,
+          "Attack": 252,
+          "Speed": 252
+        },
+        "moves": ["Dragon Claw", "Earthquake", "Rock Slide", "Protect"],
+        "analysis": "Fast physical attacker with Choice Scarf for speed control"
+      }
+    ],
+    "strategy_summary": "Aggressive team focused on early game pressure",
+    "key_interactions": "Garchomp pairs well with Incineroar for Intimidate support"
+  },
+  "metadata": {
+    "domain": "note.com",
+    "processing_time": 12.34,
+    "redaction_stats": {
+      "total_redactions": 0
+    }
+  }
+}
+```
+
+## 🚨 Error Handling
+
+### Common Error Responses
+
+**Rate Limited**
+```json
+{
+  "error": true,
+  "status_code": 429,
+  "detail": "Rate limit exceeded. Maximum 5 analyses per hour per IP address."
+}
+```
+
+**Provider Disabled**
+```json
+{
+  "error": true,
+  "status_code": 503,
+  "detail": {
+    "status": "provider_disabled",
+    "message": "Gemini API is temporarily disabled. Please try again later."
+  }
+}
+```
+
+**Domain Not Allowed**
+```json
+{
+  "error": true,
+  "status_code": 403,
+  "detail": "Domain not allowed - only approved Pokemon community sites permitted"
+}
+```
+
+## 📊 Monitoring & Logging
+
+### Log Files
+
+The application generates structured JSON logs in the `logs/` directory:
+
+- **`requests.jsonl`** - All incoming requests
+- **`compliance.jsonl`** - Compliance decisions and checks
+- **`errors.jsonl`** - Error occurrences and debugging info
+- **`system.jsonl`** - System events and configuration changes
+
+### Sample Log Entry
+
+```json
+{
+  "request_id": "abc123-def456",
+  "endpoint": "analyze",
+  "hashed_ip": "a1b2c3d4e5f6g7h8",
+  "session_id": "session-uuid",
+  "timestamp": 1640995200,
+  "decision": "allowed",
+  "domain": "note.com",
+  "processing_time": 12.34
+}
+```
+
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-**❌ API Key Not Found**
-- Ensure `config/.streamlit/secrets.toml` exists with correct format
-- Or set `GOOGLE_API_KEY` environment variable
-- Verify API key is valid at [Google AI Studio](https://makersuite.google.com/app/apikey)
+**❌ "Cannot connect to backend"**
+- Ensure FastAPI server is running on port 8000
+- Check CORS configuration if accessing from different origin
 
-**❌ Import Errors**
-- Run `pip install -r requirements.txt` to install dependencies
-- Ensure Python 3.8+ is being used
-- Try creating a virtual environment: `python -m venv venv && source venv/bin/activate`
+**❌ "Provider disabled"**
+- Verify `PROVIDER_ENABLED_GEMINI=true` in .env
+- Check Gemini API key is valid and has quota
 
-**❌ Web Scraping Failures**
-- Check internet connection and URL accessibility
-- Some sites may block automated requests - this is expected behavior
-- Try using the direct text input instead of URL analysis
+**❌ "Rate limit exceeded"**
+- Wait 1 hour for rate limit reset
+- Check Redis connection for persistent rate limiting
 
-**❌ Cache Issues**
-- Clear cache through Settings page in the app
-- Or manually delete cache files in the data directory
-- Restart the application after clearing cache
+**❌ "Domain not allowed"**
+- Use approved Pokemon community sites only
+- Check domain allowlist configuration
 
-**❌ Deployment Issues (Streamlit Cloud)**
-- Verify all files are pushed to GitHub repository
-- Check that requirements.txt includes all necessary dependencies
-- Ensure secrets are properly configured in Streamlit Cloud dashboard
-- Monitor deployment logs for specific error messages
+**❌ "robots.txt disallows crawling"**
+- Respect website policies
+- Try direct text input instead of URL
 
-### Performance Tips
-- Use caching for repeated analyses of the same content
-- Clear expired cache regularly through the Settings page
-- For large images, compress before uploading to Switch translation feature
-- Monitor API usage to stay within Google AI Studio quotas
+### Debug Mode
 
-## 🤝 Contributing
+For detailed debugging:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+```bash
+# Enable debug logging
+export ENVIRONMENT=development
+export ENHANCED_LOGGING=true
 
-## 📄 License
+# Run with verbose output
+uvicorn app.backend.main:app --log-level debug
+```
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## 🛠️ Development
 
-## 🙏 Acknowledgments
+### Running Tests
 
-- Google Gemini AI team for powerful language models
-- Pokemon VGC community for domain expertise
-- Japanese Pokemon content creators for test data
-- Streamlit team for the excellent web framework
+```bash
+# Install test dependencies
+pip install -e .[dev]
 
-## 🔗 Links
+# Run all tests
+pytest
 
-- [Live Demo](link-to-demo) (if applicable)
-- [Documentation](docs/)
-- [Issue Tracker](link-to-issues)
+# Run with coverage
+pytest --cov=app --cov-report=html
+
+# Run compliance tests only
+pytest -m compliance
+```
+
+### Code Quality
+
+```bash
+# Format code
+black app/
+isort app/
+
+# Type checking
+mypy app/
+
+# Linting
+flake8 app/
+```
+
+### Pre-commit Hooks
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Set up hooks
+pre-commit install
+
+# Run manually
+pre-commit run --all-files
+```
+
+## 📄 License & Legal
+
+### Terms of Use
+
+By using this application, you agree to:
+1. **Age Requirement**: You are at least 18 years old
+2. **Scope Limitation**: Use only for Pokemon VGC content analysis
+3. **No Misuse**: Do not attempt to bypass safety controls
+4. **Respect Policies**: Follow all applicable terms and policies
+
+### Privacy Policy
+
+**Data We Collect:**
+- Session IDs (temporary, for rate limiting)
+- Hashed IP addresses (privacy-preserving)
+- Content processing metadata (no personal content stored)
+
+**Data We Don't Collect:**
+- Personal information
+- Authentication credentials
+- Persistent user tracking
+- Content text (processed server-side, not stored)
+
+**Data Retention:**
+- Logs: 30 days maximum
+- Session data: Cleared on browser close
+- Rate limit data: 1 hour maximum
+
+### Compliance Certifications
+
+This application implements:
+- ✅ **Google Gemini API Additional Terms** compliance
+- ✅ **COPPA** (18+ age verification)
+- ✅ **GDPR-ready** (minimal data collection)
+- ✅ **Website robots.txt** respect
+- ✅ **Ethical AI use** guidelines
+
+## 🤝 Support & Contributing
+
+### Getting Help
+
+1. **Check this README** for common issues
+2. **Review the logs** in `logs/` directory
+3. **Open an issue** with detailed reproduction steps
+4. **Contact support** at [support@example.com](mailto:support@example.com)
+
+### Reporting Security Issues
+
+🔒 **Security vulnerabilities** should be reported privately:
+- Email: [security@example.com](mailto:security@example.com)
+- Include detailed reproduction steps
+- Allow 90 days for coordinated disclosure
+
+### How to Appeal Suspensions
+
+If your Google Gemini API project was suspended and you've implemented these compliance features:
+
+1. **Document compliance** using this README as evidence
+2. **Show implementation** of all required features
+3. **Provide audit logs** demonstrating proper usage
+4. **Submit appeal** through Google Cloud Console
+5. **Reference this compliance implementation** in your appeal
+
+### Contributing
+
+We welcome contributions! Please:
+1. **Fork** the repository
+2. **Create** a feature branch
+3. **Add tests** for new functionality
+4. **Ensure compliance** with existing standards
+5. **Submit** a pull request
 
 ---
 
-**Built with ❤️ for the Pokemon VGC community**
+## 📞 Contact Information
+
+- **Project**: Pokemon VGC Article Translator
+- **Version**: 2.0.0 (Compliance Compliant)
+- **Support**: [support@example.com](mailto:support@example.com)
+- **Security**: [security@example.com](mailto:security@example.com)
+- **Repository**: [GitHub](https://github.com/your-org/pokemon-vgc-translator)
+
+---
+
+**Built with ❤️ for the Pokemon VGC community | Compliant with Google Gemini API Terms**

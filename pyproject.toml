@@ -1,0 +1,306 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pokemon-vgc-translator"
+version = "2.0.0"
+description = "Google Gemini API compliant Pokemon VGC article translator and analyzer"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Pokemon VGC Community"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: FastAPI",
+    "Framework :: Streamlit",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Text Processing :: Linguistic",
+    "Typing :: Typed",
+]
+keywords = ["pokemon", "vgc", "competitive", "translator", "gemini", "ai"]
+requires-python = ">=3.11"
+
+# Core dependencies
+dependencies = [
+    # FastAPI backend
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.5.0",
+    "python-multipart>=0.0.6",
+
+    # Streamlit frontend
+    "streamlit>=1.28.0",
+
+    # Google Gemini AI
+    "google-generativeai>=0.7.0",
+    "google-api-core>=2.15.0",
+
+    # HTTP requests and web scraping
+    "requests>=2.31.0",
+    "aiohttp>=3.9.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=5.1.0",
+    "html5lib>=1.1",
+
+    # Content extraction
+    "readability-lxml>=0.8.1",
+
+    # Data processing
+    "pandas>=2.1.0",
+    "numpy>=1.24.0",
+
+    # Image processing (for future image analysis)
+    "Pillow>=10.0.0",
+
+    # Redis for rate limiting
+    "redis>=5.0.0",
+
+    # YAML configuration
+    "PyYAML>=6.0.1",
+
+    # URL parsing and validation
+    "urllib3>=2.0.0",
+
+    # Environment variable management
+    "python-dotenv>=1.0.0",
+
+    # Logging and monitoring
+    "structlog>=23.2.0",
+
+    # Security and validation
+    "email-validator>=2.1.0",
+    "phonenumbers>=8.13.0",
+
+    # Testing utilities
+    "httpx>=0.25.0",  # For async testing
+]
+
+# Optional dependencies for enhanced features
+[project.optional-dependencies]
+# Development dependencies
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
+]
+
+# Production deployment
+production = [
+    "gunicorn>=21.2.0",
+    "psutil>=5.9.0",  # Process monitoring
+    "prometheus-client>=0.19.0",  # Metrics
+]
+
+# Enhanced content processing
+enhanced = [
+    "textblob>=0.17.0",  # Text analysis
+    "langdetect>=1.0.0",  # Language detection
+    "spacy>=3.7.0",  # NLP (optional)
+]
+
+# Redis cluster support
+redis-cluster = [
+    "redis[hiredis]>=5.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/pokemon-vgc-translator"
+Documentation = "https://github.com/your-org/pokemon-vgc-translator/wiki"
+Repository = "https://github.com/your-org/pokemon-vgc-translator.git"
+Issues = "https://github.com/your-org/pokemon-vgc-translator/issues"
+
+[project.scripts]
+# Command-line utilities
+pokemon-vgc-api = "app.backend.main:main"
+pokemon-vgc-frontend = "streamlit:run app/streamlit_app.py"
+
+[tool.hatch.version]
+path = "app/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# Black code formatting
+[tool.black]
+line-length = 100
+target-version = ['py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | __pycache__
+)/
+'''
+
+# isort import sorting
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+# MyPy type checking
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "streamlit.*",
+    "google.generativeai.*",
+    "bs4.*",
+    "readability.*",
+    "redis.*",
+]
+ignore_missing_imports = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "compliance: marks tests as compliance verification tests",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+branch = true
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+# Flake8 configuration
+[tool.flake8]
+max-line-length = 100
+extend-ignore = [
+    "E203",  # whitespace before ':'
+    "W503",  # line break before binary operator
+    "E501",  # line too long (handled by black)
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".eggs",
+    "*.egg-info",
+    ".venv",
+    ".tox",
+]
+
+# Hatch environment configuration
+[tool.hatch.envs.default]
+dependencies = [
+    "coverage[toml]>=6.5",
+    "pytest",
+    "pytest-asyncio",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "coverage run -m pytest {args:tests}"
+cov-report = [
+  "- coverage combine",
+  "coverage report",
+]
+cov = [
+  "test-cov",
+  "cov-report",
+]
+
+[tool.hatch.envs.lint]
+detached = true
+dependencies = [
+    "black>=23.1.0",
+    "mypy>=1.0.0",
+    "ruff>=0.0.243",
+    "isort>=5.12.0",
+]
+
+[tool.hatch.envs.lint.scripts]
+typing = "mypy --install-types --non-interactive {args:app tests}"
+style = [
+  "ruff {args:.}",
+  "black --check --diff {args:.}",
+  "isort --check-only --diff {args:.}",
+]
+fmt = [
+  "black {args:.}",
+  "isort {args:.}",
+  "ruff --fix {args:.}",
+  "style",
+]
+all = [
+  "style",
+  "typing",
+]
