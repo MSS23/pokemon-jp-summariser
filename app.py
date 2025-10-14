@@ -84,15 +84,6 @@ try:
     except Exception as e:
         logging.warning(f"Cache clearing failed: {e}")
     
-    # Initialize the analyzer with error handling
-    try:
-        analyzer = GeminiVGCAnalyzer()
-    except Exception as e:
-        st.error("⚠️ Application initialization failed. Please check your API key configuration.")
-        if not IS_PRODUCTION:
-            st.exception(e)
-        st.stop()
-    
     # Initialize session state
     if "analysis_result" not in st.session_state:
         st.session_state.analysis_result = None
@@ -102,14 +93,72 @@ try:
         st.session_state.analysis_complete = False
     if "current_page" not in st.session_state:
         st.session_state.current_page = "🏠 Analysis Home"
+    if "user_api_key" not in st.session_state:
+        st.session_state.user_api_key = None
+    if "analyzer" not in st.session_state:
+        st.session_state.analyzer = None
 
 
     # Apply custom styling
     apply_custom_css()
 
+    # API Key Input Section (Priority UI Element)
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🔑 Google Gemini API Key")
+    st.sidebar.markdown("Enter your own API key to use this application:")
+
+    # API key input field (password type for security)
+    api_key_input = st.sidebar.text_input(
+        "API Key",
+        type="password",
+        value=st.session_state.user_api_key if st.session_state.user_api_key else "",
+        help="Get your free API key from https://makersuite.google.com/app/apikey",
+        placeholder="Enter your Google Gemini API key..."
+    )
+
+    # Button to set/update API key
+    if st.sidebar.button("Set API Key", type="primary"):
+        if api_key_input and api_key_input.strip():
+            st.session_state.user_api_key = api_key_input.strip()
+            # Clear the analyzer so it will be re-initialized with the new key
+            st.session_state.analyzer = None
+            st.sidebar.success("✅ API Key saved!")
+            st.rerun()
+        else:
+            st.sidebar.error("❌ Please enter a valid API key")
+
+    # Show API key status
+    if st.session_state.user_api_key:
+        st.sidebar.success("✅ API Key configured")
+        if st.sidebar.button("Clear API Key"):
+            st.session_state.user_api_key = None
+            st.session_state.analyzer = None
+            st.rerun()
+    else:
+        st.sidebar.warning("⚠️ No API key configured")
+        st.sidebar.info("👉 [Get a free API key](https://makersuite.google.com/app/apikey)")
+
+    st.sidebar.markdown("---")
+
     # Render sidebar and get current page
     current_page = render_sidebar()
     st.session_state.current_page = current_page
+
+    # Initialize analyzer with user's API key
+    def get_analyzer():
+        """Get or create analyzer instance with user's API key"""
+        if not st.session_state.user_api_key:
+            return None
+
+        # Only create new analyzer if it doesn't exist or API key changed
+        if st.session_state.analyzer is None:
+            try:
+                st.session_state.analyzer = GeminiVGCAnalyzer(api_key=st.session_state.user_api_key)
+            except Exception as e:
+                st.error(f"⚠️ Failed to initialize analyzer: {str(e)}")
+                return None
+
+        return st.session_state.analyzer
 
     # Check for admin access (with fallback for compatibility)
     is_admin = False
@@ -133,6 +182,13 @@ try:
     # Route to appropriate page
     def process_analysis(input_type: str, content: str):
         """Process analysis request"""
+        # Get analyzer instance
+        analyzer = get_analyzer()
+        if not analyzer:
+            st.error("⚠️ Please configure your Google Gemini API key in the sidebar to use analysis features.")
+            st.info("👉 Get a free API key from [Google AI Studio](https://makersuite.google.com/app/apikey)")
+            return
+
         try:
             with st.spinner("Analyzing content... This may take a moment."):
                 if input_type == "url":
@@ -286,6 +342,23 @@ try:
         if current_page == "🏠 Analysis Home":
             # Main analysis page
             render_page_header()
+
+            # Show API key setup message if not configured
+            if not st.session_state.user_api_key:
+                st.warning("⚠️ **API Key Required**: Please enter your Google Gemini API key in the sidebar to use analysis features.")
+                st.info("""
+                **How to get your free API key:**
+                1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+                2. Sign in with your Google account
+                3. Click "Create API Key"
+                4. Copy the key and paste it in the sidebar
+
+                **Why do I need my own API key?**
+                - Google Gemini API requires each user to have their own key
+                - This prevents shared quota issues and API bans
+                - Free tier includes generous usage limits
+                - Your key is stored only in your browser session
+                """)
             
             input_type, content = render_analysis_input()
             
@@ -309,7 +382,13 @@ try:
             
             st.markdown("""
         ## 🚀 Getting Started
-        
+
+        ### Step 0: Setup Your API Key (Required)
+        - **Enter your API key** in the sidebar (password-protected field)
+        - Get a free key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+        - Click "Set API Key" to activate it
+        - Your key is stored only in your browser session for security
+
         ### Step 1: Input Your Content
         - **URL Analysis**: Paste a link to a Japanese VGC article or team showcase
         - **Direct Text**: Copy and paste article content directly

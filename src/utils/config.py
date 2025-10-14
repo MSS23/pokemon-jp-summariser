@@ -29,29 +29,42 @@ class Config:
     FEEDBACK_ENABLED = True
 
     @classmethod
-    def init_config(cls):
-        """Initialize configuration from environment and Streamlit secrets"""
-        # Google API Key (required)
-        try:
-            # Try to get from Streamlit secrets first (check both cases)
-            cls.GOOGLE_API_KEY = st.secrets.get("google_api_key") or st.secrets.get("GOOGLE_API_KEY")
-        except (KeyError, FileNotFoundError, AttributeError):
-            # Fall back to environment variable
-            cls.GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    def init_config(cls, user_api_key: str = None):
+        """
+        Initialize configuration from user input, environment, or Streamlit secrets
 
-        if not cls.GOOGLE_API_KEY:
-            st.error(
-                "❌ Google API key not found. "
-                "Please set it in .streamlit/secrets.toml or environment variable."
-            )
-            st.stop()
+        Args:
+            user_api_key: Optional user-provided API key (takes priority)
+        """
+        # Priority 1: User-provided API key (from session state/input)
+        if user_api_key:
+            cls.GOOGLE_API_KEY = user_api_key
+            return
+
+        # Priority 2: Try to get from Streamlit secrets (legacy support)
+        try:
+            cls.GOOGLE_API_KEY = st.secrets.get("google_api_key") or st.secrets.get("GOOGLE_API_KEY")
+            if cls.GOOGLE_API_KEY:
+                return
+        except (KeyError, FileNotFoundError, AttributeError):
+            pass
+
+        # Priority 3: Fall back to environment variable (legacy support)
+        cls.GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+        # Note: We don't stop here anymore - let the app handle the missing key
 
 
     @classmethod
-    def get_google_api_key(cls) -> str:
-        """Get Google API key, initializing if needed"""
-        if cls.GOOGLE_API_KEY is None:
-            cls.init_config()
+    def get_google_api_key(cls, user_api_key: str = None) -> str:
+        """
+        Get Google API key, initializing if needed
+
+        Args:
+            user_api_key: Optional user-provided API key
+        """
+        if cls.GOOGLE_API_KEY is None or user_api_key:
+            cls.init_config(user_api_key)
         return cls.GOOGLE_API_KEY
 
 

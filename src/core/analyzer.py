@@ -243,21 +243,27 @@ def initialize_gemini_model(api_key: str) -> tuple:
 class GeminiVGCAnalyzer:
     """Pokemon VGC analyzer using Google Gemini AI"""
 
-    def __init__(self):
-        """Initialize the analyzer with Gemini configuration"""
+    def __init__(self, api_key: str = None):
+        """
+        Initialize the analyzer with Gemini configuration
+
+        Args:
+            api_key: Optional Google Gemini API key. If not provided, will try to get from config.
+        """
         logger.info("Initializing GeminiVGCAnalyzer")
-        
+
         try:
-            self.api_key = Config.get_google_api_key()
+            # Get API key from parameter or config
+            self.api_key = api_key or Config.get_google_api_key()
             if not self.api_key:
                 logger.error("No Google API key found")
                 raise ValueError("Google API key is required for analysis")
-                
+
             logger.info("API key found, initializing cached models")
             # Use cached model initialization
             self.model, self.vision_model = initialize_gemini_model(self.api_key)
             logger.info("Gemini models initialized successfully via cache")
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize Gemini analyzer: {str(e)}")
             raise
