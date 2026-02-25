@@ -620,9 +620,10 @@ class GeminiVGCAnalyzer:
 
     def _preprocess_content_for_analysis(self, content: str) -> str:
         """Preprocess content to improve analysis accuracy"""
-        # Remove excessive whitespace
+        # Remove excessive whitespace but preserve newlines for line-based filtering
         content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
-        content = re.sub(r'\s+', ' ', content)
+        content = re.sub(r'[^\S\n]+', ' ', content)
+        content = re.sub(r'\n{3,}', '\n\n', content)
         
         # Prioritize content with VGC/Pokemon indicators
         lines = content.split('\n')

@@ -23,8 +23,6 @@ serverAddress = "0.0.0.0"
 
 [runner]
 magicEnabled = true
-installTracer = false
-fixMatplotlib = true
 # Deployment stability
 enforceSerializableSessionState = false
 postScriptGC = true
@@ -33,15 +31,9 @@ postScriptGC = true
 developmentMode = false
 suppressDeprecationWarnings = true
 showWarningOnDirectExecution = false
-# Module loading optimization
-disableWatchdogWarning = true
-logLevel = "warning"
 
 [logger]
 level = "warning"
 
-# Streamlit Cloud specific optimizations
 [client]
-caching = true
-displayEnabled = true
 toolbarMode = "minimal"

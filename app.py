@@ -134,6 +134,7 @@ def process_analysis(input_type: str, content: str):
                     st.error("Failed to extract content from URL. The page may be inaccessible or have no readable content.")
                     return
 
+                st.write(f"Extracted {len(scraped_content):,} characters of content.")
                 status.update(label="Analyzing with Gemini AI...", state="running")
                 st.write("Translating and extracting team data...")
                 result = analyzer.analyze_article_with_images(scraped_content, content)

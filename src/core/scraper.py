@@ -7,6 +7,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from typing import Optional
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import time
 import logging
 
@@ -21,6 +22,16 @@ class ArticleScraper:
     def __init__(self):
         """Initialize the scraper"""
         pass
+
+    def _clean_url(self, url: str) -> str:
+        """Strip tracking query params from URL to avoid redirect/blocking issues."""
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
+        tracking_params = {'sub_rt', 'utm_source', 'utm_medium', 'utm_campaign',
+                           'utm_term', 'utm_content', 'ref', 'fbclid', 'gclid'}
+        clean_params = {k: v for k, v in params.items() if k not in tracking_params}
+        clean_query = urlencode(clean_params, doseq=True)
+        return urlunparse(parsed._replace(query=clean_query))
 
     def validate_url(self, url: str) -> bool:
         """
@@ -86,6 +97,9 @@ class ArticleScraper:
         """
         if not self.validate_url(url):
             raise ValueError("Invalid or inaccessible URL")
+
+        # Strip tracking query params to avoid redirect/blocking issues
+        url = self._clean_url(url)
 
         # For note.com, try API-based extraction first (bypasses SPA rendering)
         if "note.com" in url.lower() and "/n/" in url.lower():
@@ -292,9 +306,9 @@ class ArticleScraper:
                 import unicodedata
                 text = unicodedata.normalize('NFKC', text)
                 
-                # Clean up excessive whitespace while preserving Japanese spacing
-                text = re.sub(r'\s+', ' ', text)
-                text = re.sub(r'\n\s*\n', '\n', text)
+                # Clean up excessive whitespace while preserving newline structure
+                text = re.sub(r'[^\S\n]+', ' ', text)
+                text = re.sub(r'\n{3,}', '\n\n', text)
                 
                 # Enhanced content filtering - remove obvious non-content
                 text = self._filter_content_lines(text)
@@ -844,15 +858,15 @@ class ArticleScraper:
         
         # Join and normalize whitespace
         result = '\n'.join(cleaned_lines)
-        
-        # Final cleanup
+
+        # Final cleanup - preserve newlines for structure
         import unicodedata
         result = unicodedata.normalize('NFKC', result)
-        result = re.sub(r'\s+', ' ', result)
-        result = re.sub(r'\n\s*\n', '\n', result)
-        
+        result = re.sub(r'[^\S\n]+', ' ', result)
+        result = re.sub(r'\n{3,}', '\n\n', result)
+
         return result.strip()
-    
+
     def _validate_note_com_content(self, text: str) -> bool:
         """Validate that extracted note.com content exists and is not empty"""
         # Simple validation: just check that we have actual content
@@ -1020,15 +1034,15 @@ class ArticleScraper:
         
         # Join and normalize whitespace
         result = '\n'.join(cleaned_lines)
-        
-        # Final cleanup
+
+        # Final cleanup - preserve newlines for structure
         import unicodedata
         result = unicodedata.normalize('NFKC', result)
-        result = re.sub(r'\s+', ' ', result)
-        result = re.sub(r'\n\s*\n', '\n', result)
-        
+        result = re.sub(r'[^\S\n]+', ' ', result)
+        result = re.sub(r'\n{3,}', '\n\n', result)
+
         return result.strip()
-    
+
     def _validate_hatenablog_content(self, text: str) -> bool:
         """Validate that extracted Hatenablog content exists and is not empty"""
         # Simple validation: just check that we have actual content
