@@ -46,9 +46,9 @@ try:
     from ui.pages import render_switch_translation_page, render_settings_page, render_help_page
     from utils.config import Config, init_session_state
 except Exception as e:
-    st.error("⚠️ Application failed to load. Please check that all dependencies are installed.")
+    st.error("Application failed to load. Please check that all dependencies are installed.")
     st.info("Try running: `pip install -r requirements.txt`")
-    with st.expander("🔍 Diagnostic Information"):
+    with st.expander("Diagnostic Information"):
         st.write(f"- Python Version: {sys.version}")
         st.write(f"- Working Directory: {os.getcwd()}")
         st.write(f"- Source Path: {src_path}")
@@ -63,8 +63,8 @@ apply_custom_css()
 
 # --- Sidebar: API Key ---
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 🔑 Google Gemini API Key")
-st.sidebar.markdown("Enter your own API key to use this application:")
+st.sidebar.markdown("### Google Gemini API Key")
+st.sidebar.markdown("Enter your API key to use this application:")
 
 api_key_input = st.sidebar.text_input(
     "API Key",
@@ -78,20 +78,20 @@ if st.sidebar.button("Set API Key", type="primary"):
     if api_key_input and api_key_input.strip():
         st.session_state.user_api_key = api_key_input.strip()
         st.session_state.analyzer = None
-        st.sidebar.success("✅ API Key saved!")
+        st.sidebar.success("API Key saved")
         st.rerun()
     else:
-        st.sidebar.error("❌ Please enter a valid API key")
+        st.sidebar.error("Please enter a valid API key")
 
 if st.session_state.user_api_key:
-    st.sidebar.success("✅ API Key configured")
+    st.sidebar.success("API Key configured")
     if st.sidebar.button("Clear API Key"):
         st.session_state.user_api_key = None
         st.session_state.analyzer = None
         st.rerun()
 else:
-    st.sidebar.warning("⚠️ No API key configured")
-    st.sidebar.info("👉 [Get a free API key](https://makersuite.google.com/app/apikey)")
+    st.sidebar.warning("No API key configured")
+    st.sidebar.info("[Get a free API key](https://makersuite.google.com/app/apikey)")
 
 st.sidebar.markdown("---")
 
@@ -110,7 +110,7 @@ def get_analyzer():
         try:
             st.session_state.analyzer = GeminiVGCAnalyzer(api_key=st.session_state.user_api_key)
         except Exception as e:
-            st.error(f"⚠️ Failed to initialize analyzer: {str(e)}")
+            st.error(f"Failed to initialize analyzer: {str(e)}")
             return None
     return st.session_state.analyzer
 
@@ -119,8 +119,8 @@ def process_analysis(input_type: str, content: str):
     """Process analysis request"""
     analyzer = get_analyzer()
     if not analyzer:
-        st.error("⚠️ Please configure your Google Gemini API key in the sidebar to use analysis features.")
-        st.info("👉 Get a free API key from [Google AI Studio](https://makersuite.google.com/app/apikey)")
+        st.error("Please configure your Google Gemini API key in the sidebar to use analysis features.")
+        st.info("Get a free API key from [Google AI Studio](https://makersuite.google.com/app/apikey)")
         return
 
     try:
@@ -172,30 +172,37 @@ def process_analysis(input_type: str, content: str):
                     st.rerun()
                 else:
                     status.update(label="No team data found", state="error")
-                    st.error("❌ No team data found. Please check your content and try again.")
+                    st.error("No team data found. Please check your content and try again.")
                     if has_parsing_error:
-                        st.info("💡 Try using the 'Article Text' input method instead of URL.")
+                        st.info("Try using the 'Article Text' input method instead of URL.")
+                    if input_type == "url":
+                        with st.expander("Diagnostic Information"):
+                            scraped_len = len(scraped_content) if scraped_content else 0
+                            st.write(f"**Scraped content length:** {scraped_len} characters")
+                            if scraped_content:
+                                st.write("**Content preview (first 500 chars):**")
+                                st.code(scraped_content[:500], language=None)
                     error_details = result.get("error_details")
                     if error_details:
-                        with st.expander("🔍 Error Details"):
+                        with st.expander("Error Details"):
                             st.text(error_details)
             else:
                 status.update(label="Analysis failed", state="error")
-                st.error("❌ Analysis failed - invalid result format. Please try again.")
+                st.error("Analysis failed - invalid result format. Please try again.")
 
     except APILimitError as e:
         error_info = get_user_friendly_api_error_message(e)
-        st.error(f"{error_info['icon']} **{error_info['title']}**")
-        with st.expander("📖 What does this mean and how to fix it", expanded=True):
+        st.error(f"**{error_info['title']}**")
+        with st.expander("What does this mean and how to fix it", expanded=True):
             st.markdown(error_info['message'])
             if error_info.get('tips'):
-                st.markdown("**💡 Tips:**")
+                st.markdown("**Tips:**")
                 for tip in error_info['tips']:
                     st.markdown(f"- {tip}")
 
     except Exception as e:
-        st.error(f"❌ Analysis error: {str(e)}")
-        with st.expander("🔍 Troubleshooting Help"):
+        st.error(f"Analysis error: {str(e)}")
+        with st.expander("Troubleshooting Help"):
             st.markdown("""
 **Common solutions:**
 - Check your internet connection
@@ -222,11 +229,11 @@ def display_analysis_results():
 
 # --- Page routing ---
 
-if current_page == "🏠 Analysis Home":
+if current_page == "Analysis Home":
     render_page_header()
 
     if not st.session_state.user_api_key:
-        st.warning("⚠️ **API Key Required**: Please enter your Google Gemini API key in the sidebar to use analysis features.")
+        st.warning("**API Key Required**: Please enter your Google Gemini API key in the sidebar to use analysis features.")
         st.info("""
 **How to get your free API key:**
 1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
@@ -239,20 +246,20 @@ Your key is stored only in your browser session.
 
     input_type, content = render_analysis_input()
 
-    if st.button("🔍 Analyze", type="primary", use_container_width=True):
+    if st.button("Analyze", type="primary", use_container_width=True):
         if content and content.strip():
             process_analysis(input_type, content)
         else:
-            st.warning("⚠️ Please provide a URL or paste article text to analyze!")
+            st.warning("Please provide a URL or paste article text to analyze.")
 
     if st.session_state.analysis_result:
         display_analysis_results()
 
-elif current_page == "🎮 Switch Translation":
+elif current_page == "Switch Translation":
     render_switch_translation_page()
 
-elif current_page == "⚙️ Settings":
+elif current_page == "Settings":
     render_settings_page()
 
-elif current_page == "📖 Help & Guide":
+elif current_page == "Help":
     render_help_page()

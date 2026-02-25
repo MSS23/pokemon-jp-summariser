@@ -22,7 +22,7 @@ def init_session_state():
         "analysis_result": None,
         "current_url": None,
         "analysis_complete": False,
-        "current_page": "🏠 Analysis Home",
+        "current_page": "Analysis Home",
         "user_api_key": None,
         "analyzer": None,
         "feedback_url": "",

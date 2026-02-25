@@ -2,6 +2,7 @@
 Article scraper for VGC content with robust multi-strategy approach.
 """
 
+import json
 import re
 import requests
 from bs4 import BeautifulSoup
@@ -86,6 +87,14 @@ class ArticleScraper:
         if not self.validate_url(url):
             raise ValueError("Invalid or inaccessible URL")
 
+        # For note.com, try API-based extraction first (bypasses SPA rendering)
+        if "note.com" in url.lower() and "/n/" in url.lower():
+            logger.info("Attempting note.com API-based extraction")
+            api_content = self._scrape_note_com_api(url)
+            if api_content:
+                return api_content
+            logger.warning("note.com API extraction failed, falling back to HTML scraping strategies")
+
         # Try strategies ordered by domain heuristics
         strategies = self._select_strategies(url)
 
@@ -94,7 +103,8 @@ class ArticleScraper:
                 logger.info(f"Trying scraping strategy: {strategy_func.__name__}")
                 content = strategy_func(url)
                 if content and len(content.strip()) > 50:  # Lower minimum for better fallback
-                    logger.info(f"Success with {strategy_func.__name__}: extracted {len(content)} characters")
+                    content_score = self._calculate_content_score(content)
+                    logger.info(f"Success with {strategy_func.__name__}: {len(content)} chars, quality score: {content_score}")
                     logger.debug(f"Content preview: {content[:200]}...")
                     return content
                 else:
@@ -629,7 +639,76 @@ class ArticleScraper:
                 ui_lines += 1
         
         return ui_lines / max(1, len(lines))
-    
+
+    def _scrape_note_com_api(self, url: str) -> Optional[str]:
+        """Fetch note.com article content via their public JSON API, bypassing SPA rendering."""
+        match = re.search(r'note\.com/[^/]+/n/([a-zA-Z0-9]+)', url)
+        if not match:
+            logger.warning(f"Could not extract note key from URL: {url}")
+            return None
+
+        note_key = match.group(1)
+        api_url = f"https://note.com/api/v3/notes/{note_key}"
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+            "Accept-Language": "ja-JP,ja;q=0.9,en;q=0.5",
+        }
+
+        try:
+            response = requests.get(api_url, headers=headers, timeout=20)
+            response.raise_for_status()
+
+            api_data = response.json()
+            note_data = api_data.get("data", {})
+            body_html = note_data.get("body")
+
+            if not body_html:
+                is_paid = note_data.get("is_limited", False)
+                if is_paid:
+                    logger.warning("note.com article is a paid/limited article with no accessible body")
+                else:
+                    logger.warning("note.com API returned no body content")
+                return None
+
+            # Parse the HTML body to extract text
+            soup = BeautifulSoup(body_html, "html.parser")
+            for tag in soup(["script", "style"]):
+                tag.decompose()
+
+            text = soup.get_text(separator="\n", strip=True)
+
+            # Prepend title for context
+            title = note_data.get("name", "")
+            if title:
+                text = f"{title}\n\n{text}"
+
+            # Apply existing cleanup
+            text = self._clean_note_com_content_specialized(text)
+
+            if text and len(text.strip()) > 50:
+                logger.info(f"note.com API extraction successful: {len(text)} chars")
+                return text
+
+            logger.warning(f"note.com API returned insufficient content: {len(text) if text else 0} chars")
+            return None
+
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code if e.response is not None else "unknown"
+            if status == 404:
+                logger.warning(f"note.com API returned 404 for key {note_key}")
+            elif status == 403:
+                logger.warning(f"note.com API returned 403 (private/paid article)")
+            elif status == 429:
+                logger.warning("note.com API rate limited, falling back to HTML scraping")
+            else:
+                logger.error(f"note.com API HTTP error ({status}): {e}")
+            return None
+        except (requests.exceptions.RequestException, json.JSONDecodeError, KeyError) as e:
+            logger.error(f"note.com API request failed: {e}")
+            return None
+
     def _extract_note_com_content_specialized(self, soup) -> Optional[str]:
         """
         ULTRA-SPECIALIZED note.com content extraction optimized for Pokemon VGC articles
