@@ -32,10 +32,46 @@ class ArticleScraper:
             True if URL appears accessible, False otherwise
         """
         try:
-            response = requests.head(url, timeout=10)
-            return response.status_code == 200
+            response = requests.head(url, timeout=10, allow_redirects=True)
+            return response.status_code < 400
         except Exception:
             return False
+
+    def _select_strategies(self, url: str) -> list:
+        """Order scraping strategies by likelihood of success for the given domain."""
+        url_lower = url.lower()
+
+        if "note.com" in url_lower:
+            # note.com often needs session establishment for full content
+            return [
+                self._scrape_with_session_retry,
+                self._scrape_with_japanese_headers,
+                self._scrape_with_standard_headers,
+                self._scrape_with_mobile_headers,
+            ]
+        elif any(d in url_lower for d in ["hatenablog.com", "hatenablog.jp", "hatenadiary.jp"]):
+            # Hatenablog responds best to Japanese Accept-Language headers
+            return [
+                self._scrape_with_japanese_headers,
+                self._scrape_with_standard_headers,
+                self._scrape_with_mobile_headers,
+                self._scrape_with_session_retry,
+            ]
+        elif "liberty-note.com" in url_lower:
+            return [
+                self._scrape_with_standard_headers,
+                self._scrape_with_japanese_headers,
+                self._scrape_with_mobile_headers,
+                self._scrape_with_session_retry,
+            ]
+        else:
+            # Default order
+            return [
+                self._scrape_with_standard_headers,
+                self._scrape_with_mobile_headers,
+                self._scrape_with_japanese_headers,
+                self._scrape_with_session_retry,
+            ]
 
     def scrape_article(self, url: str) -> Optional[str]:
         """
@@ -50,14 +86,9 @@ class ArticleScraper:
         if not self.validate_url(url):
             raise ValueError("Invalid or inaccessible URL")
 
-        # Try multiple scraping strategies with increasing aggressiveness
-        strategies = [
-            self._scrape_with_standard_headers,
-            self._scrape_with_mobile_headers,
-            self._scrape_with_japanese_headers,
-            self._scrape_with_session_retry
-        ]
-        
+        # Try strategies ordered by domain heuristics
+        strategies = self._select_strategies(url)
+
         for strategy_func in strategies:
             try:
                 logger.info(f"Trying scraping strategy: {strategy_func.__name__}")

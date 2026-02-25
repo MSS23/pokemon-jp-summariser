@@ -212,69 +212,72 @@ def render_settings_page():
 def render_help_page():
     """Render the help and guide page"""
     st.header("📖 Help & User Guide")
-    
-    # Quick start guide
-    st.subheader("🚀 Quick Start")
-    st.markdown(
-        """
-        1. **📝 Input**: Paste a Japanese VGC article URL or text
-        2. **🔍 Analyze**: Click the Analyze button to process
-        3. **👀 Review**: Examine the translated team and analysis
-        4. **💾 Export**: Download translations or pokepaste format
-        """
-    )
-    
-    # Supported formats
-    st.subheader("📄 Supported Article Formats")
-    st.markdown(
-        """
-        **✅ Supported Sites:**
-        - note.com articles
-        - Most Japanese Pokemon blogs
-        - Tournament reports with team lists
-        
-        **🔍 What We Extract:**
-        - Pokemon names, abilities, items
-        - Move sets and EV spreads  
-        - Strategic explanations
-        - Tournament context
-        """
-    )
-    
-    # Sample URLs
-    st.subheader("🌟 Sample Analysis")
-    st.markdown(
-        """
-        Try analyzing this sample article featuring:
-        - 🛡️ Zamazenta-Crowned
-        - ⚔️ Iron Valiant
-        - ⚡ Pawmot
-        
-        **Sample URL:** `https://note.com/icho_poke/n/n8ffb464e9335`
-        """
-    )
-    
-    # Troubleshooting
+
+    st.subheader("🚀 Getting Started")
+    st.markdown("""
+**Step 0: Setup Your API Key (Required)**
+- Enter your API key in the sidebar (password-protected field)
+- Get a free key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+- Click "Set API Key" to activate it
+- Your key is stored only in your browser session for security
+
+**Step 1: Input Your Content**
+- **URL Analysis**: Paste a link to a Japanese VGC article or team showcase
+- **Direct Text**: Copy and paste article content directly
+
+**Step 2: Analyze**
+- Click the "🔍 Analyze" button to start the analysis process.
+
+**Step 3: View Results**
+- **Team Summary**: See the overall strategy and regulation
+- **Pokemon Details**: Individual Pokemon with EV spreads, movesets, and explanations
+- **Export Options**: Download as Pokepaste or view raw JSON data
+""")
+
+    st.subheader("🎯 Supported Sites")
+    st.markdown("""
+- **note.com** - Japanese VGC articles and team showcases
+- **hatenablog.com / hatenablog.jp** - Japanese Pokemon blogs
+- **Twitter/X** - Tweet threads with VGC content
+- **Plain text** - Any Japanese VGC content pasted directly
+""")
+
+    st.subheader("💡 Tips for Best Results")
+    st.markdown("""
+- Use URLs from reputable VGC content creators
+- Ensure the content includes team information and EV spreads
+- For text input, include complete team details
+- Shorter articles use fewer API resources and process faster
+""")
+
+    st.subheader("🔧 API Usage & Limits")
+    st.markdown("""
+This application uses Google's Gemini API for analysis.
+
+**Rate Limits & Quotas:**
+- **Free tier**: Limited requests per minute and per day
+- **Rate limits reset**: Automatically after 1-2 minutes
+- **Daily quotas reset**: At midnight Pacific Time
+""")
+
+    with st.expander("Common API Issues"):
+        st.markdown("""
+**⏱️ Rate Limit Reached** - Wait 1-2 minutes and try again. Spread out your analyses.
+
+**📊 Quota Exceeded** - Wait until tomorrow for reset, or consider upgrading to a paid Google Cloud plan.
+
+**🔐 Authentication Issues** - Check your API key in Google Cloud Console. Verify Gemini API permissions are enabled.
+""")
+
     st.subheader("🔧 Troubleshooting")
     with st.expander("Common Issues"):
-        st.markdown(
-            """
-            **"Invalid URL" Error:**
-            - Ensure the URL is accessible
-            - Check for typos in the URL
-            - Some sites may block automated access
-            
-            **"No Content Found" Error:**
-            - Article may be too short
-            - Content might not contain Pokemon team data
-            - Try pasting the text directly instead
-            
-            **Slow Analysis:**
-            - Large articles take longer to process
-            - First analysis may take longer (caching helps)
-            - Check your internet connection
-            """
-        )
+        st.markdown("""
+**"Invalid URL" Error:** Ensure the URL is accessible and check for typos. Some sites may block automated access.
+
+**"No Content Found" Error:** Article may be too short or not contain Pokemon team data. Try pasting the text directly instead.
+
+**Slow Analysis:** Large articles take longer to process. Check your internet connection.
+""")
 
 
 def render_switch_translation_page():
