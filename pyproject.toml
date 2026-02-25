@@ -42,7 +42,7 @@ dependencies = [
     "streamlit>=1.28.0",
 
     # Google Gemini AI
-    "google-generativeai>=0.7.0",
+    "google-genai>=1.0.0",
     "google-api-core>=2.15.0",
 
     # HTTP requests and web scraping
@@ -184,7 +184,7 @@ strict_equality = true
 [[tool.mypy.overrides]]
 module = [
     "streamlit.*",
-    "google.generativeai.*",
+    "google.genai.*",
     "bs4.*",
     "readability.*",
     "redis.*",

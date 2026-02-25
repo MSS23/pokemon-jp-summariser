@@ -1,7 +1,7 @@
 # Pokemon VGC Analysis Platform - Streamlit Cloud Dependencies
 # Updated versions for better wheel compatibility and stable deployment
 streamlit>=1.28.0
-google-generativeai>=0.7.0
+google-genai>=1.0.0
 requests>=2.31.0
 beautifulsoup4>=4.12.0
 lxml>=5.1.0

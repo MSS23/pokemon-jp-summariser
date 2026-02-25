@@ -6,7 +6,8 @@ import json
 import re
 import logging
 from typing import Dict, Optional, Any, List
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import streamlit as st
 
 from utils.config import Config, POKEMON_NAME_TRANSLATIONS, MOVE_NAME_TRANSLATIONS
@@ -43,12 +44,9 @@ def get_move_name_translations() -> Dict[str, str]:
 
 
 @st.cache_resource
-def initialize_gemini_model(api_key: str) -> tuple:
-    """Initialize Gemini models (cached as resource for all users)"""
-    genai.configure(api_key=api_key)
-    text_model = genai.GenerativeModel("gemini-2.5-flash")
-    vision_model = genai.GenerativeModel("gemini-2.5-flash")
-    return text_model, vision_model
+def initialize_gemini_client(api_key: str):
+    """Initialize Gemini client (cached as resource for all users)"""
+    return genai.Client(api_key=api_key)
 
 
 class GeminiVGCAnalyzer:
@@ -70,23 +68,24 @@ class GeminiVGCAnalyzer:
                 logger.error("No Google API key found")
                 raise ValueError("Google API key is required for analysis")
 
-            logger.info("API key found, initializing cached models")
-            # Use cached model initialization
-            self.model, self.vision_model = initialize_gemini_model(self.api_key)
-            logger.info("Gemini models initialized successfully via cache")
+            logger.info("API key found, initializing cached client")
+            # Use cached client initialization
+            self.client = initialize_gemini_client(self.api_key)
+            self.model_name = "gemini-2.5-flash"
+            logger.info("Gemini client initialized successfully via cache")
 
         except Exception as e:
             logger.error(f"Failed to initialize Gemini analyzer: {str(e)}")
             raise
 
         # Generation config for consistent output
-        self.generation_config = {
-            "temperature": 0.1,
-            "top_p": 0.8,
-            "top_k": 40,
-            "max_output_tokens": 8000,
-            "response_mime_type": "application/json",
-        }
+        self.generation_config = types.GenerateContentConfig(
+            temperature=0.1,
+            top_p=0.8,
+            top_k=40,
+            max_output_tokens=8000,
+            response_mime_type="application/json",
+        )
         
         # Initialize helper components
         self.scraper = ArticleScraper()
@@ -267,11 +266,11 @@ class GeminiVGCAnalyzer:
             for image_info in vgc_images:
                 try:
                     if image_info.get('data') and image_info.get('format'):
-                        # Analyze image with vision model
+                        # Analyze image with vision client
                         vision_analysis = analyze_image_with_vision(
-                            image_info['data'], 
-                            image_info['format'], 
-                            self.vision_model
+                            image_info['data'],
+                            image_info['format'],
+                            self.client
                         )
                         
                         if vision_analysis:
@@ -676,8 +675,8 @@ class GeminiVGCAnalyzer:
         logger.debug(f"Prompt length: {len(prompt)} chars")
         
         try:
-            response = self.model.generate_content(
-                prompt, generation_config=self.generation_config
+            response = self.client.models.generate_content(
+                model=self.model_name, contents=prompt, config=self.generation_config
             )
             logger.info("Gemini API call successful")
             
@@ -767,8 +766,8 @@ class GeminiVGCAnalyzer:
         reduced_content = content[:4000]  # Smaller chunk
         reduced_prompt = prompt.replace(content, reduced_content)
         
-        response = self.model.generate_content(
-            reduced_prompt, generation_config=self.generation_config
+        response = self.client.models.generate_content(
+            model=self.model_name, contents=reduced_prompt, config=self.generation_config
         )
 
         if not response.text:
@@ -792,8 +791,8 @@ class GeminiVGCAnalyzer:
         
         Content: """ + content[:3000]
         
-        response = self.model.generate_content(
-            simple_prompt, generation_config=self.generation_config
+        response = self.client.models.generate_content(
+            model=self.model_name, contents=simple_prompt, config=self.generation_config
         )
 
         if not response.text:

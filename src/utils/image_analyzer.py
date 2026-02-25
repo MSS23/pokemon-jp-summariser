@@ -10,7 +10,7 @@ from io import BytesIO
 from PIL import Image
 from typing import Dict, List, Optional, Any
 from urllib.parse import urljoin
-import google.generativeai as genai
+from google.genai import types
 from .config import EV_STAT_TRANSLATIONS, NATURE_TRANSLATIONS, ABILITY_TRANSLATIONS, MOVE_NAME_TRANSLATIONS
 
 
@@ -731,19 +731,24 @@ POKEPASTE READINESS:
 '''
 
 
-def analyze_image_with_vision(image_data: str, image_format: str, vision_model) -> str:
+def analyze_image_with_vision(image_data: str, image_format: str, client) -> str:
     """Analyze a single image using Gemini Vision"""
     try:
-        # Prepare image for Gemini
-        image_part = {
-            "mime_type": f"image/{image_format.lower()}",
-            "data": image_data,
-        }
+        # Prepare image for Gemini (inline_data format for new google-genai SDK)
+        image_part = types.Part(
+            inline_data=types.Blob(
+                mime_type=f"image/{image_format.lower()}",
+                data=image_data,
+            )
+        )
 
         vision_prompt = get_vision_analysis_prompt()
 
-        # Generate response using vision model
-        response = vision_model.generate_content([vision_prompt, image_part])
+        # Generate response using vision client
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[vision_prompt, image_part]
+        )
 
         if response and response.text:
             return response.text
