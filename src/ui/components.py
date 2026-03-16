@@ -1,5 +1,6 @@
 """
 UI Components for Pokemon VGC Analysis application
+Neon Dex design system with holographic cards and animated elements.
 """
 
 import html as _html
@@ -19,16 +20,24 @@ def esc(value: Any) -> str:
 
 
 def render_page_header():
-    """Render the main page header"""
+    """Render the animated hero header."""
     analysis_available = bool(st.session_state.get("analysis_result"))
-    status = "Analysis ready" if analysis_available else "Ready to analyze VGC teams"
+    status = "Analysis ready" if analysis_available else "Paste a URL or article text to begin"
 
     st.markdown(
         f"""
-        <div class="page-header">
-            <h1>VGC Team Analyzer</h1>
-            <p>Translate and analyze Japanese VGC articles</p>
-            <div class="status-line">{esc(status)}</div>
+        <div class="page-hero">
+            <div class="scan-line"></div>
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="dot"></span>
+                    AI-Powered Translation Engine
+                </div>
+                <h1>VGC Team Analyzer</h1>
+                <p class="hero-sub">Translate Japanese VGC articles into full team breakdowns instantly</p>
+                <p class="hero-status">{esc(status)}</p>
+            </div>
+            <div class="hero-divider"></div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -41,25 +50,42 @@ def render_analysis_input() -> tuple[str, str]:
     Returns:
         Tuple of (input_type, content)
     """
-    st.subheader("Analyze Content")
+    st.markdown(
+        """
+        <div class="pkmn-card__section-title" style="margin-top:0; font-size: 0.75rem;">
+            How It Works
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    with st.expander("How it works", expanded=False):
-        st.markdown(
-            """
-**Quick Start:**
-1. Choose your input method: Article URL or Article Text
-2. Click "Analyze" for AI-powered translation and team analysis
-3. Export results in Pokepaste format
+    st.markdown(
+        """
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-card__num">01</div>
+                <div class="step-card__title">Input</div>
+                <div class="step-card__desc">Paste a Japanese VGC article URL or text</div>
+            </div>
+            <div class="step-card">
+                <div class="step-card__num">02</div>
+                <div class="step-card__title">Analyze</div>
+                <div class="step-card__desc">Gemini AI translates and extracts team data</div>
+            </div>
+            <div class="step-card">
+                <div class="step-card__num">03</div>
+                <div class="step-card__title">Export</div>
+                <div class="step-card__desc">Download as Pokepaste or view detailed breakdowns</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-**Tips:**
-- Best sources: note.com, Japanese Pokemon blogs, tournament reports
-- Shorter articles process faster and use fewer API resources
-- Use the Switch Translation page for Nintendo Switch screenshots
-            """
-        )
+    st.markdown("<br>", unsafe_allow_html=True)
 
     input_method = st.radio(
-        "Input method:",
+        "Input method",
         ["Article URL", "Article Text"],
         horizontal=True,
     )
@@ -113,15 +139,18 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     sprite_url = get_pokemon_sprite_url(name)
     type_class = get_pokemon_type_class(tera_type).lower()
 
-    # Hero section with type-colored accent bar
+    # Stagger animation delay based on card index
+    delay = index * 0.1
+
     st.markdown(
         f"""
-        <div class="pkmn-card">
+        <div class="pkmn-card" style="animation-delay: {delay}s;">
             <div class="pkmn-card__hero {type_class}">
+                <span class="pkmn-card__slot">#{index + 1}</span>
                 <img src="{esc(sprite_url)}" alt="{esc(name)}" class="pkmn-card__sprite"
-                     onerror="this.style.display='none'"/>
+                     onerror="this.style.display='none'"
+                     style="animation-delay: {delay + 0.2}s;"/>
                 <div class="pkmn-card__info">
-                    <div class="pkmn-card__slot">#{index + 1}</div>
                     <h2 class="pkmn-card__name">{esc(name)}</h2>
                     <span class="pkmn-card__badge {type_class}">Tera: {esc(tera_type)}</span>
                 </div>
@@ -146,7 +175,7 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
                 {_render_moves_html(moves)}
 
                 <div class="pkmn-card__section-title">EV Distribution</div>
-                {_render_ev_html(evs)}
+                {_render_ev_html(evs, delay)}
 
                 {_render_strategy_html(ev_explanation)}
             </div>
@@ -172,8 +201,8 @@ def _render_moves_html(moves: List[str]) -> str:
     return html
 
 
-def _render_ev_html(evs) -> str:
-    """Generate HTML for EV bars."""
+def _render_ev_html(evs, base_delay: float = 0) -> str:
+    """Generate HTML for animated EV bars."""
     if evs == "Not specified" or not evs:
         return '<div class="pkmn-ev-empty">EV spread not specified</div>'
 
@@ -190,14 +219,15 @@ def _render_ev_html(evs) -> str:
                 ]
 
                 html += '<div class="pkmn-evs">'
-                for label, value, color in zip(labels, ev_values, colors):
+                for i, (label, value, color) in enumerate(zip(labels, ev_values, colors)):
                     if value > 0:
                         pct = min((value / 252) * 100, 100)
+                        bar_delay = base_delay + 0.3 + (i * 0.08)
                         html += f"""
                         <div class="pkmn-ev">
                             <span class="pkmn-ev__label">{label}</span>
                             <div class="pkmn-ev__track">
-                                <div class="pkmn-ev__fill" style="width:{pct:.0f}%;background:{color};"></div>
+                                <div class="pkmn-ev__fill" style="width:{pct:.0f}%;background:linear-gradient(90deg,{color},{color}dd);animation-delay:{bar_delay:.2f}s;"></div>
                             </div>
                             <span class="pkmn-ev__value">{value}</span>
                         </div>"""
@@ -227,7 +257,7 @@ def render_article_summary(analysis_result: Dict[str, Any]):
     tournament_context = analysis_result.get("tournament_context", "Not specified")
     regulation = analysis_result.get("regulation", "Not specified")
 
-    # Summary card
+    # Summary card with glassmorphism
     tournament_html = f"<span>Tournament: <strong>{esc(tournament_context)}</strong></span>" if tournament_context != "Not specified" else ""
     st.markdown(
         f"""
@@ -243,11 +273,25 @@ def render_article_summary(analysis_result: Dict[str, Any]):
         unsafe_allow_html=True,
     )
 
-    # Quick team overview
+    # Team name pills
     pokemon_team = analysis_result.get("pokemon_team", [])
     if pokemon_team:
-        team_names = [esc(p.get("name", "Unknown")) for p in pokemon_team]
-        st.markdown(f"**Team:** {' / '.join(team_names)} ({len(pokemon_team)} Pokemon)")
+        names_html = ""
+        for i, p in enumerate(pokemon_team):
+            name = esc(p.get("name", "Unknown"))
+            if i > 0:
+                names_html += '<span class="team-inline__sep">/</span>'
+            names_html += f'<span class="team-inline__name">{name}</span>'
+
+        st.markdown(
+            f"""
+            <div class="team-inline">
+                <span class="team-inline__label">Team</span>
+                {names_html}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     # Strategic analysis blocks
     _placeholder_values = {
@@ -344,15 +388,26 @@ def render_article_summary(analysis_result: Dict[str, Any]):
 
 
 def render_team_showcase(analysis_result: Dict[str, Any]):
-    """Render team showcase with key metrics."""
-    st.success("Analysis complete. Your Japanese VGC article has been translated and analyzed.")
-
-    title = analysis_result.get("title", "VGC Team Analysis")
-    regulation = analysis_result.get("regulation", "Not specified")
+    """Render team showcase with animated success banner and metrics."""
     team_size = len(analysis_result.get("pokemon_team", []))
+    regulation = analysis_result.get("regulation", "Not specified")
     author = analysis_result.get("author", "Unknown")
 
-    # Key metrics
+    # Animated success banner
+    st.markdown(
+        f"""
+        <div class="success-banner">
+            <div class="success-banner__icon">&#x2728;</div>
+            <div>
+                <div class="success-banner__text">Analysis Complete</div>
+                <div class="success-banner__sub">Your Japanese VGC article has been translated and analyzed successfully</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Metric cards
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown(
@@ -385,7 +440,14 @@ def render_team_showcase(analysis_result: Dict[str, Any]):
 
 def render_pokemon_team(pokemon_team):
     """Render the Pokemon team with sprite grid and detailed cards."""
-    st.subheader("Team")
+    st.markdown(
+        """
+        <div class="pkmn-card__section-title" style="font-size: 0.8rem; margin-top: var(--sp-4);">
+            Team Roster
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if not pokemon_team:
         st.warning("No Pokemon team data available")
@@ -413,7 +475,7 @@ def render_pokemon_team(pokemon_team):
         st.warning("No valid Pokemon data found in team")
         return
 
-    # Team sprite grid
+    # Team sprite grid with staggered animations
     grid_html = '<div class="team-grid">'
     for pokemon in team_list:
         name = pokemon.get("name", "Unknown")
@@ -446,7 +508,14 @@ def render_pokemon_team(pokemon_team):
 
 def render_export_section(analysis_result: Dict[str, Any]):
     """Render export functionality section."""
-    st.subheader("Export")
+    st.markdown(
+        """
+        <div class="pkmn-card__section-title" style="font-size: 0.8rem;">
+            Export Options
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     col1, col2 = st.columns(2)
 

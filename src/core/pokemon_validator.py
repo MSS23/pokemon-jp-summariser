@@ -461,13 +461,14 @@ class PokemonValidator:
             return 'Gholdengo'
         
         # Fix Treasures of Ruin confusions
-        if 'chi-yu' in name_lower or 'チオンジェン' in name:
+        # チオンジェン = Wo-Chien (Dark/Grass), イーユイ = Chi-Yu (Dark/Fire)
+        if 'chi-yu' in name_lower or 'イーユイ' in name:
             return 'Chi-Yu'
         if 'chien-pao' in name_lower or 'パオジアン' in name:
             return 'Chien-Pao'
         if 'ting-lu' in name_lower or 'ディンルー' in name:
             return 'Ting-Lu'
-        if 'wo-chien' in name_lower or 'イーユイ' in name:
+        if 'wo-chien' in name_lower or 'チオンジェン' in name:
             return 'Wo-Chien'
         
         # Fix Ogerpon forms

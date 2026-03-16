@@ -83,7 +83,7 @@ class GeminiVGCAnalyzer:
             temperature=0.1,
             top_p=0.8,
             top_k=40,
-            max_output_tokens=8000,
+            max_output_tokens=16000,
             response_mime_type="application/json",
         )
         
@@ -217,10 +217,9 @@ class GeminiVGCAnalyzer:
                     failure_note = f"Image analysis failed: {str(e)}"
                     text_result["translation_notes"] = f"{existing_notes} | {failure_note}".strip(" |")
             
-            # ULTRA-CRITICAL: Apply validation pipeline including stat abbreviation translation
-            text_result = self._validate_and_enhance_result(text_result, content, url)
+            # Note: validation already applied inside analyze_article() — do not call again
 
-            # Add fresh analysis metadata  
+            # Add fresh analysis metadata
             from datetime import datetime
             text_result["is_cached_result"] = False
             text_result["analysis_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -270,7 +269,8 @@ class GeminiVGCAnalyzer:
                         vision_analysis = analyze_image_with_vision(
                             image_info['data'],
                             image_info['format'],
-                            self.client
+                            self.client,
+                            self.model_name
                         )
                         
                         if vision_analysis:
@@ -618,36 +618,45 @@ class GeminiVGCAnalyzer:
         return ""
 
     def _preprocess_content_for_analysis(self, content: str) -> str:
-        """Preprocess content to improve analysis accuracy"""
-        # Remove excessive whitespace but preserve newlines for line-based filtering
+        """Preprocess content to improve analysis accuracy.
+
+        Gemini 2.5 Flash has a 1M token context window (~4M chars),
+        so we clean noise but preserve all article content to avoid
+        dropping Pokemon data from the end of longer articles.
+        """
+        # Remove excessive whitespace but preserve newlines for structure
         content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
         content = re.sub(r'[^\S\n]+', ' ', content)
         content = re.sub(r'\n{3,}', '\n\n', content)
-        
-        # Prioritize content with VGC/Pokemon indicators
+
+        # Filter out obvious noise lines (very short non-content, pure URLs, etc.)
         lines = content.split('\n')
-        priority_lines = []
-        other_lines = []
-        
-        vgc_indicators = [
-            'ポケモン', '構築', 'VGC', 'ダブル', 'バトル', '調整', '努力値',
-            'pokemon', 'team', 'battle', 'regulation', 'tournament'
-        ]
-        
+        cleaned_lines = []
         for line in lines:
             line = line.strip()
-            if any(indicator in line.lower() for indicator in vgc_indicators):
-                priority_lines.append(line)
+            if not line:
+                cleaned_lines.append('')
+                continue
+            # Skip lines that are just URLs, pure symbols, or very short noise
+            if re.match(r'^https?://\S+$', line):
+                continue
+            if len(line) < 3 and not re.search(r'[\u3040-\u9fff]', line):
+                continue
+            cleaned_lines.append(line)
+
+        result = '\n'.join(cleaned_lines).strip()
+
+        # Safety cap: truncate only truly enormous pages (well within Gemini limits)
+        max_chars = 30000
+        if len(result) > max_chars:
+            # Try to cut at a paragraph boundary
+            truncated = result[:max_chars]
+            last_break = truncated.rfind('\n\n')
+            if last_break > max_chars * 0.8:
+                result = truncated[:last_break]
             else:
-                other_lines.append(line)
-        
-        # Prioritize VGC content, but include other content if space allows
-        result = '\n'.join(priority_lines)
-        if len(result) < 6000:  # Leave room for additional context
-            remaining_space = 6000 - len(result)
-            additional_content = '\n'.join(other_lines)[:remaining_space]
-            result += '\n' + additional_content
-        
+                result = truncated
+
         return result
     
     def _generate_with_fallbacks(self, prompt: str, original_content: str, url: str = None) -> Dict[str, Any]:
@@ -746,6 +755,16 @@ class GeminiVGCAnalyzer:
                     retry_after=retry_after
                 )
             
+            # Detect model not found errors
+            elif ('not found' in error_msg and 'model' in error_msg) or 'models/' in error_msg and '404' in error_msg:
+                logger.error(f"Model not found: {original_error}")
+                raise APILimitError(
+                    f"Model '{self.model_name}' is not available for your API key. "
+                    f"Your account may not have access to this model yet. "
+                    f"Try checking available models at https://aistudio.google.com.",
+                    error_type="model_not_found"
+                )
+
             # Detect service disabled errors
             elif ('service_disabled' in error_msg or 'has not been used' in error_msg or
                   'api has not been used' in error_msg or 'enable the api' in error_msg):
@@ -754,7 +773,7 @@ class GeminiVGCAnalyzer:
                     "Gemini API service is disabled or not enabled for this project. Please enable the Generative Language API in Google Cloud Console.",
                     error_type="service_disabled"
                 )
-                
+
             # Generic API errors
             else:
                 logger.error(f"General API error: {original_error}")
@@ -762,9 +781,11 @@ class GeminiVGCAnalyzer:
     
     def _generate_with_reduced_content(self, prompt: str, content: str) -> Dict[str, Any]:
         """Fallback with reduced content size"""
-        # Reduce content to most relevant parts
-        reduced_content = content[:4000]  # Smaller chunk
-        reduced_prompt = prompt.replace(content, reduced_content)
+        # Rebuild prompt with reduced content instead of string replace
+        # (replace won't match because prompt was built with processed_content, not raw content)
+        reduced_content = content[:4000]
+        analysis_prompt = self._get_analysis_prompt()
+        reduced_prompt = f"{analysis_prompt}\n\nCONTENT TO ANALYZE:\n{reduced_content}"
         
         response = self.client.models.generate_content(
             model=self.model_name, contents=reduced_prompt, config=self.generation_config
@@ -1311,15 +1332,19 @@ class GeminiVGCAnalyzer:
                     # Ensure required Pokemon fields (preserving extracted EV data)
                     pokemon_defaults = {
                         "name": "Unknown Pokemon",
-                        "ability": "Not specified", 
+                        "ability": "Not specified",
                         "held_item": "Not specified",
                         "tera_type": "Not specified",
                         "nature": "Not specified",
                         "moves": [],
                         "ev_explanation": "Not specified",
-                        "role_in_team": "Not specified"
+                        "role": "Not specified"
                     }
-                    
+
+                    # Map role_in_team -> role (prompt uses role_in_team, UI uses role)
+                    if "role_in_team" in pokemon and "role" not in pokemon:
+                        pokemon["role"] = pokemon.pop("role_in_team")
+
                     # Apply defaults only for missing basic fields
                     for field, default in pokemon_defaults.items():
                         if field not in pokemon:

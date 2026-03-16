@@ -1,5 +1,6 @@
 """
 Additional page functions for the VGC Analysis App
+Neon Dex design system.
 """
 
 import streamlit as st
@@ -182,37 +183,96 @@ def render_export_feedback(feedback_json):
 
 def render_settings_page():
     """Render the settings page"""
-    st.header("Settings")
-    st.subheader("Display Preferences")
-    st.info("Display preferences coming soon.")
+    st.markdown(
+        """
+        <div class="page-hero" style="padding: var(--sp-8) 0 var(--sp-6);">
+            <div class="hero-content">
+                <h1 style="font-size: 2rem;">Settings</h1>
+                <p class="hero-sub">Configure your analysis preferences</p>
+            </div>
+            <div class="hero-divider"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <div class="page-section">
+            <h3>Display Preferences</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                Display preferences coming soon. Stay tuned for theme customization,
+                default export formats, and analysis depth controls.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_help_page():
     """Render the help and guide page"""
-    st.header("Help & User Guide")
+    st.markdown(
+        """
+        <div class="page-hero" style="padding: var(--sp-8) 0 var(--sp-6);">
+            <div class="hero-content">
+                <h1 style="font-size: 2rem;">Help & Guide</h1>
+                <p class="hero-sub">Everything you need to get started</p>
+            </div>
+            <div class="hero-divider"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.subheader("Getting Started")
-    st.markdown("""
-**Step 0: Setup Your API Key (Required)**
-- Enter your API key in the sidebar (password-protected field)
-- Get a free key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-- Click "Set API Key" to activate it
-- Your key is stored only in your browser session for security
+    # Getting started
+    st.markdown(
+        """
+        <div class="page-section">
+            <h3>Getting Started</h3>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-**Step 1: Input Your Content**
-- **URL Analysis**: Paste a link to a Japanese VGC article or team showcase
-- **Direct Text**: Copy and paste article content directly
+    st.markdown(
+        """
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-card__num">00</div>
+                <div class="step-card__title">API Key Setup</div>
+                <div class="step-card__desc">Enter your Google Gemini API key in the sidebar. Get a free key from Google AI Studio.</div>
+            </div>
+            <div class="step-card">
+                <div class="step-card__num">01</div>
+                <div class="step-card__title">Input Content</div>
+                <div class="step-card__desc">Paste a Japanese VGC article URL or copy-paste the article text directly.</div>
+            </div>
+            <div class="step-card">
+                <div class="step-card__num">02</div>
+                <div class="step-card__title">Analyze</div>
+                <div class="step-card__desc">Click Analyze to start AI-powered translation and team extraction.</div>
+            </div>
+            <div class="step-card">
+                <div class="step-card__num">03</div>
+                <div class="step-card__title">Export</div>
+                <div class="step-card__desc">View results, download Pokepaste format, or export raw data.</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-**Step 2: Analyze**
-- Click the "Analyze" button to start the analysis process.
+    # Supported sites
+    st.markdown(
+        """
+        <div class="page-section" style="animation-delay: 0.1s;">
+            <h3>Supported Sites</h3>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-**Step 3: View Results**
-- **Team Summary**: See the overall strategy and regulation
-- **Pokemon Details**: Individual Pokemon with EV spreads, movesets, and explanations
-- **Export Options**: Download as Pokepaste or view raw JSON data
-""")
-
-    st.subheader("Supported Sites")
     st.markdown("""
 - **note.com** - Japanese VGC articles and team showcases
 - **hatenablog.com / hatenablog.jp** - Japanese Pokemon blogs
@@ -220,7 +280,16 @@ def render_help_page():
 - **Plain text** - Any Japanese VGC content pasted directly
 """)
 
-    st.subheader("Tips for Best Results")
+    # Tips
+    st.markdown(
+        """
+        <div class="page-section" style="animation-delay: 0.2s;">
+            <h3>Tips for Best Results</h3>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown("""
 - Use URLs from reputable VGC content creators
 - Ensure the content includes team information and EV spreads
@@ -228,7 +297,16 @@ def render_help_page():
 - Shorter articles use fewer API resources and process faster
 """)
 
-    st.subheader("API Usage & Limits")
+    # API Usage
+    st.markdown(
+        """
+        <div class="page-section" style="animation-delay: 0.3s;">
+            <h3>API Usage & Limits</h3>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown("""
 This application uses Google's Gemini API for analysis.
 
@@ -247,38 +325,73 @@ This application uses Google's Gemini API for analysis.
 **Authentication Issues** - Check your API key in Google Cloud Console. Verify Gemini API permissions are enabled.
 """)
 
-    st.subheader("Troubleshooting")
-    with st.expander("Common Issues"):
+    with st.expander("Troubleshooting"):
         st.markdown("""
 **"Invalid URL" Error:** Ensure the URL is accessible and check for typos. Some sites may block automated access.
 
 **"No Content Found" Error:** Article may be too short or not contain Pokemon team data. Try pasting the text directly instead.
 
-**Slow Analysis:** Large articles take longer to process. Check your internet connection.
+**"Slow Analysis":** Large articles take longer to process. Check your internet connection.
 """)
 
 
 def render_switch_translation_page():
     """Render the Nintendo Switch team translation page"""
-    st.header("Switch Team Translation")
+    st.markdown(
+        """
+        <div class="page-hero" style="padding: var(--sp-8) 0 var(--sp-6);">
+            <div class="hero-content">
+                <h1 style="font-size: 2rem;">Switch Translation</h1>
+                <p class="hero-sub">Translate Nintendo Switch team screenshots</p>
+            </div>
+            <div class="hero-divider"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.info("Nintendo Switch team screenshot translation functionality coming soon.")
+    st.markdown(
+        """
+        <div class="page-section">
+            <h3>Coming Soon</h3>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
-**Planned Features:**
-- Upload Nintendo Switch team screenshots
-- Automatic Pokemon identification from sprites
-- Team composition extraction
-- Export to analysis format
+    st.markdown(
+        """
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-card__num">01</div>
+                <div class="step-card__title">Upload</div>
+                <div class="step-card__desc">Upload Nintendo Switch team screenshots</div>
+            </div>
+            <div class="step-card">
+                <div class="step-card__num">02</div>
+                <div class="step-card__title">Identify</div>
+                <div class="step-card__desc">Automatic Pokemon identification from sprites</div>
+            </div>
+            <div class="step-card">
+                <div class="step-card__num">03</div>
+                <div class="step-card__title">Extract</div>
+                <div class="step-card__desc">Team composition extraction and export</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-**Supported Screenshots:**
-- Team builder screens
-- Battle box displays
-- Rental team views
-- Tournament team cards
-""")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    st.subheader("Upload Team Screenshot")
+    st.markdown(
+        """
+        <div class="page-section">
+            <h3>Upload Team Screenshot</h3>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     uploaded_file = st.file_uploader(
         "Choose a Nintendo Switch screenshot...",
@@ -290,11 +403,17 @@ def render_switch_translation_page():
         st.image(uploaded_file, caption="Uploaded Team Screenshot", use_column_width=True)
         st.info("Image processing functionality will be implemented soon.")
 
-    st.markdown("---")
-    st.markdown("**Tips for Best Results:**")
-    st.markdown("""
-- Use high-resolution screenshots (1080p or higher)
-- Ensure Pokemon sprites are clearly visible
-- Avoid blurry or cropped images
-- Include the full team of 6 Pokemon when possible
-""")
+    st.markdown(
+        """
+        <div class="info-block info-block--info" style="margin-top: var(--sp-6);">
+            <h4>Tips for Best Results</h4>
+            <div>
+                Use high-resolution screenshots (1080p or higher)<br>
+                Ensure Pokemon sprites are clearly visible<br>
+                Avoid blurry or cropped images<br>
+                Include the full team of 6 Pokemon when possible
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )

@@ -18,14 +18,14 @@ if str(src_path) not in sys.path:
 import streamlit as st
 
 st.set_page_config(
-    page_title="Pokemon VGC Analysis Platform",
+    page_title="VGC Team Analyzer",
     page_icon="⚔️",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
         'Get Help': None,
         'Report a bug': None,
-        'About': "Pokemon VGC Analysis Platform - Translate and analyze Japanese VGC content"
+        'About': "VGC Team Analyzer - AI-powered Japanese VGC article translation"
     }
 )
 
@@ -70,7 +70,7 @@ api_key_input = st.sidebar.text_input(
     "API Key",
     type="password",
     value=st.session_state.user_api_key if st.session_state.user_api_key else "",
-    help="Get your free API key from https://makersuite.google.com/app/apikey",
+    help="Get your free API key from https://aistudio.google.com/app/apikey",
     placeholder="Enter your Google Gemini API key..."
 )
 
@@ -91,7 +91,7 @@ if st.session_state.user_api_key:
         st.rerun()
 else:
     st.sidebar.warning("No API key configured")
-    st.sidebar.info("[Get a free API key](https://makersuite.google.com/app/apikey)")
+    st.sidebar.info("[Get a free API key](https://aistudio.google.com/app/apikey)")
 
 st.sidebar.markdown("---")
 
@@ -120,7 +120,7 @@ def process_analysis(input_type: str, content: str):
     analyzer = get_analyzer()
     if not analyzer:
         st.error("Please configure your Google Gemini API key in the sidebar to use analysis features.")
-        st.info("Get a free API key from [Google AI Studio](https://makersuite.google.com/app/apikey)")
+        st.info("Get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey)")
         return
 
     try:
@@ -225,6 +225,9 @@ def display_analysis_results():
         render_team_showcase(result)
         render_pokemon_team(result.get("pokemon_team"))
 
+    # Show image analysis insights if available
+    render_image_analysis_section(result)
+
     render_export_section(result)
 
 
@@ -237,7 +240,7 @@ if current_page == "Analysis Home":
         st.warning("**API Key Required**: Please enter your Google Gemini API key in the sidebar to use analysis features.")
         st.info("""
 **How to get your free API key:**
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
 2. Sign in with your Google account
 3. Click "Create API Key"
 4. Copy the key and paste it in the sidebar

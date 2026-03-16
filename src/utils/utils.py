@@ -351,7 +351,14 @@ def _create_pokemon_placeholder(pokemon_name: str) -> str:
     bg_color = color_map.get(abbrev[0], '95a5a6')
     text_color = 'ffffff'
     
-    return f"https://via.placeholder.com/180x180/{bg_color}/{text_color}?text={abbrev}"
+    # Generate inline SVG data URI (no external dependency)
+    return (
+        f"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E"
+        f"%3Crect width='180' height='180' fill='%23{bg_color}'/%3E"
+        f"%3Ctext x='90' y='100' text-anchor='middle' fill='%23{text_color}' "
+        f"font-family='sans-serif' font-size='48' font-weight='bold'%3E{abbrev}%3C/text%3E"
+        f"%3C/svg%3E"
+    )
 
 
 def safe_parse_ev_spread(ev_string: str) -> Tuple[Dict[str, int], str]:
@@ -925,7 +932,7 @@ def create_pokepaste(pokemon_team: List[Dict], team_name: str = "VGC Team") -> s
                     for stat, value in ev_dict.items():
                         if value > 0:
                             ev_parts.append(f"{value} {stat}")
-                except:
+                except Exception:
                     # If parsing fails, try to extract numbers directly
                     if "/" in evs:
                         try:

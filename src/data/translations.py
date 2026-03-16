@@ -58,13 +58,13 @@ POKEMON_NAME_TRANSLATIONS = {
     "KaiPao": "Chien-Pao",
     "Chien Pao": "Chien-Pao",
     "Chienpao": "Chien-Pao",
-    "チオンジェン": "Chi-Yu",
+    "チオンジェン": "Wo-Chien",
     "Chi Yu": "Chi-Yu",
     "ChiYu": "Chi-Yu",
     "ディンルー": "Ting-Lu",
     "Ting Lu": "Ting-Lu",
     "TingLu": "Ting-Lu",
-    "イーユイ": "Wo-Chien",
+    "イーユイ": "Chi-Yu",
     "Wo Chien": "Wo-Chien",
     "WoChien": "Wo-Chien",
 
@@ -271,11 +271,11 @@ POKEMON_NAME_TRANSLATIONS = {
     "ugatsu homura": "Gouging Fire",
 
     # Gen 9 popular Pokemon
-    "ドオー": "Dondozo",
+    "ドオー": "Clodsire",
     "シャリタツ": "Tatsugiri",
     "カラミンゴ": "Flamigo",
     "オリーヴァ": "Arboliva",
-    "マフィティフ": "Maschiff",
+    "マフィティフ": "Mabosstiff",
     "マスカーニャ": "Meowscarada",
     "ラウドボーン": "Skeledirge",
     "ウェーニバル": "Quaquaval",
@@ -675,7 +675,7 @@ MOVE_NAME_TRANSLATIONS = {
     "オーロラベール": "Aurora Veil",
     "ニトロチャージ": "Flame Charge",
     "フレイムチャージ": "Flame Charge",
-    "アクセルブレイク": "Flame Charge",
+    "アクセルブレイク": "Collision Course",
     "カタストロフィ": "Ruination",
     "ワイドブレイカー": "Breaking Swipe",
 }

@@ -95,6 +95,25 @@ Contact support if you continue having authentication issues.""",
             ]
         }
 
+    elif error.error_type == "model_not_found":
+        return {
+            "icon": "🔍",
+            "title": "Model Not Available",
+            "message": f"""{str(error)}
+
+**What you can do:**
+- **Check your API key** has access to the latest Gemini models
+- **Visit [Google AI Studio](https://aistudio.google.com)** to verify which models are available
+- **Try a different API key** or upgrade your Google Cloud project
+
+This usually means your API key's project hasn't been granted access to newer models yet.""",
+            "tips": [
+                "Free-tier keys may not have access to all models",
+                "Check Google AI Studio for your available models",
+                "Creating a new API key sometimes resolves access issues"
+            ]
+        }
+
     elif error.error_type == "service_disabled":
         return {
             "icon": "🔧",

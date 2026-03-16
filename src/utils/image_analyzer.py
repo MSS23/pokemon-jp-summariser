@@ -731,7 +731,7 @@ POKEPASTE READINESS:
 '''
 
 
-def analyze_image_with_vision(image_data: str, image_format: str, client) -> str:
+def analyze_image_with_vision(image_data: str, image_format: str, client, model_name: str = "gemini-2.5-flash") -> str:
     """Analyze a single image using Gemini Vision"""
     try:
         # Prepare image for Gemini (inline_data format for new google-genai SDK)
@@ -746,7 +746,7 @@ def analyze_image_with_vision(image_data: str, image_format: str, client) -> str
 
         # Generate response using vision client
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=model_name,
             contents=[vision_prompt, image_part]
         )
 

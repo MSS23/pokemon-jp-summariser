@@ -1,5 +1,6 @@
 """
 Sidebar rendering and feedback form for the Pokemon VGC Analysis Platform.
+Neon Dex design system.
 """
 
 import streamlit as st
@@ -15,7 +16,7 @@ def render_sidebar():
             """
             <div class="sidebar-header">
                 <h2>VGC Analyzer</h2>
-                <p>Pokemon Team Analysis</p>
+                <p>AI-Powered Team Analysis</p>
             </div>
             """,
             unsafe_allow_html=True,

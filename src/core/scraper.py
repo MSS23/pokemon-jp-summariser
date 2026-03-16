@@ -550,35 +550,39 @@ class ArticleScraper:
         
         return '\n'.join(filtered_lines)
     
-    def _truncate_content_smartly(self, text: str) -> str:
-        """Smart content truncation preserving sentence boundaries"""
-        if len(text) <= 8000:
+    def _truncate_content_smartly(self, text: str, max_chars: int = 50000) -> str:
+        """Smart content truncation preserving sentence boundaries.
+
+        Gemini 2.5 Flash has a 1M token context window, so we can afford
+        generous limits. Only truncate truly massive pages to prevent abuse.
+        """
+        if len(text) <= max_chars:
             return text
-            
+
         # Try to cut at sentence boundaries for Japanese text
-        sentences = text.split('。')  # Japanese sentence marker
+        sentences = text.split('\u3002')  # Japanese period (。)
         if len(sentences) > 1:
             result = ""
             for sentence in sentences:
-                if len(result + sentence + '。') > 8000:
+                if len(result + sentence + '\u3002') > max_chars:
                     break
-                result += sentence + '。'
+                result += sentence + '\u3002'
             if result:
                 return result
-        
+
         # Fallback to paragraph boundaries
         paragraphs = text.split('\n\n')
         if len(paragraphs) > 1:
             result = ""
             for paragraph in paragraphs:
-                if len(result + paragraph + '\n\n') > 8000:
+                if len(result + paragraph + '\n\n') > max_chars:
                     break
                 result += paragraph + '\n\n'
             if result:
                 return result.strip()
-        
+
         # Final fallback - simple truncation
-        return text[:8000]
+        return text[:max_chars]
 
     def _clean_note_com_boilerplate(self, text: str) -> str:
         """
