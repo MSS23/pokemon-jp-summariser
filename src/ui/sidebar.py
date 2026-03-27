@@ -59,6 +59,22 @@ def render_sidebar():
                 unsafe_allow_html=True,
             )
 
+        # Analysis history
+        history = st.session_state.get("analysis_history", [])
+        if history:
+            st.markdown("---")
+            st.markdown("**Recent Analyses**")
+            for i, entry in enumerate(reversed(history[-10:])):
+                title = entry.get("title", "Untitled")[:35]
+                pokemon_count = entry.get("pokemon_count", 0)
+                timestamp = entry.get("timestamp", "")
+                label = f"{title} ({pokemon_count})"
+                if st.button(label, key=f"history_{i}", use_container_width=True):
+                    st.session_state.analysis_result = entry.get("result")
+                    st.session_state.current_url = entry.get("url")
+                    st.session_state.analysis_complete = True
+                    st.rerun()
+
         st.markdown("---")
 
         # About

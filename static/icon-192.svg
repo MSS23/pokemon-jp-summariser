@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="32" fill="#0f1117"/>
+  <circle cx="96" cy="96" r="60" fill="none" stroke="#818cf8" stroke-width="6"/>
+  <line x1="36" y1="96" x2="156" y2="96" stroke="#818cf8" stroke-width="6"/>
+  <circle cx="96" cy="96" r="16" fill="#0f1117" stroke="#818cf8" stroke-width="6"/>
+  <circle cx="96" cy="96" r="8" fill="#818cf8"/>
+  <text x="96" y="170" text-anchor="middle" fill="#e8eaf0" font-family="system-ui,sans-serif" font-size="18" font-weight="700">VGC</text>
+</svg>

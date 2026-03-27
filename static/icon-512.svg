@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#0f1117"/>
+  <circle cx="256" cy="240" r="140" fill="none" stroke="#818cf8" stroke-width="12"/>
+  <line x1="116" y1="240" x2="396" y2="240" stroke="#818cf8" stroke-width="12"/>
+  <circle cx="256" cy="240" r="36" fill="#0f1117" stroke="#818cf8" stroke-width="12"/>
+  <circle cx="256" cy="240" r="18" fill="#818cf8"/>
+  <text x="256" y="440" text-anchor="middle" fill="#e8eaf0" font-family="system-ui,sans-serif" font-size="48" font-weight="800">VGC</text>
+  <text x="256" y="474" text-anchor="middle" fill="#9ba1b0" font-family="system-ui,sans-serif" font-size="24" font-weight="500">ANALYZER</text>
+</svg>

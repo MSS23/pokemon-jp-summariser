@@ -34,6 +34,7 @@ try:
     from core.analyzer import GeminiVGCAnalyzer, APILimitError, get_user_friendly_api_error_message
     from ui.components import (
         render_page_header,
+        render_onboarding,
         render_analysis_input,
         render_article_summary,
         render_team_showcase,
@@ -158,6 +159,22 @@ def process_analysis(input_type: str, content: str):
                     st.session_state.analysis_result = result
                     st.session_state.analysis_complete = True
 
+                    # Save to history
+                    from datetime import datetime
+                    history_entry = {
+                        "title": result.get("title", "Untitled"),
+                        "author": result.get("author", "Unknown"),
+                        "pokemon_count": len(pokemon_team),
+                        "timestamp": datetime.now().strftime("%H:%M"),
+                        "url": st.session_state.current_url,
+                        "result": result,
+                    }
+                    history = st.session_state.get("analysis_history", [])
+                    # Avoid duplicate consecutive entries
+                    if not history or history[-1].get("title") != history_entry["title"]:
+                        history.append(history_entry)
+                        st.session_state.analysis_history = history[-10:]  # Keep last 10
+
                     if pokemon_team and not has_parsing_error:
                         status.update(label=f"Complete - {len(pokemon_team)} Pokemon extracted", state="complete")
                     elif pokemon_team and has_parsing_error:
@@ -237,27 +254,18 @@ if current_page == "Analysis Home":
     render_page_header()
 
     if not st.session_state.user_api_key:
-        st.warning("**API Key Required**: Please enter your Google Gemini API key in the sidebar to use analysis features.")
-        st.info("""
-**How to get your free API key:**
-1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
-4. Copy the key and paste it in the sidebar
+        render_onboarding()
+    else:
+        input_type, content = render_analysis_input()
 
-Your key is stored only in your browser session.
-""")
+        if st.button("Analyze", type="primary", use_container_width=True):
+            if content and content.strip():
+                process_analysis(input_type, content)
+            else:
+                st.warning("Please provide a URL or paste article text to analyze.")
 
-    input_type, content = render_analysis_input()
-
-    if st.button("Analyze", type="primary", use_container_width=True):
-        if content and content.strip():
-            process_analysis(input_type, content)
-        else:
-            st.warning("Please provide a URL or paste article text to analyze.")
-
-    if st.session_state.analysis_result:
-        display_analysis_results()
+        if st.session_state.analysis_result:
+            display_analysis_results()
 
 elif current_page == "Switch Translation":
     render_switch_translation_page()

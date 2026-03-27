@@ -7,7 +7,27 @@ import streamlit as st
 
 
 def apply_custom_css():
-    """Apply clean CSS styling for VGC Analysis Platform"""
+    """Apply clean CSS styling and PWA head tags for VGC Analysis Platform"""
+
+    # PWA meta tags + service worker registration
+    st.markdown(
+        """
+    <link rel="manifest" href="./static/manifest.json">
+    <meta name="theme-color" content="#818cf8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="VGC Analyzer">
+    <link rel="apple-touch-icon" href="./static/icon-192.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./static/sw.js').catch(()=>{});
+    }
+    </script>
+    """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown(
         """
     <style>
@@ -94,7 +114,6 @@ def apply_custom_css():
     }
 
     .main .block-container {
-        padding: var(--sp-6) var(--sp-6) var(--sp-10);
         max-width: 1100px;
     }
 
@@ -855,30 +874,256 @@ def apply_custom_css():
         margin-top: 2px;
     }
 
-    /* ===== 19. RESPONSIVE ===== */
-    .pkmn-moves { grid-template-columns: 1fr; }
-    .team-grid { grid-template-columns: repeat(2, 1fr); }
-    .pkmn-card__hero { flex-wrap: wrap; }
-    .pkmn-card__name { font-size: 1.2rem; }
+    /* ===== 18b. ONBOARDING CARD ===== */
+    .onboarding-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-xl);
+        padding: var(--sp-8) var(--sp-6);
+        text-align: center;
+        max-width: 520px;
+        margin: var(--sp-6) auto var(--sp-8);
+        animation: fadeIn 0.4s ease both;
+    }
 
+    .onboarding-card__icon {
+        font-size: 2.5rem;
+        margin-bottom: var(--sp-4);
+        line-height: 1;
+    }
+
+    .onboarding-card h2 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0 0 var(--sp-2) 0;
+    }
+
+    .onboarding-card p {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin: 0 0 var(--sp-5) 0;
+        line-height: 1.6;
+    }
+
+    .onboarding-card__steps {
+        display: flex;
+        gap: var(--sp-3);
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: var(--sp-4);
+    }
+
+    .onboarding-card__step {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-2);
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .onboarding-card__step .num {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--accent-dim);
+        color: var(--text-accent);
+        font-size: 0.65rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ===== 18c. HISTORY PANEL ===== */
+    .history-item {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--r-md);
+        padding: var(--sp-3) var(--sp-4);
+        margin-bottom: var(--sp-2);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .history-item:hover {
+        border-color: var(--accent);
+        background: var(--bg-hover);
+    }
+
+    .history-item__title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin: 0 0 2px 0;
+    }
+
+    .history-item__meta {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        display: flex;
+        gap: var(--sp-2);
+    }
+
+    /* ===== 18d. COPY BUTTON ===== */
+    .copy-wrapper {
+        position: relative;
+    }
+
+    .copy-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--sp-2);
+        padding: var(--sp-2) var(--sp-4);
+        background: var(--bg-card);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-md);
+        color: var(--text-primary);
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        font-family: var(--font-sans) !important;
+    }
+
+    .copy-btn:hover {
+        border-color: var(--green);
+        background: var(--green-dim);
+        color: var(--green);
+    }
+
+    .copy-btn.copied {
+        border-color: var(--green);
+        background: var(--green-dim);
+        color: var(--green);
+    }
+
+    /* ===== 18e. COMPACT METRICS ===== */
+    .metrics-bar {
+        display: flex;
+        gap: var(--sp-3);
+        flex-wrap: wrap;
+        margin-bottom: var(--sp-5);
+    }
+
+    .metrics-bar__item {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--sp-2);
+        padding: var(--sp-2) var(--sp-4);
+        background: var(--bg-card);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-full);
+        font-size: 0.8rem;
+    }
+
+    .metrics-bar__label {
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .metrics-bar__value {
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+
+    /* ===== 19. RESPONSIVE (mobile-first) ===== */
+
+    /* --- Base: phones (<640px) --- */
+    .main .block-container {
+        padding: var(--sp-3) var(--sp-3) var(--sp-8);
+        padding-bottom: calc(var(--sp-8) + env(safe-area-inset-bottom, 0px));
+    }
+
+    .pkmn-moves { grid-template-columns: 1fr 1fr; }
+    .team-grid { grid-template-columns: repeat(2, 1fr); gap: var(--sp-2); }
+    .pkmn-card__hero { flex-wrap: wrap; gap: var(--sp-3); }
+    .pkmn-card__name { font-size: 1.1rem; }
+    .pkmn-card__sprite { width: 56px; height: 56px; }
+    .pkmn-card__body { padding: var(--sp-4); }
+    .pkmn-card__hero { padding: var(--sp-4); }
+
+    .page-hero { padding: var(--sp-6) var(--sp-2) var(--sp-4); margin-bottom: var(--sp-4); }
+    .page-hero h1 { font-size: 1.6rem; }
+
+    .summary-card { padding: var(--sp-4); border-radius: var(--r-lg); }
+    .summary-card h1 { font-size: 1.2rem; }
+
+    .info-block { padding: var(--sp-4); }
+    .info-block p, .info-block div { font-size: 0.825rem; }
+
+    .steps-grid { grid-template-columns: 1fr; }
+
+    .metrics-bar { gap: var(--sp-2); }
+    .metrics-bar__item { font-size: 0.75rem; padding: var(--sp-2) var(--sp-3); }
+
+    .team-inline { font-size: 0.8rem; }
+    .team-inline__name { font-size: 0.75rem; }
+
+    .team-grid__item img { width: 56px; height: 56px; }
+    .team-grid__item h4 { font-size: 0.8rem; }
+
+    .copy-btn { width: 100%; justify-content: center; padding: var(--sp-3) var(--sp-4); }
+
+    .onboarding-card { padding: var(--sp-5) var(--sp-4); margin: var(--sp-4) auto; }
+
+    /* Touch-friendly tap targets */
+    .stButton > button { min-height: 44px; }
+    .stTextInput > div > div > input { min-height: 44px; }
+    .stRadio > div > label { min-height: 44px; display: flex; align-items: center; }
+    .stDownloadButton > button { min-height: 44px; }
+
+    /* --- Tablets (>=640px) --- */
     @media (min-width: 640px) {
-        .pkmn-moves { grid-template-columns: 1fr 1fr; }
-        .team-grid { grid-template-columns: repeat(3, 1fr); }
-        .pkmn-card__name { font-size: 1.35rem; }
-    }
-
-    @media (min-width: 1024px) {
-        .pkmn-card__body { padding: var(--sp-6) var(--sp-8); }
-        .summary-card { padding: var(--sp-8); }
-    }
-
-    @container (max-width: 400px) {
-        .pkmn-card__hero {
-            flex-direction: column;
-            text-align: center;
+        .main .block-container {
+            padding: var(--sp-5) var(--sp-5) var(--sp-10);
         }
-        .pkmn-card__name { font-size: 1.1rem; }
-        .pkmn-moves { grid-template-columns: 1fr; }
+
+        .pkmn-moves { grid-template-columns: 1fr 1fr; }
+        .team-grid { grid-template-columns: repeat(3, 1fr); gap: var(--sp-3); }
+        .pkmn-card__name { font-size: 1.25rem; }
+        .pkmn-card__sprite { width: 68px; height: 68px; }
+        .pkmn-card__body { padding: var(--sp-5) var(--sp-6); }
+        .pkmn-card__hero { padding: var(--sp-5) var(--sp-6); }
+
+        .page-hero h1 { font-size: 2rem; }
+        .summary-card { padding: var(--sp-6); }
+        .summary-card h1 { font-size: 1.4rem; }
+
+        .steps-grid { grid-template-columns: repeat(3, 1fr); }
+
+        .team-grid__item img { width: 72px; height: 72px; }
+
+        .copy-btn { width: auto; }
+    }
+
+    /* --- Desktop (>=1024px) --- */
+    @media (min-width: 1024px) {
+        .main .block-container {
+            padding: var(--sp-6) var(--sp-6) var(--sp-10);
+            max-width: 1100px;
+        }
+
+        .pkmn-card__body { padding: var(--sp-6) var(--sp-8); }
+        .pkmn-card__sprite { width: 72px; height: 72px; }
+        .pkmn-card__name { font-size: 1.35rem; }
+
+        .summary-card { padding: var(--sp-8); }
+        .summary-card h1 { font-size: 1.5rem; }
+
+        .page-hero h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); }
+
+        .team-grid__item img { width: 80px; height: 80px; }
+    }
+
+    /* --- Animated GIF sprite tweaks --- */
+    .pkmn-card__sprite,
+    .team-grid__item img {
+        image-rendering: pixelated;        /* keep pixel art crisp */
+        image-rendering: -moz-crisp-edges;
     }
 
     /* ===== 20. PAGE SECTIONS ===== */

@@ -287,41 +287,78 @@ def _get_alternative_form_names(pokemon_name: str, form: str) -> list:
 
 def _try_fetch_sprite(pokemon_name: str) -> str:
     """
-    Try to fetch sprite from PokeAPI for a specific name
-    
+    Try to fetch sprite, preferring animated GIFs from Pokemon Showdown.
+    Falls back to PokeAPI static artwork if the animated sprite isn't available.
+
     Args:
         pokemon_name: Normalized Pokemon name
-        
+
     Returns:
         Sprite URL if successful, None otherwise
     """
+    # Strategy 1: Pokemon Showdown animated GIF (fast, no API call needed)
+    # Try multiple name formats: no-space, hyphenated, no-hyphen
+    base = pokemon_name.lower().strip()
+    showdown_candidates = list(dict.fromkeys([
+        base.replace(" ", ""),                          # fluttermane
+        base.replace(" ", "-"),                         # flutter-mane
+        base.replace(" ", "").replace("-", ""),          # fluttermane from flutter-mane
+    ]))
+    for showdown_name in showdown_candidates:
+        showdown_url = f"https://play.pokemonshowdown.com/sprites/ani/{showdown_name}.gif"
+        try:
+            resp = requests.head(showdown_url, timeout=4, allow_redirects=True)
+            if resp.status_code == 200:
+                return showdown_url
+        except Exception:
+            pass
+
+    # Strategy 2: PokeAPI (static artwork fallback)
     try:
         url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_name}"
         response = requests.get(url, timeout=8)
-        
+
         if response.status_code == 200:
             data = response.json()
-            
-            # Priority order for sprite sources
+
+            # Also try Showdown with the PokeAPI id (handles forms)
+            poke_id = data.get("id")
+            if poke_id:
+                showdown_id_url = f"https://play.pokemonshowdown.com/sprites/ani/{poke_id}.gif"
+                try:
+                    resp = requests.head(showdown_id_url, timeout=4, allow_redirects=True)
+                    if resp.status_code == 200:
+                        return showdown_id_url
+                except Exception:
+                    pass
+
+            # Animated sprite from PokeAPI (Gen V Black/White)
+            animated = (
+                data.get("sprites", {})
+                .get("versions", {})
+                .get("generation-v", {})
+                .get("black-white", {})
+                .get("animated", {})
+                .get("front_default")
+            )
+            if animated:
+                return animated
+
+            # Static fallback priority
             sprite_sources = [
-                # Official artwork (highest quality)
                 lambda d: d.get("sprites", {}).get("other", {}).get("official-artwork", {}).get("front_default"),
-                # Dream World artwork
-                lambda d: d.get("sprites", {}).get("other", {}).get("dream_world", {}).get("front_default"),
-                # Home artwork
                 lambda d: d.get("sprites", {}).get("other", {}).get("home", {}).get("front_default"),
-                # Standard front sprite
                 lambda d: d.get("sprites", {}).get("front_default"),
             ]
-            
+
             for get_sprite in sprite_sources:
                 sprite_url = get_sprite(data)
                 if sprite_url:
                     return sprite_url
-                    
+
     except Exception:
         pass
-    
+
     return None
 
 

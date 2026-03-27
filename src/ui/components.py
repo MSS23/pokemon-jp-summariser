@@ -20,27 +20,78 @@ def esc(value: Any) -> str:
 
 
 def render_page_header():
-    """Render the animated hero header."""
+    """Render the hero header. Compact when results are showing."""
     analysis_available = bool(st.session_state.get("analysis_result"))
-    status = "Analysis ready" if analysis_available else "Paste a URL or article text to begin"
+    history_count = len(st.session_state.get("analysis_history", []))
+    if analysis_available:
+        status = "Analysis ready"
+    elif history_count > 0:
+        status = f"{history_count} previous {'analysis' if history_count == 1 else 'analyses'} saved"
+    else:
+        status = "Paste a URL or article text to begin"
 
-    st.markdown(
-        f"""
-        <div class="page-hero">
-            <div class="scan-line"></div>
-            <div class="hero-content">
-                <div class="hero-badge">
-                    <span class="dot"></span>
-                    AI-Powered Translation Engine
+    # Compact header when results are displayed to save vertical space
+    if analysis_available:
+        st.markdown(
+            f"""
+            <div class="page-hero" style="padding: var(--sp-4) var(--sp-2) var(--sp-3); margin-bottom: var(--sp-3);">
+                <div class="hero-content">
+                    <h1 style="font-size: 1.3rem; margin-bottom: var(--sp-1);">VGC Team Analyzer</h1>
+                    <p class="hero-status">{esc(status)}</p>
                 </div>
-                <h1>VGC Team Analyzer</h1>
-                <p class="hero-sub">Translate Japanese VGC articles into full team breakdowns instantly</p>
-                <p class="hero-status">{esc(status)}</p>
             </div>
-            <div class="hero-divider"></div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f"""
+            <div class="page-hero">
+                <div class="hero-content">
+                    <div class="hero-badge">
+                        <span class="dot"></span>
+                        AI-Powered Translation Engine
+                    </div>
+                    <h1>VGC Team Analyzer</h1>
+                    <p class="hero-sub">Translate Japanese VGC articles into full team breakdowns instantly</p>
+                    <p class="hero-status">{esc(status)}</p>
+                </div>
+                <div class="hero-divider"></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def render_onboarding():
+    """Render a friendly onboarding card when no API key is set."""
+    st.markdown(
+        """
+        <div class="onboarding-card">
+            <div class="onboarding-card__icon">&#x1F50D;</div>
+            <h2>Get Started in 30 Seconds</h2>
+            <p>
+                This tool translates Japanese VGC articles into full English team breakdowns
+                with Pokemon, EVs, moves, items, and strategic analysis.
+                You just need a free Google Gemini API key.
+            </p>
+            <div class="onboarding-card__steps">
+                <div class="onboarding-card__step">
+                    <span class="num">1</span> Get a free API key
+                </div>
+                <div class="onboarding-card__step">
+                    <span class="num">2</span> Enter it in the sidebar
+                </div>
+                <div class="onboarding-card__step">
+                    <span class="num">3</span> Paste a URL and analyze
+                </div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
+    )
+    st.markdown(
+        "[Get your free API key from Google AI Studio](https://aistudio.google.com/app/apikey)",
     )
 
 
@@ -50,39 +101,31 @@ def render_analysis_input() -> tuple[str, str]:
     Returns:
         Tuple of (input_type, content)
     """
-    st.markdown(
-        """
-        <div class="pkmn-card__section-title" style="margin-top:0; font-size: 0.75rem;">
-            How It Works
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        """
-        <div class="steps-grid">
-            <div class="step-card">
-                <div class="step-card__num">01</div>
-                <div class="step-card__title">Input</div>
-                <div class="step-card__desc">Paste a Japanese VGC article URL or text</div>
+    # Only show "How it Works" when no analysis has been done yet
+    if not st.session_state.get("analysis_result"):
+        st.markdown(
+            """
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-card__num">01</div>
+                    <div class="step-card__title">Input</div>
+                    <div class="step-card__desc">Paste a Japanese VGC article URL or text</div>
+                </div>
+                <div class="step-card">
+                    <div class="step-card__num">02</div>
+                    <div class="step-card__title">Analyze</div>
+                    <div class="step-card__desc">Gemini AI translates and extracts team data</div>
+                </div>
+                <div class="step-card">
+                    <div class="step-card__num">03</div>
+                    <div class="step-card__title">Export</div>
+                    <div class="step-card__desc">Download as Pokepaste or view detailed breakdowns</div>
+                </div>
             </div>
-            <div class="step-card">
-                <div class="step-card__num">02</div>
-                <div class="step-card__title">Analyze</div>
-                <div class="step-card__desc">Gemini AI translates and extracts team data</div>
-            </div>
-            <div class="step-card">
-                <div class="step-card__num">03</div>
-                <div class="step-card__title">Export</div>
-                <div class="step-card__desc">Download as Pokepaste or view detailed breakdowns</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("<br>", unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("<br>", unsafe_allow_html=True)
 
     input_method = st.radio(
         "Input method",
@@ -388,54 +431,37 @@ def render_article_summary(analysis_result: Dict[str, Any]):
 
 
 def render_team_showcase(analysis_result: Dict[str, Any]):
-    """Render team showcase with animated success banner and metrics."""
+    """Render compact metrics bar and quick actions."""
     team_size = len(analysis_result.get("pokemon_team", []))
     regulation = analysis_result.get("regulation", "Not specified")
     author = analysis_result.get("author", "Unknown")
 
-    # Animated success banner
+    # Compact metrics bar instead of bulky cards
     st.markdown(
         f"""
-        <div class="success-banner">
-            <div class="success-banner__icon">&#x2728;</div>
-            <div>
-                <div class="success-banner__text">Analysis Complete</div>
-                <div class="success-banner__sub">Your Japanese VGC article has been translated and analyzed successfully</div>
+        <div class="metrics-bar">
+            <div class="metrics-bar__item">
+                <span class="metrics-bar__label">Regulation</span>
+                <span class="metrics-bar__value">{esc(regulation)}</span>
+            </div>
+            <div class="metrics-bar__item">
+                <span class="metrics-bar__label">Team</span>
+                <span class="metrics-bar__value">{team_size} Pokemon</span>
+            </div>
+            <div class="metrics-bar__item">
+                <span class="metrics-bar__label">Author</span>
+                <span class="metrics-bar__value">{esc(author)}</span>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Metric cards
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown(
-            f'<div class="metric-card"><h3>Regulation</h3><p>{esc(regulation)}</p></div>',
-            unsafe_allow_html=True,
-        )
-    with col2:
-        st.markdown(
-            f'<div class="metric-card"><h3>Team Size</h3><p>{team_size} Pokemon</p></div>',
-            unsafe_allow_html=True,
-        )
-    with col3:
-        st.markdown(
-            f'<div class="metric-card"><h3>Author</h3><p>{esc(author)}</p></div>',
-            unsafe_allow_html=True,
-        )
-
-    # Quick actions
-    st.markdown("---")
-    nav_col1, nav_col2 = st.columns(2)
-    with nav_col1:
-        if st.button("New Analysis", key="new_analysis_quick"):
-            st.session_state.analysis_result = None
-            st.session_state.current_url = None
-            st.session_state.analysis_complete = False
-            st.rerun()
-    with nav_col2:
-        st.button("Export Team", help="Use the export options below", disabled=True)
+    if st.button("New Analysis", key="new_analysis_quick"):
+        st.session_state.analysis_result = None
+        st.session_state.current_url = None
+        st.session_state.analysis_complete = False
+        st.rerun()
 
 
 def render_pokemon_team(pokemon_team):
@@ -507,7 +533,7 @@ def render_pokemon_team(pokemon_team):
 
 
 def render_export_section(analysis_result: Dict[str, Any]):
-    """Render export functionality section."""
+    """Render export functionality with one-click Pokepaste copy."""
     st.markdown(
         """
         <div class="pkmn-card__section-title" style="font-size: 0.8rem;">
@@ -516,6 +542,33 @@ def render_export_section(analysis_result: Dict[str, Any]):
         """,
         unsafe_allow_html=True,
     )
+
+    pokepaste_content = create_pokepaste(
+        analysis_result.get("pokemon_team", []),
+        analysis_result.get("title", "VGC Team"),
+    )
+
+    # One-click copy Pokepaste button using hidden textarea for robustness
+    import base64 as _b64
+    encoded = _b64.b64encode(pokepaste_content.encode("utf-8")).decode("ascii")
+    st.markdown(
+        f"""
+        <button class="copy-btn" id="copyPaste"
+                onclick="
+                    var t=atob('{encoded}');
+                    navigator.clipboard.writeText(t).then(()=>{{
+                        this.classList.add('copied');
+                        this.innerHTML='&#x2714; Copied Pokepaste!';
+                        setTimeout(()=>{{this.classList.remove('copied');this.innerHTML='&#x1F4CB; Copy Pokepaste to Clipboard';}}, 2000);
+                    }});
+                ">
+            &#x1F4CB; Copy Pokepaste to Clipboard
+        </button>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("<br>", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
 
@@ -530,19 +583,15 @@ def render_export_section(analysis_result: Dict[str, Any]):
         )
 
     with col2:
-        pokepaste_content = create_pokepaste(
-            analysis_result.get("pokemon_team", []),
-            analysis_result.get("title", "VGC Team"),
-        )
         st.download_button(
-            label="Export Pokepaste",
+            label="Download Pokepaste",
             data=pokepaste_content,
             file_name=f"{analysis_result.get('title', 'vgc_team')}_pokepaste.txt",
             mime="text/plain",
             help="Export team in pokepaste format",
         )
 
-    with st.expander("Pokepaste (copy)", expanded=False):
+    with st.expander("View Pokepaste", expanded=False):
         st.code(pokepaste_content, language=None)
 
     with st.expander("Raw JSON Data", expanded=False):
