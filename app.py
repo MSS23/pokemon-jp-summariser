@@ -62,41 +62,7 @@ init_session_state()
 # Apply custom styling
 apply_custom_css()
 
-# --- Sidebar: API Key ---
-st.sidebar.markdown("---")
-st.sidebar.markdown("### Google Gemini API Key")
-st.sidebar.markdown("Enter your API key to use this application:")
-
-api_key_input = st.sidebar.text_input(
-    "API Key",
-    type="password",
-    value=st.session_state.user_api_key if st.session_state.user_api_key else "",
-    help="Get your free API key from https://aistudio.google.com/app/apikey",
-    placeholder="Enter your Google Gemini API key..."
-)
-
-if st.sidebar.button("Set API Key", type="primary"):
-    if api_key_input and api_key_input.strip():
-        st.session_state.user_api_key = api_key_input.strip()
-        st.session_state.analyzer = None
-        st.sidebar.success("API Key saved")
-        st.rerun()
-    else:
-        st.sidebar.error("Please enter a valid API key")
-
-if st.session_state.user_api_key:
-    st.sidebar.success("API Key configured")
-    if st.sidebar.button("Clear API Key"):
-        st.session_state.user_api_key = None
-        st.session_state.analyzer = None
-        st.rerun()
-else:
-    st.sidebar.warning("No API key configured")
-    st.sidebar.info("[Get a free API key](https://aistudio.google.com/app/apikey)")
-
-st.sidebar.markdown("---")
-
-# --- Sidebar: Navigation ---
+# --- Sidebar: Navigation (renders header, nav, API key, history, feedback) ---
 current_page = render_sidebar()
 st.session_state.current_page = current_page
 
@@ -255,17 +221,19 @@ if current_page == "Analysis Home":
 
     if not st.session_state.user_api_key:
         render_onboarding()
-    else:
-        input_type, content = render_analysis_input()
 
-        if st.button("Analyze", type="primary", use_container_width=True):
-            if content and content.strip():
-                process_analysis(input_type, content)
-            else:
-                st.warning("Please provide a URL or paste article text to analyze.")
+    input_type, content = render_analysis_input()
 
-        if st.session_state.analysis_result:
-            display_analysis_results()
+    if st.button("Analyze", type="primary", use_container_width=True):
+        if not st.session_state.user_api_key:
+            st.warning("Please set your Google Gemini API key in the sidebar first.")
+        elif content and content.strip():
+            process_analysis(input_type, content)
+        else:
+            st.warning("Please provide a URL or paste article text to analyze.")
+
+    if st.session_state.analysis_result:
+        display_analysis_results()
 
 elif current_page == "Switch Translation":
     render_switch_translation_page()

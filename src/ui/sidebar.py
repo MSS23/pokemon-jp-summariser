@@ -36,6 +36,35 @@ def render_sidebar():
 
         st.markdown("---")
 
+        # API Key management
+        api_key_input = st.text_input(
+            "Google Gemini API Key",
+            type="password",
+            value=st.session_state.user_api_key if st.session_state.user_api_key else "",
+            help="Get your free API key from https://aistudio.google.com/app/apikey",
+            placeholder="Enter your API key...",
+        )
+
+        if st.button("Set API Key", type="primary", use_container_width=True):
+            if api_key_input and api_key_input.strip():
+                st.session_state.user_api_key = api_key_input.strip()
+                st.session_state.analyzer = None
+                st.success("API Key saved")
+                st.rerun()
+            else:
+                st.error("Please enter a valid API key")
+
+        if st.session_state.user_api_key:
+            st.success("API Key configured")
+            if st.button("Clear API Key", use_container_width=True):
+                st.session_state.user_api_key = None
+                st.session_state.analyzer = None
+                st.rerun()
+        else:
+            st.info("[Get a free API key](https://aistudio.google.com/app/apikey)")
+
+        st.markdown("---")
+
         # New analysis button
         if st.button("New Analysis", use_container_width=True, type="primary"):
             st.session_state.analysis_result = None
