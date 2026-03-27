@@ -4,8 +4,8 @@
   "description": "AI-powered Japanese VGC article translation and team analysis",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f1117",
-  "theme_color": "#818cf8",
+  "background_color": "#0B0B1A",
+  "theme_color": "#E11D48",
   "orientation": "any",
   "icons": [
     {

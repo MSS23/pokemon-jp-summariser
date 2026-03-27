@@ -1,19 +1,19 @@
 """
 Custom CSS styling for the Pokemon VGC Analysis Platform.
-Clean dark theme with clear typography and functional Pokemon type colors.
+Inspired by VGC Team Report design system — dark mode, rose accent, Sora font.
 """
 
 import streamlit as st
 
 
 def apply_custom_css():
-    """Apply clean CSS styling and PWA head tags for VGC Analysis Platform"""
+    """Apply VGC Team Report-inspired CSS styling and PWA head tags."""
 
     # PWA meta tags + service worker registration
     st.markdown(
         """
     <link rel="manifest" href="./static/manifest.json">
-    <meta name="theme-color" content="#818cf8">
+    <meta name="theme-color" content="#E11D48">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="VGC Analyzer">
@@ -32,7 +32,7 @@ def apply_custom_css():
         """
     <style>
     /* ===== 1. FONTS & ANIMATIONS ===== */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(8px); }
@@ -43,65 +43,73 @@ def apply_custom_css():
         from { width: 0%; }
     }
 
-    /* ===== 2. DESIGN TOKENS ===== */
+    @keyframes popIn {
+        0%   { opacity: 0; transform: scale(0.92); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* ===== 2. DESIGN TOKENS (VGC Team Report) ===== */
     :root {
         /* Surfaces */
-        --bg-base: #0f1117;
-        --bg-raised: #161822;
-        --bg-card: #1c1e2e;
-        --bg-hover: #242640;
-        --bg-input: #1a1c2c;
+        --background: #0B0B1A;
+        --foreground: #F0EDE6;
+        --surface: #141428;
+        --surface-alt: #1C1C38;
+        --bg-hover: #24244A;
 
         /* Text */
-        --text-primary: #e8eaf0;
-        --text-secondary: #9ba1b0;
-        --text-muted: #6b7280;
-        --text-accent: #818cf8;
+        --text-primary: #F0EDE6;
+        --text-secondary: #C0C0D8;
+        --text-tertiary: #7A7AA0;
 
         /* Borders */
-        --border-subtle: rgba(255, 255, 255, 0.06);
-        --border-default: rgba(255, 255, 255, 0.1);
-        --border-focus: #818cf8;
+        --border: #2A2A52;
+        --border-subtle: #222244;
+        --border-focus: #E11D48;
 
-        /* Accent */
-        --accent: #818cf8;
-        --accent-dim: rgba(129, 140, 248, 0.15);
-        --green: #34d399;
-        --green-dim: rgba(52, 211, 153, 0.12);
-        --red: #f87171;
-        --red-dim: rgba(248, 113, 113, 0.12);
-        --amber: #fbbf24;
-        --amber-dim: rgba(251, 191, 36, 0.12);
-        --blue: #60a5fa;
-        --blue-dim: rgba(96, 165, 250, 0.12);
+        /* Accent — Gen 9 Scarlet */
+        --accent: #E11D48;
+        --accent-light: #FB7185;
+        --accent-surface: #3B1525;
+        --accent-dim: rgba(225, 29, 72, 0.15);
+
+        /* Status */
+        --success: #16A34A;
+        --success-dim: rgba(22, 163, 74, 0.12);
+        --danger: #DC2626;
+        --danger-dim: rgba(220, 38, 38, 0.12);
+        --warning: #D97706;
+        --warning-dim: rgba(217, 119, 6, 0.12);
+        --info: #3B82F6;
+        --info-dim: rgba(59, 130, 246, 0.12);
 
         /* Spacing */
         --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
         --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
 
         /* Typography */
-        --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        --font-sans: 'Sora', system-ui, -apple-system, sans-serif;
         --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
         /* Radii */
-        --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px; --r-full: 9999px;
+        --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 16px; --r-full: 9999px;
 
         /* Shadows */
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-        --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+        --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.35);
 
         /* Pokemon Type Colors */
-        --type-normal:   #a8a878; --type-fire:     #f08030; --type-water:    #6890f0;
-        --type-grass:    #78c850; --type-electric: #f8d030; --type-psychic:  #f85888;
-        --type-fighting: #c03028; --type-poison:   #a040a0; --type-ground:   #e0c068;
-        --type-flying:   #a890f0; --type-bug:      #a8b820; --type-rock:     #b8a038;
-        --type-ghost:    #705898; --type-dragon:   #7038f8; --type-dark:     #705848;
-        --type-steel:    #b8b8d0; --type-fairy:    #ee99ac; --type-ice:      #98d8d8;
+        --type-normal:   #A8A77A; --type-fire:     #EE8130; --type-water:    #6390F0;
+        --type-grass:    #7AC74C; --type-electric: #F7D02C; --type-psychic:  #F95587;
+        --type-fighting: #C22E28; --type-poison:   #A33EA1; --type-ground:   #E2BF65;
+        --type-flying:   #A98FF0; --type-bug:      #A6B91A; --type-rock:     #B6A136;
+        --type-ghost:    #735797; --type-dragon:   #6F35FC; --type-dark:     #705746;
+        --type-steel:    #B7B7CE; --type-fairy:    #D685AD; --type-ice:      #96D9D6;
 
-        /* EV stat colors */
-        --ev-hp: #f87171; --ev-atk: #fbbf24; --ev-def: #60a5fa;
-        --ev-spa: #a78bfa; --ev-spd: #34d399; --ev-spe: #f472b6;
+        /* Stat bar colors */
+        --ev-hp: #FF5959; --ev-atk: #F5AC78; --ev-def: #FAE078;
+        --ev-spa: #9DB7F5; --ev-spd: #A7DB8D; --ev-spe: #FA92B2;
     }
 
     /* ===== 3. BASE ===== */
@@ -109,8 +117,10 @@ def apply_custom_css():
     code, pre, .stCode { font-family: var(--font-mono) !important; }
 
     .stApp {
-        background: var(--bg-base);
+        background: var(--background);
         color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 
     .main .block-container {
@@ -120,13 +130,14 @@ def apply_custom_css():
     hr {
         border: none;
         height: 1px;
-        background: var(--border-default);
+        background: var(--border);
         margin: var(--sp-6) 0;
     }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg-base); }
-    ::-webkit-scrollbar-thumb { background: #3f4257; border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: var(--background); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
 
     /* ===== 4. STREAMLIT OVERRIDES ===== */
     #MainMenu, footer, header[data-testid="stHeader"] { visibility: hidden; }
@@ -134,50 +145,58 @@ def apply_custom_css():
     /* Buttons */
     .stButton > button {
         border-radius: var(--r-md);
-        border: 1px solid var(--border-default);
-        background: var(--bg-card);
+        border: 1px solid var(--border);
+        background: var(--surface);
         color: var(--text-primary);
         font-weight: 600;
         padding: var(--sp-3) var(--sp-6);
         font-size: 0.875rem;
-        transition: all 0.15s ease;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: var(--shadow-sm);
     }
 
     .stButton > button:hover {
         background: var(--bg-hover);
-        border-color: var(--border-focus);
+        border-color: rgba(225, 29, 72, 0.4);
+        box-shadow: var(--shadow-md);
+    }
+
+    .stButton > button:active {
+        transform: scale(0.97);
     }
 
     .stButton > button[kind="primary"] {
         background: var(--accent);
         color: white;
         border: none;
+        box-shadow: 0 2px 8px rgba(225, 29, 72, 0.3);
     }
 
     .stButton > button[kind="primary"]:hover {
-        background: #6366f1;
+        filter: brightness(1.1);
+        box-shadow: 0 4px 16px rgba(225, 29, 72, 0.4);
     }
 
     /* Inputs */
     .stTextInput > div > div > input,
     .stTextArea > div > div > textarea,
     .stSelectbox > div > div {
-        background: var(--bg-input) !important;
-        border: 1px solid var(--border-default) !important;
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
         border-radius: var(--r-md) !important;
         color: var(--text-primary) !important;
-        transition: border-color 0.15s ease !important;
+        transition: border-color 0.2s ease !important;
     }
 
     .stTextInput > div > div > input:focus,
     .stTextArea > div > div > textarea:focus {
-        border-color: var(--border-focus) !important;
+        border-color: var(--accent) !important;
         box-shadow: 0 0 0 2px var(--accent-dim) !important;
     }
 
     .stTextInput > div > div > input::placeholder,
     .stTextArea > div > div > textarea::placeholder {
-        color: var(--text-muted) !important;
+        color: var(--text-tertiary) !important;
     }
 
     /* Labels */
@@ -191,26 +210,26 @@ def apply_custom_css():
     /* Radio buttons */
     .stRadio > div { gap: var(--sp-2); }
     .stRadio > div > label {
-        background: var(--bg-card) !important;
-        border: 1px solid var(--border-default) !important;
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
         border-radius: var(--r-md) !important;
         padding: var(--sp-2) var(--sp-4) !important;
-        transition: all 0.15s ease !important;
+        transition: all 0.2s ease !important;
     }
     .stRadio > div > label:hover {
-        border-color: var(--border-focus) !important;
+        border-color: rgba(225, 29, 72, 0.4) !important;
     }
 
     /* Expanders */
     .streamlit-expanderHeader {
-        background: var(--bg-card) !important;
-        border: 1px solid var(--border-default) !important;
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
         border-radius: var(--r-md) !important;
         color: var(--text-primary) !important;
         font-weight: 500 !important;
     }
     .streamlit-expanderContent {
-        background: var(--bg-raised) !important;
+        background: var(--surface-alt) !important;
         border: 1px solid var(--border-subtle) !important;
         border-top: none !important;
         border-radius: 0 0 var(--r-md) var(--r-md) !important;
@@ -218,8 +237,8 @@ def apply_custom_css():
 
     /* Status */
     .stStatus {
-        background: var(--bg-card) !important;
-        border: 1px solid var(--border-default) !important;
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
         border-radius: var(--r-lg) !important;
     }
 
@@ -228,26 +247,26 @@ def apply_custom_css():
 
     /* Code */
     .stCode, pre {
-        background: var(--bg-raised) !important;
+        background: var(--surface-alt) !important;
         border: 1px solid var(--border-subtle) !important;
         border-radius: var(--r-md) !important;
     }
 
     /* Download buttons */
     .stDownloadButton > button {
-        background: var(--bg-card) !important;
-        border: 1px solid var(--border-default) !important;
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
         color: var(--text-primary) !important;
         border-radius: var(--r-md) !important;
     }
     .stDownloadButton > button:hover {
-        border-color: var(--green) !important;
-        background: var(--green-dim) !important;
+        border-color: rgba(225, 29, 72, 0.4) !important;
+        background: var(--surface-alt) !important;
     }
 
     /* ===== 5. SIDEBAR ===== */
     section[data-testid="stSidebar"] {
-        background: var(--bg-raised) !important;
+        background: var(--surface) !important;
         border-right: 1px solid var(--border-subtle) !important;
     }
 
@@ -262,21 +281,21 @@ def apply_custom_css():
     }
 
     .sidebar-header h2 {
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         font-weight: 800;
         color: var(--text-primary);
         margin: 0;
     }
 
     .sidebar-header p {
-        font-size: 0.8rem;
-        color: var(--text-muted);
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
         margin: var(--sp-1) 0 0 0;
     }
 
     .sidebar-status {
-        background: var(--accent-dim);
-        border: 1px solid rgba(129, 140, 248, 0.25);
+        background: var(--accent-surface);
+        border: 1px solid rgba(225, 29, 72, 0.25);
         border-radius: var(--r-md);
         padding: var(--sp-3) var(--sp-4);
         margin: var(--sp-3) 0;
@@ -285,13 +304,13 @@ def apply_custom_css():
     }
 
     .sidebar-about {
-        background: var(--bg-card);
+        background: var(--surface-alt);
         border: 1px solid var(--border-subtle);
         border-radius: var(--r-md);
         padding: var(--sp-4);
         text-align: center;
         font-size: 0.75rem;
-        color: var(--text-muted);
+        color: var(--text-tertiary);
         line-height: 1.8;
     }
 
@@ -311,12 +330,12 @@ def apply_custom_css():
         align-items: center;
         gap: var(--sp-2);
         padding: var(--sp-2) var(--sp-4);
-        background: var(--accent-dim);
-        border: 1px solid rgba(129, 140, 248, 0.25);
+        background: var(--accent-surface);
+        border: 1px solid rgba(225, 29, 72, 0.25);
         border-radius: var(--r-full);
         font-size: 0.7rem;
-        font-weight: 600;
-        color: var(--text-accent);
+        font-weight: 700;
+        color: var(--accent-light);
         letter-spacing: 0.06em;
         text-transform: uppercase;
         margin-bottom: var(--sp-5);
@@ -324,7 +343,7 @@ def apply_custom_css():
 
     .hero-badge .dot {
         width: 6px; height: 6px;
-        background: var(--green);
+        background: var(--accent);
         border-radius: 50%;
     }
 
@@ -346,7 +365,7 @@ def apply_custom_css():
 
     .page-hero .hero-status {
         font-size: 0.8rem;
-        color: var(--text-muted);
+        color: var(--text-tertiary);
     }
 
     .page-hero .scan-line { display: none; }
@@ -361,12 +380,13 @@ def apply_custom_css():
 
     /* ===== 7. SUMMARY CARD ===== */
     .summary-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-default);
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: var(--r-xl);
         padding: var(--sp-6) var(--sp-8);
         margin-bottom: var(--sp-6);
         animation: fadeIn 0.3s ease both;
+        box-shadow: var(--shadow-sm);
     }
 
     .summary-card h1 {
@@ -390,7 +410,7 @@ def apply_custom_css():
         align-items: center;
         gap: var(--sp-2);
         padding: var(--sp-1) var(--sp-3);
-        background: var(--bg-raised);
+        background: var(--surface-alt);
         border-radius: var(--r-full);
         border: 1px solid var(--border-subtle);
     }
@@ -399,9 +419,9 @@ def apply_custom_css():
 
     /* ===== 8. INFO BLOCKS ===== */
     .info-block {
-        background: var(--bg-card);
-        border: 1px solid var(--border-default);
-        border-left: 3px solid var(--border-default);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--border);
         border-radius: var(--r-md);
         padding: var(--sp-5);
         margin-bottom: var(--sp-4);
@@ -423,57 +443,33 @@ def apply_custom_css():
         margin: 0;
     }
 
-    .info-block--info    { border-left-color: var(--blue); }
-    .info-block--info h4 { color: var(--blue); }
+    .info-block--info    { border-left-color: var(--info); }
+    .info-block--info h4 { color: var(--info); }
 
-    .info-block--success    { border-left-color: var(--green); }
-    .info-block--success h4 { color: var(--green); }
+    .info-block--success    { border-left-color: var(--success); }
+    .info-block--success h4 { color: var(--success); }
 
-    .info-block--danger    { border-left-color: var(--red); }
-    .info-block--danger h4 { color: var(--red); }
+    .info-block--danger    { border-left-color: var(--danger); }
+    .info-block--danger h4 { color: var(--danger); }
 
-    .info-block--warning    { border-left-color: var(--amber); }
-    .info-block--warning h4 { color: var(--amber); }
+    .info-block--warning    { border-left-color: var(--warning); }
+    .info-block--warning h4 { color: var(--warning); }
 
-    /* ===== 9. METRIC CARD ===== */
-    .metric-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-default);
-        border-radius: var(--r-lg);
-        padding: var(--sp-5);
-        text-align: center;
-        animation: fadeIn 0.3s ease both;
-    }
-
-    .metric-card h3 {
-        font-size: 0.65rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--text-muted);
-        margin: 0 0 var(--sp-2) 0;
-    }
-
-    .metric-card p {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin: 0;
-    }
-
-    /* ===== 10. POKEMON CARD ===== */
+    /* ===== 9. POKEMON CARD ===== */
     .pkmn-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-default);
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: var(--r-xl);
         overflow: hidden;
         margin-bottom: var(--sp-6);
-        animation: fadeIn 0.3s ease both;
-        transition: border-color 0.15s ease;
+        animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: var(--shadow-sm);
     }
 
     .pkmn-card:hover {
-        border-color: rgba(129, 140, 248, 0.3);
+        border-color: rgba(225, 29, 72, 0.3);
+        box-shadow: var(--shadow-md), 0 0 0 1px rgba(225, 29, 72, 0.1);
     }
 
     .pkmn-card__hero {
@@ -484,7 +480,6 @@ def apply_custom_css():
         position: relative;
     }
 
-    /* Type-colored top border */
     .pkmn-card__hero::before {
         content: '';
         position: absolute;
@@ -499,8 +494,8 @@ def apply_custom_css():
         font-family: var(--font-mono) !important;
         font-size: 0.65rem;
         font-weight: 600;
-        color: var(--text-muted);
-        background: var(--bg-raised);
+        color: var(--text-tertiary);
+        background: var(--surface-alt);
         padding: 2px var(--sp-2);
         border-radius: var(--r-sm);
     }
@@ -510,13 +505,10 @@ def apply_custom_css():
         height: 72px;
         object-fit: contain;
         flex-shrink: 0;
-        filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
     }
 
-    .pkmn-card__info {
-        flex: 1;
-        min-width: 0;
-    }
+    .pkmn-card__info { flex: 1; min-width: 0; }
 
     .pkmn-card__name {
         font-size: 1.35rem;
@@ -533,13 +525,13 @@ def apply_custom_css():
         display: inline-flex;
         align-items: center;
         padding: 3px var(--sp-3);
-        border-radius: var(--r-full);
-        font-size: 0.7rem;
-        font-weight: 700;
+        border-radius: var(--r-sm);
+        font-size: 0.65rem;
+        font-weight: 800;
         color: white;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        letter-spacing: 0.06em;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
 
     .pkmn-card__body {
@@ -552,7 +544,7 @@ def apply_custom_css():
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: var(--text-muted);
+        color: var(--text-tertiary);
         margin: var(--sp-5) 0 var(--sp-3) 0;
         padding-bottom: var(--sp-2);
         border-bottom: 1px solid var(--border-subtle);
@@ -568,7 +560,7 @@ def apply_custom_css():
         border-radius: 2px;
     }
 
-    /* ===== 11. STAT ROWS ===== */
+    /* ===== 10. STAT ROWS ===== */
     .pkmn-stats {
         display: flex;
         flex-direction: column;
@@ -585,7 +577,7 @@ def apply_custom_css():
     }
 
     .pkmn-stat__label {
-        color: var(--text-muted);
+        color: var(--text-tertiary);
         font-weight: 500;
         min-width: 56px;
         flex-shrink: 0;
@@ -601,11 +593,11 @@ def apply_custom_css():
     }
 
     .pkmn-stat--accent .pkmn-stat__value {
-        color: var(--text-accent);
+        color: var(--accent-light);
         font-weight: 700;
     }
 
-    /* ===== 12. MOVE GRID ===== */
+    /* ===== 11. MOVE GRID ===== */
     .pkmn-moves {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -613,7 +605,7 @@ def apply_custom_css():
     }
 
     .pkmn-move {
-        background: var(--bg-raised);
+        background: var(--surface-alt);
         border: 1px solid var(--border-subtle);
         border-radius: var(--r-sm);
         padding: var(--sp-2) var(--sp-3);
@@ -626,23 +618,23 @@ def apply_custom_css():
     }
 
     .pkmn-move--empty {
-        color: var(--text-muted);
+        color: var(--text-tertiary);
         font-style: italic;
         font-weight: 400;
         border-style: dashed;
     }
 
-    /* ===== 13. EV BARS ===== */
+    /* ===== 12. EV BARS ===== */
     .pkmn-ev-summary { margin-bottom: var(--sp-3); }
 
     .pkmn-ev-summary code {
         font-family: var(--font-mono) !important;
         font-size: 0.8rem;
-        background: var(--bg-raised);
+        background: var(--surface-alt);
         padding: var(--sp-2) var(--sp-3);
         border-radius: var(--r-sm);
         border: 1px solid var(--border-subtle);
-        color: var(--text-accent);
+        color: var(--accent-light);
     }
 
     .pkmn-evs {
@@ -661,7 +653,7 @@ def apply_custom_css():
         font-family: var(--font-mono) !important;
         font-size: 0.7rem;
         font-weight: 600;
-        color: var(--text-muted);
+        color: var(--text-tertiary);
         width: 28px;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -670,8 +662,8 @@ def apply_custom_css():
 
     .pkmn-ev__track {
         flex: 1;
-        height: 7px;
-        background: var(--bg-raised);
+        height: 8px;
+        background: var(--surface-alt);
         border-radius: 4px;
         overflow: hidden;
         border: 1px solid var(--border-subtle);
@@ -696,16 +688,16 @@ def apply_custom_css():
 
     .pkmn-ev-empty {
         font-size: 0.85rem;
-        color: var(--text-muted);
+        color: var(--text-tertiary);
         font-style: italic;
         padding: var(--sp-3) 0;
     }
 
-    /* ===== 14. STRATEGY BLOCK ===== */
+    /* ===== 13. STRATEGY BLOCK ===== */
     .pkmn-strategy {
-        background: var(--amber-dim);
-        border: 1px solid rgba(251, 191, 36, 0.2);
-        border-left: 3px solid var(--amber);
+        background: var(--warning-dim);
+        border: 1px solid rgba(217, 119, 6, 0.2);
+        border-left: 3px solid var(--warning);
         border-radius: var(--r-md);
         padding: var(--sp-4);
         margin-top: var(--sp-4);
@@ -716,7 +708,7 @@ def apply_custom_css():
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: var(--amber);
+        color: var(--warning);
         margin: 0 0 var(--sp-2) 0;
     }
 
@@ -727,7 +719,7 @@ def apply_custom_css():
         margin: 0;
     }
 
-    /* ===== 15. TEAM GRID ===== */
+    /* ===== 14. TEAM GRID ===== */
     .team-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -736,17 +728,20 @@ def apply_custom_css():
     }
 
     .team-grid__item {
-        background: var(--bg-card);
-        border: 1px solid var(--border-default);
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: var(--r-lg);
         padding: var(--sp-4) var(--sp-3);
         text-align: center;
-        transition: border-color 0.15s ease;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         animation: fadeIn 0.3s ease both;
+        box-shadow: var(--shadow-sm);
     }
 
     .team-grid__item:hover {
-        border-color: rgba(129, 140, 248, 0.3);
+        border-color: rgba(225, 29, 72, 0.3);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
     }
 
     .team-grid__item img {
@@ -755,7 +750,7 @@ def apply_custom_css():
         width: 80px;
         height: 80px;
         object-fit: contain;
-        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
     }
 
     .team-grid__item h4 {
@@ -770,29 +765,29 @@ def apply_custom_css():
 
     .team-grid__item p {
         font-size: 0.75rem;
-        color: var(--text-muted);
+        color: var(--text-tertiary);
         margin: 0;
     }
 
-    /* ===== 16. TYPE COLORS ===== */
+    /* ===== 15. TYPE COLORS ===== */
     .type-normal   { background-color: var(--type-normal); }
     .type-fire     { background-color: var(--type-fire); }
     .type-water    { background-color: var(--type-water); }
     .type-grass    { background-color: var(--type-grass); }
-    .type-electric { background-color: var(--type-electric); color: #1a1b25; }
+    .type-electric { background-color: var(--type-electric); color: #1A1A2E; }
     .type-psychic  { background-color: var(--type-psychic); }
     .type-fighting { background-color: var(--type-fighting); }
     .type-poison   { background-color: var(--type-poison); }
-    .type-ground   { background-color: var(--type-ground); color: #1a1b25; }
+    .type-ground   { background-color: var(--type-ground); color: #1A1A2E; }
     .type-flying   { background-color: var(--type-flying); }
     .type-bug      { background-color: var(--type-bug); }
     .type-rock     { background-color: var(--type-rock); }
     .type-ghost    { background-color: var(--type-ghost); }
     .type-dragon   { background-color: var(--type-dragon); }
     .type-dark     { background-color: var(--type-dark); }
-    .type-steel    { background-color: var(--type-steel); color: #1a1b25; }
+    .type-steel    { background-color: var(--type-steel); color: #1A1A2E; }
     .type-fairy    { background-color: var(--type-fairy); }
-    .type-ice      { background-color: var(--type-ice); color: #1a1b25; }
+    .type-ice      { background-color: var(--type-ice); color: #1A1A2E; }
 
     /* Hero type accent bars */
     .pkmn-card__hero.type-normal::before   { background: var(--type-normal); }
@@ -814,7 +809,7 @@ def apply_custom_css():
     .pkmn-card__hero.type-fairy::before    { background: var(--type-fairy); }
     .pkmn-card__hero.type-ice::before      { background: var(--type-ice); }
 
-    /* ===== 17. TEAM NAME INLINE ===== */
+    /* ===== 16. TEAM NAME INLINE ===== */
     .team-inline {
         display: flex;
         align-items: center;
@@ -827,7 +822,7 @@ def apply_custom_css():
 
     .team-inline__label {
         font-weight: 600;
-        color: var(--text-muted);
+        color: var(--text-tertiary);
         font-size: 0.8rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -835,7 +830,7 @@ def apply_custom_css():
 
     .team-inline__name {
         padding: 2px var(--sp-3);
-        background: var(--bg-raised);
+        background: var(--surface-alt);
         border: 1px solid var(--border-subtle);
         border-radius: var(--r-full);
         font-weight: 600;
@@ -844,14 +839,14 @@ def apply_custom_css():
     }
 
     .team-inline__sep {
-        color: var(--text-muted);
+        color: var(--text-tertiary);
         font-size: 0.75rem;
     }
 
-    /* ===== 18. SUCCESS BANNER ===== */
+    /* ===== 17. SUCCESS BANNER ===== */
     .success-banner {
-        background: var(--green-dim);
-        border: 1px solid rgba(52, 211, 153, 0.25);
+        background: var(--success-dim);
+        border: 1px solid rgba(22, 163, 74, 0.25);
         border-radius: var(--r-lg);
         padding: var(--sp-4) var(--sp-5);
         display: flex;
@@ -864,7 +859,7 @@ def apply_custom_css():
 
     .success-banner__text {
         font-size: 0.875rem;
-        color: var(--green);
+        color: var(--success);
         font-weight: 600;
     }
 
@@ -874,16 +869,17 @@ def apply_custom_css():
         margin-top: 2px;
     }
 
-    /* ===== 18b. ONBOARDING CARD ===== */
+    /* ===== 17b. ONBOARDING CARD ===== */
     .onboarding-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-default);
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: var(--r-xl);
         padding: var(--sp-8) var(--sp-6);
         text-align: center;
         max-width: 520px;
         margin: var(--sp-6) auto var(--sp-8);
-        animation: fadeIn 0.4s ease both;
+        animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+        box-shadow: var(--shadow-md);
     }
 
     .onboarding-card__icon {
@@ -919,15 +915,14 @@ def apply_custom_css():
         align-items: center;
         gap: var(--sp-2);
         font-size: 0.8rem;
-        color: var(--text-muted);
+        color: var(--text-tertiary);
     }
 
     .onboarding-card__step .num {
-        width: 20px;
-        height: 20px;
+        width: 20px; height: 20px;
         border-radius: 50%;
-        background: var(--accent-dim);
-        color: var(--text-accent);
+        background: var(--accent-surface);
+        color: var(--accent-light);
         font-size: 0.65rem;
         font-weight: 700;
         display: flex;
@@ -935,73 +930,39 @@ def apply_custom_css():
         justify-content: center;
     }
 
-    /* ===== 18c. HISTORY PANEL ===== */
-    .history-item {
-        background: var(--bg-card);
-        border: 1px solid var(--border-subtle);
-        border-radius: var(--r-md);
-        padding: var(--sp-3) var(--sp-4);
-        margin-bottom: var(--sp-2);
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
-
-    .history-item:hover {
-        border-color: var(--accent);
-        background: var(--bg-hover);
-    }
-
-    .history-item__title {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        margin: 0 0 2px 0;
-    }
-
-    .history-item__meta {
-        font-size: 0.7rem;
-        color: var(--text-muted);
-        display: flex;
-        gap: var(--sp-2);
-    }
-
-    /* ===== 18d. COPY BUTTON ===== */
-    .copy-wrapper {
-        position: relative;
-    }
-
+    /* ===== 17c. COPY BUTTON ===== */
     .copy-btn {
         display: inline-flex;
         align-items: center;
         gap: var(--sp-2);
-        padding: var(--sp-2) var(--sp-4);
-        background: var(--bg-card);
-        border: 1px solid var(--border-default);
+        padding: var(--sp-3) var(--sp-5);
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: var(--r-md);
         color: var(--text-primary);
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.15s ease;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         font-family: var(--font-sans) !important;
+        box-shadow: var(--shadow-sm);
     }
 
     .copy-btn:hover {
-        border-color: var(--green);
-        background: var(--green-dim);
-        color: var(--green);
+        border-color: rgba(225, 29, 72, 0.4);
+        background: var(--surface-alt);
+        box-shadow: var(--shadow-md);
     }
+
+    .copy-btn:active { transform: scale(0.97); }
 
     .copy-btn.copied {
-        border-color: var(--green);
-        background: var(--green-dim);
-        color: var(--green);
+        border-color: var(--success);
+        background: var(--success-dim);
+        color: var(--success);
     }
 
-    /* ===== 18e. COMPACT METRICS ===== */
+    /* ===== 17d. COMPACT METRICS ===== */
     .metrics-bar {
         display: flex;
         gap: var(--sp-3);
@@ -1014,14 +975,15 @@ def apply_custom_css():
         align-items: center;
         gap: var(--sp-2);
         padding: var(--sp-2) var(--sp-4);
-        background: var(--bg-card);
-        border: 1px solid var(--border-default);
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: var(--r-full);
         font-size: 0.8rem;
+        box-shadow: var(--shadow-sm);
     }
 
     .metrics-bar__label {
-        color: var(--text-muted);
+        color: var(--text-tertiary);
         font-weight: 500;
     }
 
@@ -1030,9 +992,9 @@ def apply_custom_css():
         font-weight: 700;
     }
 
-    /* ===== 19. RESPONSIVE (mobile-first) ===== */
+    /* ===== 18. RESPONSIVE (mobile-first) ===== */
 
-    /* --- Base: phones (<640px) --- */
+    /* Base: phones (<640px) */
     .main .block-container {
         padding: var(--sp-3) var(--sp-3) var(--sp-8);
         padding-bottom: calc(var(--sp-8) + env(safe-area-inset-bottom, 0px));
@@ -1056,83 +1018,65 @@ def apply_custom_css():
     .info-block p, .info-block div { font-size: 0.825rem; }
 
     .steps-grid { grid-template-columns: 1fr; }
-
     .metrics-bar { gap: var(--sp-2); }
     .metrics-bar__item { font-size: 0.75rem; padding: var(--sp-2) var(--sp-3); }
-
     .team-inline { font-size: 0.8rem; }
     .team-inline__name { font-size: 0.75rem; }
-
     .team-grid__item img { width: 56px; height: 56px; }
     .team-grid__item h4 { font-size: 0.8rem; }
-
-    .copy-btn { width: 100%; justify-content: center; padding: var(--sp-3) var(--sp-4); }
-
+    .copy-btn { width: 100%; justify-content: center; }
     .onboarding-card { padding: var(--sp-5) var(--sp-4); margin: var(--sp-4) auto; }
 
-    /* Touch-friendly tap targets */
+    /* Touch-friendly */
     .stButton > button { min-height: 44px; }
     .stTextInput > div > div > input { min-height: 44px; }
     .stRadio > div > label { min-height: 44px; display: flex; align-items: center; }
     .stDownloadButton > button { min-height: 44px; }
 
-    /* --- Tablets (>=640px) --- */
+    /* Tablets (>=640px) */
     @media (min-width: 640px) {
-        .main .block-container {
-            padding: var(--sp-5) var(--sp-5) var(--sp-10);
-        }
-
+        .main .block-container { padding: var(--sp-5) var(--sp-5) var(--sp-10); }
         .pkmn-moves { grid-template-columns: 1fr 1fr; }
         .team-grid { grid-template-columns: repeat(3, 1fr); gap: var(--sp-3); }
         .pkmn-card__name { font-size: 1.25rem; }
         .pkmn-card__sprite { width: 68px; height: 68px; }
         .pkmn-card__body { padding: var(--sp-5) var(--sp-6); }
         .pkmn-card__hero { padding: var(--sp-5) var(--sp-6); }
-
         .page-hero h1 { font-size: 2rem; }
         .summary-card { padding: var(--sp-6); }
         .summary-card h1 { font-size: 1.4rem; }
-
         .steps-grid { grid-template-columns: repeat(3, 1fr); }
-
         .team-grid__item img { width: 72px; height: 72px; }
-
         .copy-btn { width: auto; }
     }
 
-    /* --- Desktop (>=1024px) --- */
+    /* Desktop (>=1024px) */
     @media (min-width: 1024px) {
-        .main .block-container {
-            padding: var(--sp-6) var(--sp-6) var(--sp-10);
-            max-width: 1100px;
-        }
-
+        .main .block-container { padding: var(--sp-6) var(--sp-6) var(--sp-10); max-width: 1100px; }
         .pkmn-card__body { padding: var(--sp-6) var(--sp-8); }
         .pkmn-card__sprite { width: 72px; height: 72px; }
         .pkmn-card__name { font-size: 1.35rem; }
-
         .summary-card { padding: var(--sp-8); }
         .summary-card h1 { font-size: 1.5rem; }
-
         .page-hero h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); }
-
         .team-grid__item img { width: 80px; height: 80px; }
     }
 
-    /* --- Animated GIF sprite tweaks --- */
+    /* Animated GIF sprites */
     .pkmn-card__sprite,
     .team-grid__item img {
-        image-rendering: pixelated;        /* keep pixel art crisp */
+        image-rendering: pixelated;
         image-rendering: -moz-crisp-edges;
     }
 
-    /* ===== 20. PAGE SECTIONS ===== */
+    /* ===== 19. PAGE SECTIONS ===== */
     .page-section {
-        background: var(--bg-card);
-        border: 1px solid var(--border-default);
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: var(--r-lg);
         padding: var(--sp-5);
         margin-bottom: var(--sp-5);
+        box-shadow: var(--shadow-sm);
     }
 
     .page-section h3 {
@@ -1160,17 +1104,22 @@ def apply_custom_css():
     }
 
     .step-card {
-        background: var(--bg-raised);
+        background: var(--surface-alt);
         border: 1px solid var(--border-subtle);
         border-radius: var(--r-md);
         padding: var(--sp-4);
         text-align: center;
+        transition: all 0.2s ease;
+    }
+
+    .step-card:hover {
+        border-color: rgba(225, 29, 72, 0.3);
     }
 
     .step-card__num {
         font-size: 1.5rem;
         font-weight: 800;
-        color: var(--text-accent);
+        color: var(--accent-light);
     }
 
     .step-card__title {
@@ -1184,6 +1133,14 @@ def apply_custom_css():
         font-size: 0.8rem;
         color: var(--text-secondary);
         line-height: 1.45;
+    }
+
+    /* ===== 20. REDUCED MOTION ===== */
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
     }
     </style>
     """,
