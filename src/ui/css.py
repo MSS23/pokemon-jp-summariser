@@ -794,18 +794,26 @@ def apply_custom_css():
 
     .pkmn-ev__track {
         flex: 1;
-        height: 8px;
+        height: 10px;
         background: var(--surface-alt);
-        border-radius: 4px;
+        border-radius: 5px;
         overflow: hidden;
         border: 1px solid var(--border-subtle);
+        position: relative;
     }
 
     .pkmn-ev__fill {
         height: 100%;
-        border-radius: 4px;
-        animation: fillBar 0.8s ease-out both;
+        border-radius: 5px;
+        animation: fillBar 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25),
+                    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+        min-width: 2px; /* Even tiny EVs (e.g. 4) leave a visible nub */
     }
+
+    /* Zero-EV rows: keep label + value visible but mute the empty track. */
+    .pkmn-ev--zero { opacity: 0.55; }
+    .pkmn-ev--zero .pkmn-ev__fill { min-width: 0; box-shadow: none; }
 
     .pkmn-ev__value {
         font-family: var(--font-mono) !important;

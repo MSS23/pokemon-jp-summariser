@@ -261,18 +261,27 @@ def _render_ev_html(evs, base_delay: float = 0) -> str:
 
                 html += '<div class="pkmn-evs">'
                 for i, (label, value, color) in enumerate(zip(labels, ev_values, colors)):
-                    if value > 0:
-                        pct = min((value / 252) * 100, 100)
-                        bar_delay = base_delay + 0.3 + (i * 0.08)
-                        html += (
-                            f'<div class="pkmn-ev">'
-                            f'<span class="pkmn-ev__label">{label}</span>'
-                            f'<div class="pkmn-ev__track">'
-                            f'<div class="pkmn-ev__fill" style="width:{pct:.0f}%;background:linear-gradient(90deg,{color},{color}dd);animation-delay:{bar_delay:.2f}s;"></div>'
-                            f'</div>'
-                            f'<span class="pkmn-ev__value">{value}</span>'
-                            f'</div>'
-                        )
+                    pct = min((value / 252) * 100, 100) if value > 0 else 0
+                    bar_delay = base_delay + 0.3 + (i * 0.08)
+                    # Solid colour from the design token. Older versions used
+                    # `linear-gradient(90deg, var(--ev-X), var(--ev-X)dd)` which
+                    # is invalid CSS (you cannot concatenate `dd` to a var()
+                    # token), so the fill rendered transparent and the bars
+                    # looked empty.
+                    fill_style = (
+                        f'width:{pct:.1f}%;background:{color};'
+                        f'animation-delay:{bar_delay:.2f}s;'
+                    )
+                    row_class = 'pkmn-ev' if value > 0 else 'pkmn-ev pkmn-ev--zero'
+                    html += (
+                        f'<div class="{row_class}">'
+                        f'<span class="pkmn-ev__label">{label}</span>'
+                        f'<div class="pkmn-ev__track">'
+                        f'<div class="pkmn-ev__fill" style="{fill_style}"></div>'
+                        f'</div>'
+                        f'<span class="pkmn-ev__value">{value}</span>'
+                        f'</div>'
+                    )
                 html += "</div>"
         except Exception:
             pass
