@@ -185,47 +185,45 @@ def render_pokemon_card(pokemon: Dict[str, Any], index: int):
     # Stagger animation delay based on card index
     delay = index * 0.1
 
-    st.markdown(
-        f"""
-        <div class="pkmn-card" style="animation-delay: {delay}s;">
-            <div class="pkmn-card__hero {type_class}">
-                <span class="pkmn-card__slot">#{index + 1}</span>
-                <img src="{esc(sprite_url)}" alt="{esc(name)}" class="pkmn-card__sprite"
-                     onerror="this.style.display='none'"
-                     style="animation-delay: {delay + 0.2}s;"/>
-                <div class="pkmn-card__info">
-                    <h2 class="pkmn-card__name">{esc(name)}</h2>
-                    <span class="pkmn-card__badge {type_class}">Tera: {esc(tera_type)}</span>
-                </div>
-            </div>
-            <div class="pkmn-card__body">
-                <div class="pkmn-stats">
-                    <div class="pkmn-stat">
-                        <span class="pkmn-stat__label">Ability</span>
-                        <span class="pkmn-stat__value">{esc(ability)}</span>
-                    </div>
-                    <div class="pkmn-stat pkmn-stat--accent">
-                        <span class="pkmn-stat__label">Item</span>
-                        <span class="pkmn-stat__value">{esc(item)}</span>
-                    </div>
-                    <div class="pkmn-stat">
-                        <span class="pkmn-stat__label">Nature</span>
-                        <span class="pkmn-stat__value">{esc(nature)}</span>
-                    </div>
-                </div>
-
-                <div class="pkmn-card__section-title">Moves</div>
-                {_render_moves_html(moves)}
-
-                <div class="pkmn-card__section-title">EV Distribution</div>
-                {_render_ev_html(evs, delay)}
-
-                {_render_strategy_html(ev_explanation)}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    # Build the card as one continuous HTML string (no leading indentation,
+    # no blank lines). Streamlit's Markdown parser ends a raw-HTML block at
+    # the first blank line, which would cause everything after the first
+    # `<div class="pkmn-stats">…</div>` to be printed as literal text.
+    card_html = (
+        f'<div class="pkmn-card" style="animation-delay: {delay}s;">'
+        f'<div class="pkmn-card__hero {type_class}">'
+        f'<span class="pkmn-card__slot">#{index + 1}</span>'
+        f'<img src="{esc(sprite_url)}" alt="{esc(name)}" class="pkmn-card__sprite" '
+        f'onerror="this.style.display=\'none\'" style="animation-delay: {delay + 0.2}s;"/>'
+        f'<div class="pkmn-card__info">'
+        f'<h2 class="pkmn-card__name">{esc(name)}</h2>'
+        f'<span class="pkmn-card__badge {type_class}">Tera: {esc(tera_type)}</span>'
+        f'</div>'
+        f'</div>'
+        f'<div class="pkmn-card__body">'
+        f'<div class="pkmn-stats">'
+        f'<div class="pkmn-stat">'
+        f'<span class="pkmn-stat__label">Ability</span>'
+        f'<span class="pkmn-stat__value">{esc(ability)}</span>'
+        f'</div>'
+        f'<div class="pkmn-stat pkmn-stat--accent">'
+        f'<span class="pkmn-stat__label">Item</span>'
+        f'<span class="pkmn-stat__value">{esc(item)}</span>'
+        f'</div>'
+        f'<div class="pkmn-stat">'
+        f'<span class="pkmn-stat__label">Nature</span>'
+        f'<span class="pkmn-stat__value">{esc(nature)}</span>'
+        f'</div>'
+        f'</div>'
+        f'<div class="pkmn-card__section-title">Moves</div>'
+        f'{_render_moves_html(moves)}'
+        f'<div class="pkmn-card__section-title">EV Distribution</div>'
+        f'{_render_ev_html(evs, delay)}'
+        f'{_render_strategy_html(ev_explanation)}'
+        f'</div>'
+        f'</div>'
     )
+    st.markdown(card_html, unsafe_allow_html=True)
 
 
 def _render_moves_html(moves: List[str]) -> str:
@@ -266,14 +264,15 @@ def _render_ev_html(evs, base_delay: float = 0) -> str:
                     if value > 0:
                         pct = min((value / 252) * 100, 100)
                         bar_delay = base_delay + 0.3 + (i * 0.08)
-                        html += f"""
-                        <div class="pkmn-ev">
-                            <span class="pkmn-ev__label">{label}</span>
-                            <div class="pkmn-ev__track">
-                                <div class="pkmn-ev__fill" style="width:{pct:.0f}%;background:linear-gradient(90deg,{color},{color}dd);animation-delay:{bar_delay:.2f}s;"></div>
-                            </div>
-                            <span class="pkmn-ev__value">{value}</span>
-                        </div>"""
+                        html += (
+                            f'<div class="pkmn-ev">'
+                            f'<span class="pkmn-ev__label">{label}</span>'
+                            f'<div class="pkmn-ev__track">'
+                            f'<div class="pkmn-ev__fill" style="width:{pct:.0f}%;background:linear-gradient(90deg,{color},{color}dd);animation-delay:{bar_delay:.2f}s;"></div>'
+                            f'</div>'
+                            f'<span class="pkmn-ev__value">{value}</span>'
+                            f'</div>'
+                        )
                 html += "</div>"
         except Exception:
             pass
@@ -286,11 +285,12 @@ def _render_strategy_html(ev_explanation: str) -> str:
     if not ev_explanation or ev_explanation == "No explanation provided":
         return ""
 
-    return f"""
-    <div class="pkmn-strategy">
-        <h4>Strategic Reasoning</h4>
-        <p>{esc(ev_explanation)}</p>
-    </div>"""
+    return (
+        f'<div class="pkmn-strategy">'
+        f'<h4>Strategic Reasoning</h4>'
+        f'<p>{esc(ev_explanation)}</p>'
+        f'</div>'
+    )
 
 
 def render_article_summary(analysis_result: Dict[str, Any]):
