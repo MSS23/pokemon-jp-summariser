@@ -1,39 +1,147 @@
 """
 Custom CSS styling for the Pokemon VGC Analysis Platform.
-Inspired by VGC Team Report design system — dark mode, rose accent, Sora font.
+Inspired by VGC Team Report design system — Sora font, rose accent, dark + light themes.
 """
 
 import streamlit as st
 
 
+# Color tokens per theme. Non-color tokens (spacing, fonts, type colors) live in :root below.
+THEME_TOKENS = {
+    "dark": {
+        "background": "#0B0B1A",
+        "foreground": "#F0EDE6",
+        "surface": "#141428",
+        "surface-alt": "#1C1C38",
+        "bg-hover": "#24244A",
+
+        "text-primary": "#F0EDE6",
+        "text-secondary": "#C0C0D8",
+        "text-tertiary": "#7A7AA0",
+
+        "border": "#2A2A52",
+        "border-subtle": "#222244",
+
+        "accent": "#E11D48",
+        "accent-light": "#FB7185",
+        "accent-surface": "#3B1525",
+        "accent-dim": "rgba(225, 29, 72, 0.15)",
+        "accent-glow": "rgba(225, 29, 72, 0.35)",
+
+        "success": "#16A34A",
+        "success-dim": "rgba(22, 163, 74, 0.12)",
+        "danger": "#DC2626",
+        "danger-dim": "rgba(220, 38, 38, 0.12)",
+        "warning": "#D97706",
+        "warning-dim": "rgba(217, 119, 6, 0.12)",
+        "info": "#3B82F6",
+        "info-dim": "rgba(59, 130, 246, 0.12)",
+
+        "shadow-sm": "0 1px 2px rgba(0, 0, 0, 0.15)",
+        "shadow-md": "0 4px 12px rgba(0, 0, 0, 0.25)",
+        "shadow-lg": "0 10px 24px rgba(0, 0, 0, 0.35)",
+        "sprite-shadow": "drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4))",
+
+        "scroll-thumb": "#2A2A52",
+        "scroll-thumb-hover": "#7A7AA0",
+        "type-text-light": "#1A1A2E",
+    },
+    "light": {
+        "background": "#F7F6F2",
+        "foreground": "#161629",
+        "surface": "#FFFFFF",
+        "surface-alt": "#F1F0EC",
+        "bg-hover": "#EDECE6",
+
+        "text-primary": "#161629",
+        "text-secondary": "#454560",
+        "text-tertiary": "#7A7A95",
+
+        "border": "#E2E0D8",
+        "border-subtle": "#ECEAE2",
+
+        "accent": "#E11D48",
+        "accent-light": "#BE123C",
+        "accent-surface": "#FCE7EC",
+        "accent-dim": "rgba(225, 29, 72, 0.10)",
+        "accent-glow": "rgba(225, 29, 72, 0.20)",
+
+        "success": "#15803D",
+        "success-dim": "rgba(21, 128, 61, 0.10)",
+        "danger": "#B91C1C",
+        "danger-dim": "rgba(185, 28, 28, 0.10)",
+        "warning": "#B45309",
+        "warning-dim": "rgba(180, 83, 9, 0.10)",
+        "info": "#1D4ED8",
+        "info-dim": "rgba(29, 78, 216, 0.10)",
+
+        "shadow-sm": "0 1px 2px rgba(20, 20, 50, 0.06)",
+        "shadow-md": "0 4px 12px rgba(20, 20, 50, 0.08)",
+        "shadow-lg": "0 12px 28px rgba(20, 20, 50, 0.12)",
+        "sprite-shadow": "drop-shadow(0 4px 10px rgba(20, 20, 50, 0.18))",
+
+        "scroll-thumb": "#D6D4CB",
+        "scroll-thumb-hover": "#A6A4A0",
+        "type-text-light": "#FFFFFF",
+    },
+}
+
+
+def _build_root_block(theme: str) -> str:
+    """Build the :root token block for the chosen theme. Falls back to dark on unknown values."""
+    tokens = THEME_TOKENS.get(theme, THEME_TOKENS["dark"])
+    lines = [f"        --{k}: {v};" for k, v in tokens.items()]
+    return "\n".join(lines)
+
+
 def apply_custom_css():
-    """Apply VGC Team Report-inspired CSS styling and PWA head tags."""
+    """Apply theme-aware CSS styling and PWA head tags."""
+    theme = st.session_state.get("theme", "dark")
+    if theme not in THEME_TOKENS:
+        theme = "dark"
+
+    # Theme color for browser chrome (PWA / mobile address bar)
+    pwa_theme_color = "#0B0B1A" if theme == "dark" else "#F7F6F2"
 
     # PWA meta tags + service worker registration
     st.markdown(
-        """
+        f"""
     <link rel="manifest" href="./static/manifest.json">
-    <meta name="theme-color" content="#E11D48">
+    <meta name="theme-color" content="{pwa_theme_color}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="VGC Analyzer">
     <link rel="apple-touch-icon" href="./static/icon-192.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./static/sw.js').catch(()=>{});
-    }
+    if ('serviceWorker' in navigator) {{
+        navigator.serviceWorker.register('./static/sw.js').catch(()=>{{}});
+    }}
     </script>
     """,
         unsafe_allow_html=True,
     )
 
+    # First block: theme-dependent design tokens (rendered via f-string)
+    st.markdown(
+        f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    /* Theme tokens — active theme: {theme} */
+    :root {{
+{_build_root_block(theme)}
+        --border-focus: var(--accent);
+    }}
+    </style>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    # Second block: static layout/component rules (no f-string — keeps {{}} simple)
     st.markdown(
         """
     <style>
-    /* ===== 1. FONTS & ANIMATIONS ===== */
-    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(8px); }
         to   { opacity: 1; transform: translateY(0); }
@@ -48,58 +156,16 @@ def apply_custom_css():
         100% { opacity: 1; transform: scale(1); }
     }
 
-    /* ===== 2. DESIGN TOKENS (VGC Team Report) ===== */
+    /* ===== Theme-invariant tokens ===== */
     :root {
-        /* Surfaces */
-        --background: #0B0B1A;
-        --foreground: #F0EDE6;
-        --surface: #141428;
-        --surface-alt: #1C1C38;
-        --bg-hover: #24244A;
-
-        /* Text */
-        --text-primary: #F0EDE6;
-        --text-secondary: #C0C0D8;
-        --text-tertiary: #7A7AA0;
-
-        /* Borders */
-        --border: #2A2A52;
-        --border-subtle: #222244;
-        --border-focus: #E11D48;
-
-        /* Accent — Gen 9 Scarlet */
-        --accent: #E11D48;
-        --accent-light: #FB7185;
-        --accent-surface: #3B1525;
-        --accent-dim: rgba(225, 29, 72, 0.15);
-
-        /* Status */
-        --success: #16A34A;
-        --success-dim: rgba(22, 163, 74, 0.12);
-        --danger: #DC2626;
-        --danger-dim: rgba(220, 38, 38, 0.12);
-        --warning: #D97706;
-        --warning-dim: rgba(217, 119, 6, 0.12);
-        --info: #3B82F6;
-        --info-dim: rgba(59, 130, 246, 0.12);
-
-        /* Spacing */
         --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
         --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
 
-        /* Typography */
         --font-sans: 'Sora', system-ui, -apple-system, sans-serif;
         --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-        /* Radii */
         --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 16px; --r-full: 9999px;
 
-        /* Shadows */
-        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
-        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
-        --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.35);
-
-        /* Pokemon Type Colors */
         --type-normal:   #A8A77A; --type-fire:     #EE8130; --type-water:    #6390F0;
         --type-grass:    #7AC74C; --type-electric: #F7D02C; --type-psychic:  #F95587;
         --type-fighting: #C22E28; --type-poison:   #A33EA1; --type-ground:   #E2BF65;
@@ -107,7 +173,6 @@ def apply_custom_css():
         --type-ghost:    #735797; --type-dragon:   #6F35FC; --type-dark:     #705746;
         --type-steel:    #B7B7CE; --type-fairy:    #D685AD; --type-ice:      #96D9D6;
 
-        /* Stat bar colors */
         --ev-hp: #FF5959; --ev-atk: #F5AC78; --ev-def: #FAE078;
         --ev-spa: #9DB7F5; --ev-spd: #A7DB8D; --ev-spe: #FA92B2;
     }
@@ -136,8 +201,8 @@ def apply_custom_css():
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: var(--background); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+    ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
 
     /* ===== 4. STREAMLIT OVERRIDES ===== */
     #MainMenu, footer, header[data-testid="stHeader"] { visibility: hidden; }
@@ -505,7 +570,7 @@ def apply_custom_css():
         height: 72px;
         object-fit: contain;
         flex-shrink: 0;
-        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+        filter: var(--sprite-shadow);
     }
 
     .pkmn-card__info { flex: 1; min-width: 0; }
@@ -750,7 +815,7 @@ def apply_custom_css():
         width: 80px;
         height: 80px;
         object-fit: contain;
-        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+        filter: var(--sprite-shadow);
     }
 
     .team-grid__item h4 {

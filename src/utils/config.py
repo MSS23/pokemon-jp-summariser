@@ -29,6 +29,7 @@ def init_session_state():
         "feedback_description": "",
         "feedback_submitted": False,
         "analysis_history": [],
+        "theme": "dark",
     }
     for key, value in defaults.items():
         if key not in st.session_state:

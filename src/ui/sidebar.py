@@ -9,7 +9,7 @@ from datetime import datetime
 
 
 def render_sidebar():
-    """Sidebar with navigation, status, and feedback."""
+    """Sidebar with navigation, theme, status, and feedback."""
     with st.sidebar:
         # Header
         st.markdown(
@@ -21,6 +21,21 @@ def render_sidebar():
             """,
             unsafe_allow_html=True,
         )
+
+        # Theme toggle (changes take effect on next rerun, which Streamlit triggers automatically)
+        current_theme = st.session_state.get("theme", "dark")
+        theme_choice = st.radio(
+            "Appearance",
+            options=["Dark", "Light"],
+            index=0 if current_theme == "dark" else 1,
+            horizontal=True,
+            key="theme_radio",
+            help="Switch between dark and light mode. Your preference is remembered for this session.",
+        )
+        new_theme = "dark" if theme_choice == "Dark" else "light"
+        if new_theme != current_theme:
+            st.session_state.theme = new_theme
+            st.rerun()
 
         # Navigation
         page = st.selectbox(
