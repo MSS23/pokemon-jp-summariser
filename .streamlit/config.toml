@@ -1,8 +1,12 @@
 [theme]
+# Base only — actual colors are driven by src/ui/css.py, which switches
+# tokens based on st.session_state.theme (Dark / Light radio in sidebar).
+# Keep these neutral so they don't override the runtime theme.
+base = "light"
 primaryColor = "#E11D48"
-backgroundColor = "#0B0B1A"
-secondaryBackgroundColor = "#141428"
-textColor = "#F0EDE6"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F1F0EC"
+textColor = "#161629"
 font = "sans serif"
 
 [server]

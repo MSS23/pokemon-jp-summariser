@@ -10,14 +10,14 @@ import streamlit as st
 THEME_TOKENS = {
     "dark": {
         "background": "#0B0B1A",
-        "foreground": "#F0EDE6",
-        "surface": "#141428",
-        "surface-alt": "#1C1C38",
-        "bg-hover": "#24244A",
+        "foreground": "#F4F1EA",
+        "surface": "#161635",
+        "surface-alt": "#1F1F42",
+        "bg-hover": "#2A2A55",
 
-        "text-primary": "#F0EDE6",
-        "text-secondary": "#C0C0D8",
-        "text-tertiary": "#7A7AA0",
+        "text-primary": "#F4F1EA",
+        "text-secondary": "#D4D4E8",
+        "text-tertiary": "#9A9AC0",
 
         "border": "#2A2A52",
         "border-subtle": "#222244",
@@ -47,18 +47,18 @@ THEME_TOKENS = {
         "type-text-light": "#1A1A2E",
     },
     "light": {
-        "background": "#F7F6F2",
-        "foreground": "#161629",
+        "background": "#F4F2EC",
+        "foreground": "#0F1020",
         "surface": "#FFFFFF",
-        "surface-alt": "#F1F0EC",
-        "bg-hover": "#EDECE6",
+        "surface-alt": "#EDEBE3",
+        "bg-hover": "#E4E2D8",
 
-        "text-primary": "#161629",
-        "text-secondary": "#454560",
-        "text-tertiary": "#7A7A95",
+        "text-primary": "#0F1020",
+        "text-secondary": "#3A3A52",
+        "text-tertiary": "#5C5C78",
 
-        "border": "#E2E0D8",
-        "border-subtle": "#ECEAE2",
+        "border": "#CFCDC2",
+        "border-subtle": "#DEDCD3",
 
         "accent": "#E11D48",
         "accent-light": "#BE123C",
@@ -181,11 +181,37 @@ def apply_custom_css():
     * { font-family: var(--font-sans) !important; }
     code, pre, .stCode { font-family: var(--font-mono) !important; }
 
-    .stApp {
-        background: var(--background);
-        color: var(--text-primary);
+    /* Force theme tokens to win over Streamlit's built-in theme.
+       Without !important, Streamlit's inline styles can leave dark text
+       on a light surface (or vice versa) and make text unreadable. */
+    html, body, .stApp, [data-testid="stAppViewContainer"], .main {
+        background: var(--background) !important;
+        color: var(--text-primary) !important;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Default text colour for everything Streamlit renders inside the app.
+       Component-specific rules below selectively override this where needed. */
+    .stApp p, .stApp span, .stApp li, .stApp label,
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+    .stMarkdown, .stMarkdown p, .stMarkdown li, .stMarkdown span,
+    [data-testid="stMarkdownContainer"],
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li,
+    [data-testid="stMarkdownContainer"] span,
+    [data-testid="stCaptionContainer"],
+    .stCaption {
+        color: var(--text-primary);
+    }
+
+    /* Links stay accent-coloured but readable in both themes */
+    .stApp a, [data-testid="stMarkdownContainer"] a {
+        color: var(--accent);
+        text-decoration: underline;
+    }
+    .stApp a:hover, [data-testid="stMarkdownContainer"] a:hover {
+        color: var(--accent-light);
     }
 
     .main .block-container {
@@ -245,7 +271,11 @@ def apply_custom_css():
     /* Inputs */
     .stTextInput > div > div > input,
     .stTextArea > div > div > textarea,
-    .stSelectbox > div > div {
+    .stSelectbox > div > div,
+    .stNumberInput > div > div > input,
+    [data-baseweb="select"] > div,
+    [data-baseweb="input"] input,
+    [data-baseweb="textarea"] textarea {
         background: var(--surface) !important;
         border: 1px solid var(--border) !important;
         border-radius: var(--r-md) !important;
@@ -262,6 +292,17 @@ def apply_custom_css():
     .stTextInput > div > div > input::placeholder,
     .stTextArea > div > div > textarea::placeholder {
         color: var(--text-tertiary) !important;
+    }
+
+    /* Selectbox dropdown menu items */
+    [data-baseweb="popover"] [role="option"],
+    [data-baseweb="menu"] li {
+        color: var(--text-primary) !important;
+        background: var(--surface) !important;
+    }
+    [data-baseweb="popover"] [role="option"]:hover,
+    [data-baseweb="menu"] li:hover {
+        background: var(--bg-hover) !important;
     }
 
     /* Labels */
@@ -307,15 +348,27 @@ def apply_custom_css():
         border-radius: var(--r-lg) !important;
     }
 
-    /* Alerts */
+    /* Alerts — Streamlit's defaults often have low contrast on a white surface */
     .stAlert { border-radius: var(--r-md) !important; }
+    .stAlert,
+    .stAlert *,
+    [data-testid="stAlertContainer"],
+    [data-testid="stAlertContainer"] * {
+        color: var(--text-primary) !important;
+    }
+    [data-testid="stNotification"],
+    [data-testid="stNotification"] * {
+        color: var(--text-primary) !important;
+    }
 
     /* Code */
-    .stCode, pre {
+    .stCode, pre, code {
         background: var(--surface-alt) !important;
         border: 1px solid var(--border-subtle) !important;
         border-radius: var(--r-md) !important;
+        color: var(--text-primary) !important;
     }
+    .stCode *, pre *, code * { color: var(--text-primary) !important; }
 
     /* Download buttons */
     .stDownloadButton > button {
@@ -333,10 +386,23 @@ def apply_custom_css():
     section[data-testid="stSidebar"] {
         background: var(--surface) !important;
         border-right: 1px solid var(--border-subtle) !important;
+        color: var(--text-primary) !important;
     }
 
-    section[data-testid="stSidebar"] .stMarkdown {
-        color: var(--text-secondary);
+    section[data-testid="stSidebar"] *,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] .stMarkdown,
+    section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
+    section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
+        color: var(--text-primary);
+    }
+
+    section[data-testid="stSidebar"] [data-testid="stCaptionContainer"],
+    section[data-testid="stSidebar"] .stCaption,
+    section[data-testid="stSidebar"] small {
+        color: var(--text-secondary) !important;
     }
 
     .sidebar-header {
@@ -695,11 +761,12 @@ def apply_custom_css():
     .pkmn-ev-summary code {
         font-family: var(--font-mono) !important;
         font-size: 0.8rem;
-        background: var(--surface-alt);
+        background: var(--surface-alt) !important;
         padding: var(--sp-2) var(--sp-3);
         border-radius: var(--r-sm);
         border: 1px solid var(--border-subtle);
-        color: var(--accent-light);
+        color: var(--text-primary) !important;
+        font-weight: 600;
     }
 
     .pkmn-evs {
