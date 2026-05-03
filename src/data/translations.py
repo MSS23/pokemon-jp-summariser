@@ -43,6 +43,17 @@ ITEM_TRANSLATIONS = {
     "メンタルハーブ": "mental-herb",
     "こうかくレンズ": "wide-lens",
     "ものまねハーブ": "mirror-herb",
+    # Additional common Reg H/I items
+    "black-glasses": "くろいメガネ",
+    "eviolite": "しんかのきせき",
+    "loaded-dice": "いかさまダイス",
+    "rusted-sword": "くちたけん",
+    "rusted-shield": "くちたたて",
+    "くろいメガネ": "black-glasses",
+    "しんかのきせき": "eviolite",
+    "いかさまダイス": "loaded-dice",
+    "くちたけん": "rusted-sword",
+    "くちたたて": "rusted-shield",
 }
 
 # --- Pokemon name translations (merged from config.py + validator.py) ---
@@ -281,6 +292,15 @@ POKEMON_NAME_TRANSLATIONS = {
     "ウェーニバル": "Quaquaval",
     "ドラミドロ": "Dragalge",
     "クエスパトラ": "Espathra",
+    "ドドゲザン": "Kingambit",
+    "セグレイブ": "Baxcalibur",
+
+    # Older-gen Pokemon commonly seen in Reg H
+    "バシャーモ": "Blaziken",
+    "アシレーヌ": "Primarina",
+    "ゴリランダー": "Rillaboom",
+    "エレブー": "Electabuzz",
+    "エレキブル": "Electivire",
 
     # Regional forms
     "アローラガラガラ": "Marowak-Alola",
@@ -600,6 +620,23 @@ ABILITY_TRANSLATIONS = {
     "りゅうのあぎと": "Dragon's Maw",
     "トランジスタ": "Transistor",
     "りゅうのいかり": "Dragon's Wrath",
+    # Additional common Reg H/I abilities
+    "まけんき": "Defiant",
+    "グラスメイカー": "Grassy Surge",
+    "エレキメイカー": "Electric Surge",
+    "サイコメイカー": "Psychic Surge",
+    "ミストメイカー": "Misty Surge",
+    "うるおいボイス": "Liquid Voice",
+    "やるき": "Vital Spirit",
+    "ねつこうかん": "Thermal Exchange",
+    "じょうききかん": "Steam Engine",
+    "するどいめ": "Keen Eye",
+    "ぼうおん": "Soundproof",
+    "ふくつのたて": "Dauntless Shield",
+    "ふくつのこころ": "Inner Focus",
+    "テラスシェル": "Tera Shell",
+    "ばんけん": "Stakeout",
+    "せいしんりょく": "Inner Focus",
 }
 
 # --- Move name translations ---
@@ -678,4 +715,34 @@ MOVE_NAME_TRANSLATIONS = {
     "アクセルブレイク": "Collision Course",
     "カタストロフィ": "Ruination",
     "ワイドブレイカー": "Breaking Swipe",
+    # Additional common Reg H/I moves
+    "みきり": "Quick Guard",
+    "ファストガード": "Quick Guard",
+    "ワイドガード": "Wide Guard",
+    "みやぶる": "Detect",
+    "ふいうち": "Sucker Punch",
+    "つるぎのまい": "Swords Dance",
+    "ウッドハンマー": "Wood Hammer",
+    "ねっぷう": "Heat Wave",
+    "はどうだん": "Aura Sphere",
+    "コーチング": "Coaching",
+    "ハイパーボイス": "Hyper Voice",
+    "うたかたのアリア": "Hyper Voice",
+    "くろいきり": "Haze",
+    "エレキネット": "Electroweb",
+    "このゆびとまれ": "Follow Me",
+    "いかりのこな": "Rage Powder",
+    "スケイルショット": "Scale Shot",
+    "ドゲザン": "Kowtow Cleave",
+    "おどろかす": "Astonish",
+    "ねっとう": "Scald",
+    "アクアジェット": "Aqua Jet",
+    "アクアブレイク": "Aqua Tail",
+    "ちょうはつ": "Taunt",
+    "あくび": "Yawn",
+    "ステルスロック": "Stealth Rock",
+    "がんせきふうじ": "Rock Tomb",
+    "じならし": "Bulldoze",
+    "テラスチャージ": "Tera Charge",
+    "テラクラスター": "Tera Starstorm",
 }

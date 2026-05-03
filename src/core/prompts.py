@@ -43,13 +43,54 @@ If no reasoning found, use "EV reasoning not specified in article".
 
 ## POKEMON IDENTIFICATION
 
-Use your knowledge of all Pokemon to translate Japanese names accurately. Key points:
-- Read katakana names and translate to official English names
-- Use "Pokemon-Region" format for regional forms (e.g., Arcanine-Hisui, Zapdos-Galar)
+Translate Japanese (katakana) Pokemon names to their official English names. NEVER invent
+or transliterate phonetically — if you do not recognize a katakana name, treat it as
+"Unknown Pokemon" rather than guessing (e.g. do NOT output "Bishop" for バシャーモ).
+
+### Mandatory katakana → English reference (use these exact mappings)
+
+Common Reg G/H/I VGC Pokemon — match the katakana literally and output the English name:
+- バシャーモ → Blaziken (NOT "Bishop", NOT "Bashamo")
+- ドドゲザン → Kingambit (NOT "Black Scarf" — that is a confusion with the held item くろいメガネ = Black Glasses)
+- アシレーヌ → Primarina
+- エレブー → Electabuzz (the pre-evolution; usually held with Eviolite)
+- エレキブル → Electivire
+- ゴリランダー → Rillaboom
+- セグレイブ → Baxcalibur
+- ラウドボーン → Skeledirge
+- ウェーニバル → Quaquaval
+- マスカーニャ → Meowscarada
+- ハバタクカミ → Flutter Mane
+- テツノブジン → Iron Valiant (never "Iron Shaman")
+- テツノカイナ → Iron Hands
+- サーフゴー → Gholdengo
+- ガオガエン → Incineroar
+- モロバレル → Amoonguss
+- エルフーン → Whimsicott
+- オーロンゲ → Grimmsnarl
+- ガブリアス → Garchomp
+- ランドロス → Landorus-Therian (default to Therian for VGC)
+- ウーラオス (一撃) → Urshifu-Single-Strike; ウーラオス (連撃) → Urshifu-Rapid-Strike
+- パオジアン → Chien-Pao; イーユイ → Chi-Yu; ディンルー → Ting-Lu; チオンジェン → Wo-Chien
+- ザマゼンタ → Zamazenta (ザマ ALWAYS means Zamazenta, never Zacian); ザシアン → Zacian
+- バドレックス白馬 → Calyrex-Ice (uses Glacial Lance); バドレックス黒馬 → Calyrex-Shadow (uses Astral Barrage)
+- キュレム-ホワイト → Kyurem-White (uses Ice Burn); キュレム-ブラック → Kyurem-Black (uses Freeze Shock)
+- ガチグマ(アカツキ) → Ursaluna-Bloodmoon; ガチグマ → Ursaluna
+
+### Key item katakana → English (do NOT confuse with Pokemon names)
+- くろいメガネ → Black Glasses (this is an ITEM, not a Pokemon)
+- きあいのタスキ → Focus Sash
+- とつげきチョッキ → Assault Vest
+- こだわりメガネ → Choice Specs; こだわりハチマキ → Choice Band; こだわりスカーフ → Choice Scarf
+- しんかのきせき → Eviolite
+- いかさまダイス → Loaded Dice
+- いのちのたま → Life Orb
+- ブーストエナジー → Booster Energy
+- ゴツゴツメット → Rocky Helmet
+
+### Form rules
+- Use "Pokemon-Region" format for regional forms (Arcanine-Hisui, Zapdos-Galar)
 - Paradox Pokemon NEVER have regional form suffixes (Iron Valiant, not Iron-Valiant-Therian)
-- Distinguish Calyrex forms (白馬/Ice uses Glacial Lance, 黒馬/Shadow uses Astral Barrage) from Kyurem forms
-- ザマゼンタ=Zamazenta, ザシアン=Zacian — "ザマ" always means Zamazenta
-- テツノブジン=Iron Valiant (never "Iron Shaman"), オーロンゲ=Grimmsnarl
 
 ## REGULATION DETECTION
 

@@ -262,9 +262,12 @@ class ArticleScraper:
                 html_content = unicodedata.normalize('NFKC', html_content)
 
             soup = BeautifulSoup(html_content, "html.parser")
-            
+
+            # Match by hostname so unrelated domains like liberty-note.com don't trigger note.com selectors
+            response_host = urlparse(response.url).hostname or ""
+
             # Special handling for note.com articles (critical improvement)
-            if "note.com" in response.url:
+            if response_host == "note.com" or response_host.endswith(".note.com"):
                 logger.info("Detected note.com URL, using specialized extraction")
                 note_content = self._extract_note_com_content_specialized(soup)
                 if note_content:
