@@ -40,6 +40,7 @@ class Config:
     """Application configuration management"""
 
     GOOGLE_API_KEY = None
+    DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
     PAGE_TITLE = "Pokemon VGC Analysis"
     PAGE_ICON = "⚔️"
@@ -75,6 +76,15 @@ class Config:
         if cls.GOOGLE_API_KEY is None or user_api_key:
             cls.init_config(user_api_key)
         return cls.GOOGLE_API_KEY
+
+    @classmethod
+    def get_gemini_model(cls) -> str:
+        """Gemini model id: GEMINI_MODEL from Streamlit secrets or env, else the default."""
+        try:
+            model = st.secrets.get("GEMINI_MODEL")
+        except Exception:  # no secrets.toml
+            model = None
+        return model or os.getenv("GEMINI_MODEL") or cls.DEFAULT_GEMINI_MODEL
 
     @classmethod
     def ensure_log_directory(cls):

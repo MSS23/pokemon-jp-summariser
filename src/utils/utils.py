@@ -3,11 +3,13 @@ Utility functions for Pokemon VGC Analysis application
 """
 
 import hashlib
+import ipaddress
 import os
 import re
+import socket
 import requests
 from typing import Dict, List, Tuple
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 import streamlit as st
 
 
@@ -934,71 +936,45 @@ def create_pokepaste(pokemon_team: List[Dict], team_name: str = "VGC Team") -> s
         Pokepaste formatted string
     """
     pokepaste_lines = [f"=== [{team_name}] ===", ""]
+    placeholders = {"", "not specified", "unknown", "unknown pokemon", "none", "n/a"}
+    long_stat_names = {"HP": "HP", "Attack": "Atk", "Defense": "Def",
+                       "Special Attack": "SpA", "Special Defense": "SpD", "Speed": "Spe"}
+
+    def field(pokemon: Dict, key: str) -> str:
+        # The prompt tells Gemini to write "Not specified"; Showdown rejects that, so drop it
+        value = str(pokemon.get(key) or "").strip()
+        return "" if value.lower() in placeholders else value
 
     for pokemon in pokemon_team:
-        lines = []
+        name = field(pokemon, "name") or "Unknown"
+        item = field(pokemon, "held_item")
+        lines = [f"{name} @ {item}" if item else name]
 
-        # Pokemon name and item
-        name = pokemon.get("name", "Unknown")
-        item = pokemon.get("held_item", "")
-        if item:
-            lines.append(f"{name} @ {item}")
-        else:
-            lines.append(name)
-
-        # Ability
-        ability = pokemon.get("ability", "")
+        ability = field(pokemon, "ability")
         if ability:
             lines.append(f"Ability: {ability}")
-
-        # Tera Type
-        tera_type = pokemon.get("tera_type", "")
+        tera_type = field(pokemon, "tera_type")
         if tera_type:
             lines.append(f"Tera Type: {tera_type}")
 
-        # EVs
-        evs = pokemon.get("evs", "")
-        if evs and evs != "Not specified":
-            ev_parts = []
-            
-            # Handle EVs whether they're stored as string or dictionary
-            if isinstance(evs, str):
-                # Parse EV string format like "252/0/0/252/4/0"
-                try:
-                    ev_dict, _ = safe_parse_ev_spread(evs)
-                    for stat, value in ev_dict.items():
-                        if value > 0:
-                            ev_parts.append(f"{value} {stat}")
-                except Exception:
-                    # If parsing fails, try to extract numbers directly
-                    if "/" in evs:
-                        try:
-                            ev_values = [int(x.strip()) for x in evs.split("/")]
-                            if len(ev_values) == 6:
-                                stats = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
-                                for stat, value in zip(stats, ev_values):
-                                    if value > 0:
-                                        ev_parts.append(f"{value} {stat}")
-                        except ValueError:
-                            pass
-            elif isinstance(evs, dict):
-                # Handle dictionary format
-                for stat, value in evs.items():
-                    if value > 0:
-                        ev_parts.append(f"{value} {stat}")
-                        
-            if ev_parts:
-                lines.append(f"EVs: {' / '.join(ev_parts)}")
+        # EVs: prefer the "252/0/4/..." string, fall back to the ev_spread dict
+        ev_dict = {}
+        evs = field(pokemon, "evs")
+        if evs:
+            ev_dict, _ = safe_parse_ev_spread(evs)
+        if not any(ev_dict.values()) and isinstance(pokemon.get("ev_spread"), dict):
+            ev_dict = {short: pokemon["ev_spread"].get(long, 0) for long, short in long_stat_names.items()}
+        ev_parts = [f"{value} {stat}" for stat, value in ev_dict.items()
+                    if isinstance(value, int) and value > 0]
+        if ev_parts:
+            lines.append(f"EVs: {' / '.join(ev_parts)}")
 
-        # Nature
-        nature = pokemon.get("nature", "")
+        nature = field(pokemon, "nature")
         if nature:
             lines.append(f"{nature} Nature")
 
-        # Moves
-        moves = pokemon.get("moves", [])
-        for move in moves[:4]:  # Max 4 moves
-            if move:
+        for move in (pokemon.get("moves") or [])[:4]:
+            if move and str(move).strip().lower() not in placeholders:
                 lines.append(f"- {move}")
 
         pokepaste_lines.extend(lines)
@@ -1035,3 +1011,28 @@ def validate_url(url: str) -> bool:
         return all([result.scheme, result.netloc])
     except Exception:
         return False
+
+
+def assert_public_url(url: str) -> None:
+    """SSRF guard: raise ValueError unless url is http(s) and its host resolves only to public IPs."""
+    # ponytail: resolve-then-fetch has a DNS-rebinding window; pin the resolved IP if this ever serves untrusted multi-tenant traffic
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise ValueError("Only http(s) URLs are supported")
+    try:
+        infos = socket.getaddrinfo(parsed.hostname, parsed.port or None)
+    except (socket.gaierror, UnicodeError):
+        raise ValueError(f"Could not resolve host: {parsed.hostname}")
+    for info in infos:
+        if not ipaddress.ip_address(info[4][0].split("%")[0]).is_global:
+            raise ValueError("URLs pointing to private or internal addresses are not allowed")
+
+
+def block_private_redirects(response, *args, **kwargs):
+    """requests response hook: refuse to follow a redirect into a private/internal address."""
+    if response.is_redirect:
+        assert_public_url(urljoin(response.url, response.headers["location"]))
+
+
+# Pass as hooks=SAFE_HOOKS on every request whose URL comes from user input or scraped pages.
+SAFE_HOOKS = {"response": block_private_redirects}

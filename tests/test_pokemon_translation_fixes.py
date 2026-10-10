@@ -112,8 +112,8 @@ def test_mock_analysis_result():
         else:
             print(f"❌ Pokemon {i+1}: Expected '{expected}', got '{actual}'")
             all_correct = False
-    
-    return all_correct
+
+    assert all_correct, f"Expected {expected_names}, got {actual_names}"
 
 def main():
     """Run all translation tests"""
@@ -124,7 +124,8 @@ def main():
         # Run individual tests
         test_iron_valiant_translations()
         test_zamazenta_translations()
-        all_correct = test_mock_analysis_result()
+        test_mock_analysis_result()  # raises on failure
+        all_correct = True
         
         print("\n" + "=" * 50)
         if all_correct:

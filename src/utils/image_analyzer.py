@@ -11,6 +11,7 @@ from PIL import Image
 from typing import Dict, List, Optional, Any
 from urllib.parse import urljoin
 from google.genai import types
+from .utils import assert_public_url, SAFE_HOOKS
 from .config import EV_STAT_TRANSLATIONS, NATURE_TRANSLATIONS, ABILITY_TRANSLATIONS, MOVE_NAME_TRANSLATIONS
 
 
@@ -21,7 +22,8 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
-        response = requests.get(url, headers=headers, timeout=30)
+        assert_public_url(url)
+        response = requests.get(url, headers=headers, timeout=30, hooks=SAFE_HOOKS)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
@@ -121,8 +123,12 @@ def extract_images_from_url(url: str, max_images: int = 10) -> List[Dict[str, An
                 if skip_small:
                     continue
 
-                # Download and process image
-                img_response = requests.get(img_url, headers=headers, timeout=15)
+                # Download and process image (img_url comes from the scraped page: guard it too)
+                try:
+                    assert_public_url(img_url)
+                except ValueError:
+                    continue
+                img_response = requests.get(img_url, headers=headers, timeout=15, hooks=SAFE_HOOKS)
                 if img_response.status_code == 200:
                     # Skip if too small in bytes (likely not a team card)
                     if len(img_response.content) < 5000:  # Less than 5KB

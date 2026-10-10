@@ -557,25 +557,9 @@ def render_export_section(analysis_result: Dict[str, Any]):
         analysis_result.get("title", "VGC Team"),
     )
 
-    # One-click copy Pokepaste button using hidden textarea for robustness
-    import base64 as _b64
-    encoded = _b64.b64encode(pokepaste_content.encode("utf-8")).decode("ascii")
-    st.markdown(
-        f"""
-        <button class="copy-btn" id="copyPaste"
-                onclick="
-                    var t=atob('{encoded}');
-                    navigator.clipboard.writeText(t).then(()=>{{
-                        this.classList.add('copied');
-                        this.innerHTML='&#x2714; Copied Pokepaste!';
-                        setTimeout(()=>{{this.classList.remove('copied');this.innerHTML='&#x1F4CB; Copy Pokepaste to Clipboard';}}, 2000);
-                    }});
-                ">
-            &#x1F4CB; Copy Pokepaste to Clipboard
-        </button>
-        """,
-        unsafe_allow_html=True,
-    )
+    # st.code shows the paste and has a built-in copy button (replaces an inline-JS onclick button)
+    st.caption("Showdown paste (use the copy icon, then Teambuilder > Import from text)")
+    st.code(pokepaste_content, language=None)
 
     st.markdown("<br>", unsafe_allow_html=True)
 

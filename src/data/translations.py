@@ -360,6 +360,10 @@ FORM_CORRECTIONS = {
     "ランドロス (けしんフォルム)": "Landorus-Incarnate",
     "ボルトロス (れいじゅうフォルム)": "Thundurus-Therian",
     "ボルトロス (けしんフォルム)": "Thundurus-Incarnate",
+    # Known Gemini hallucinations for katakana names (see prompts.py)
+    "Iron Shaman": "Iron Valiant",
+    "Bishop": "Blaziken",
+    "Black Scarf": "Kingambit",
 }
 
 # --- Paradox Pokemon (should never have form suffixes) ---
@@ -737,10 +741,9 @@ MOVE_NAME_TRANSLATIONS = {
     "おどろかす": "Astonish",
     "ねっとう": "Scald",
     "アクアジェット": "Aqua Jet",
-    "アクアブレイク": "Aqua Tail",
+    "アクアブレイク": "Liquidation",
     "ちょうはつ": "Taunt",
     "あくび": "Yawn",
-    "ステルスロック": "Stealth Rock",
     "がんせきふうじ": "Rock Tomb",
     "じならし": "Bulldoze",
     "テラスチャージ": "Tera Charge",

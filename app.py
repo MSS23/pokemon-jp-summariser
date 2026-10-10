@@ -46,6 +46,7 @@ try:
     )
     from ui.pages import render_switch_translation_page, render_settings_page, render_help_page
     from utils.config import Config, init_session_state
+    from utils.utils import create_content_hash
 except Exception as e:
     st.error("Application failed to load. Please check that all dependencies are installed.")
     st.info("Try running: `pip install -r requirements.txt`")
@@ -82,6 +83,13 @@ def get_analyzer():
     return st.session_state.analyzer
 
 
+@st.cache_resource
+def _result_cache() -> dict:
+    """Process-wide cache of successful analyses, keyed by model + input (URL or pasted text)."""
+    # ponytail: in-memory, lost on restart and capped at 100 entries; move to disk/DB if reuse across restarts matters
+    return {}
+
+
 def process_analysis(input_type: str, content: str):
     """Process analysis request"""
     analyzer = get_analyzer()
@@ -89,6 +97,14 @@ def process_analysis(input_type: str, content: str):
         st.error("Please configure your Google Gemini API key in the sidebar to use analysis features.")
         st.info("Get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey)")
         return
+
+    cache = _result_cache()
+    cache_key = create_content_hash(f"{analyzer.model_name}|{input_type}|{content.strip()}")
+    if cache_key in cache:
+        st.session_state.analysis_result = {**cache[cache_key], "is_cached_result": True}
+        st.session_state.current_url = content if input_type == "url" else None
+        st.session_state.analysis_complete = True
+        st.rerun()
 
     try:
         with st.status("Analyzing content...", expanded=True) as status:
@@ -123,6 +139,10 @@ def process_analysis(input_type: str, content: str):
 
                 if pokemon_team or has_recovery_flag:
                     st.session_state.analysis_result = result
+                    if pokemon_team and not has_parsing_error:
+                        cache[cache_key] = result
+                        if len(cache) > 100:
+                            cache.pop(next(iter(cache)))
                     st.session_state.analysis_complete = True
 
                     # Save to history
@@ -202,6 +222,8 @@ def display_analysis_results():
     if not result:
         return
 
+    if result.get("is_cached_result"):
+        st.caption("Served from cache: this input was already analysed on this server, so no Gemini call was made.")
     render_article_summary(result)
 
     if result.get("pokemon_team"):

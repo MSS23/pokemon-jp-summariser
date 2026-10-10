@@ -1070,38 +1070,6 @@ def apply_custom_css():
         justify-content: center;
     }
 
-    /* ===== 17c. COPY BUTTON ===== */
-    .copy-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--sp-2);
-        padding: var(--sp-3) var(--sp-5);
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--r-md);
-        color: var(--text-primary);
-        font-size: 0.85rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        font-family: var(--font-sans) !important;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .copy-btn:hover {
-        border-color: rgba(225, 29, 72, 0.4);
-        background: var(--surface-alt);
-        box-shadow: var(--shadow-md);
-    }
-
-    .copy-btn:active { transform: scale(0.97); }
-
-    .copy-btn.copied {
-        border-color: var(--success);
-        background: var(--success-dim);
-        color: var(--success);
-    }
-
     /* ===== 17d. COMPACT METRICS ===== */
     .metrics-bar {
         display: flex;
@@ -1164,7 +1132,6 @@ def apply_custom_css():
     .team-inline__name { font-size: 0.75rem; }
     .team-grid__item img { width: 56px; height: 56px; }
     .team-grid__item h4 { font-size: 0.8rem; }
-    .copy-btn { width: 100%; justify-content: center; }
     .onboarding-card { padding: var(--sp-5) var(--sp-4); margin: var(--sp-4) auto; }
 
     /* Touch-friendly */
@@ -1187,7 +1154,6 @@ def apply_custom_css():
         .summary-card h1 { font-size: 1.4rem; }
         .steps-grid { grid-template-columns: repeat(3, 1fr); }
         .team-grid__item img { width: 72px; height: 72px; }
-        .copy-btn { width: auto; }
     }
 
     /* Desktop (>=1024px) */

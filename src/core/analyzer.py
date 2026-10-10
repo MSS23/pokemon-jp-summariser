@@ -71,7 +71,7 @@ class GeminiVGCAnalyzer:
             logger.info("API key found, initializing cached client")
             # Use cached client initialization
             self.client = initialize_gemini_client(self.api_key)
-            self.model_name = "gemini-2.5-flash"
+            self.model_name = Config.get_gemini_model()
             logger.info("Gemini client initialized successfully via cache")
 
         except Exception as e:
@@ -671,6 +671,9 @@ class GeminiVGCAnalyzer:
         for strategy in strategies:
             try:
                 return strategy(prompt, original_content)
+            except APILimitError:
+                # Auth/quota/model errors won't be fixed by a smaller prompt; retrying just burns quota
+                raise
             except Exception as e:
                 last_error = e
                 continue

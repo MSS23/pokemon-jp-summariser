@@ -11,6 +11,8 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import time
 import logging
 
+from utils.utils import assert_public_url, SAFE_HOOKS
+
 # Configure logging for debugging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -44,7 +46,7 @@ class ArticleScraper:
             True if URL appears accessible, False otherwise
         """
         try:
-            response = requests.head(url, timeout=10, allow_redirects=True)
+            response = requests.head(url, timeout=10, hooks=SAFE_HOOKS, allow_redirects=True)
             return response.status_code < 400
         except Exception:
             return False
@@ -95,6 +97,7 @@ class ArticleScraper:
         Returns:
             Article content as string or None if failed
         """
+        assert_public_url(url)
         if not self.validate_url(url):
             raise ValueError("Invalid or inaccessible URL")
 
@@ -140,7 +143,7 @@ class ArticleScraper:
             ),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
             "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
-            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Encoding": "gzip, deflate",
             "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
             "Sec-Ch-Ua-Mobile": "?0",
             "Sec-Ch-Ua-Platform": '"Windows"',
@@ -153,7 +156,7 @@ class ArticleScraper:
             "Pragma": "no-cache"
         }
 
-        response = requests.get(url, headers=headers, timeout=20)
+        response = requests.get(url, headers=headers, timeout=20, hooks=SAFE_HOOKS)
         response.raise_for_status()
         return self._process_response_content(response)
     
@@ -167,12 +170,12 @@ class ArticleScraper:
             ),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Encoding": "gzip, deflate",
             "Connection": "keep-alive",
             "Upgrade-Insecure-Requests": "1",
         }
 
-        response = requests.get(url, headers=headers, timeout=20)
+        response = requests.get(url, headers=headers, timeout=20, hooks=SAFE_HOOKS)
         response.raise_for_status()
         return self._process_response_content(response)
     
@@ -186,7 +189,7 @@ class ArticleScraper:
             ),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "ja-JP,ja;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Encoding": "gzip, deflate",
             "Accept-Charset": "utf-8",
             "DNT": "1",
             "Connection": "keep-alive",
@@ -196,7 +199,7 @@ class ArticleScraper:
             "Referer": "https://www.google.com/"
         }
 
-        response = requests.get(url, headers=headers, timeout=25)
+        response = requests.get(url, headers=headers, timeout=25, hooks=SAFE_HOOKS)
         response.raise_for_status()
         return self._process_response_content(response)
     
@@ -219,12 +222,12 @@ class ArticleScraper:
         
         try:
             # Sometimes note.com requires a session establishment
-            session.get(url, headers=headers, timeout=15)
+            session.get(url, headers=headers, timeout=15, hooks=SAFE_HOOKS)
             
             # Second request for actual content
             time.sleep(2)  # Brief delay for dynamic content
             
-            response = session.get(url, headers=headers, timeout=25)
+            response = session.get(url, headers=headers, timeout=25, hooks=SAFE_HOOKS)
             response.raise_for_status()
             return self._process_response_content(response)
         finally:
