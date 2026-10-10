@@ -101,3 +101,6 @@ feedback_data.json
 feedback_log.txt
 feedback_*.json
 feedback_*.txt
+
+# Local virtualenv
+.venv/
