@@ -142,7 +142,7 @@ The application uses a comprehensive 380+ line prompt that includes:
 
 ### Gemini Model Configuration
 - **Text Model**: `gemini-2.5-flash` (optimal balance: advanced quality + 5x higher quota than Pro)
-- **Vision Model**: `gemini-2.5-flash-lite` (cost-effective for image processing)
+- **Vision Model**: same as the text model (`GEMINI_MODEL`)
 - **Content Limit**: 8000 characters for analysis
 - **Output Format**: Structured JSON with team data and translations
 

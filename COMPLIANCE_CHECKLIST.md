@@ -1,3 +1,9 @@
+> **Historical document (2026-10-10 review).** This checklist describes the v2.0 FastAPI backend
+> (`app/backend/*`: domain allowlist, robots.txt checks, PII redaction, Redis rate limiting, age gate).
+> That code was deleted in commit `e0edf6d`; the current app is Streamlit-only and bring-your-own-key.
+> None of the controls below exist in the code today except an SSRF guard on URL fetches.
+> See `docs/REVIEW-2026-10-10.md` for the current state.
+
 # 🔒 Compliance Validation Checklist
 
 ## ✅ All Acceptance Criteria Met

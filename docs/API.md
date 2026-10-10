@@ -16,7 +16,7 @@ analyzer = GeminiVGCAnalyzer()
 
 Initializes the analyzer with:
 - Gemini API configuration
-- Text and vision models (gemini-2.5-flash-lite)
+- Text and vision models (`GEMINI_MODEL`, default `gemini-2.5-flash`)
 - Generation config optimized for VGC analysis
 - Helper components (scraper, validator)
 
@@ -273,7 +273,7 @@ except ValueError as e:
 ## Rate Limits
 
 ### Google Gemini API
-- Model: `gemini-2.5-flash-lite`
+- Model: `GEMINI_MODEL` (default `gemini-2.5-flash`)
 - Higher quota than Pro models
 - Configurable generation parameters
 
