@@ -60,7 +60,7 @@ def render_sidebar():
             placeholder="Enter your API key...",
         )
 
-        if st.button("Set API Key", type="primary", use_container_width=True):
+        if st.button("Set API Key", type="primary", width="stretch"):
             if api_key_input and api_key_input.strip():
                 st.session_state.user_api_key = api_key_input.strip()
                 st.session_state.analyzer = None
@@ -71,7 +71,7 @@ def render_sidebar():
 
         if st.session_state.user_api_key:
             st.success("API Key configured")
-            if st.button("Clear API Key", use_container_width=True):
+            if st.button("Clear API Key", width="stretch"):
                 st.session_state.user_api_key = None
                 st.session_state.analyzer = None
                 st.rerun()
@@ -81,7 +81,7 @@ def render_sidebar():
         st.markdown("---")
 
         # New analysis button
-        if st.button("New Analysis", use_container_width=True, type="primary"):
+        if st.button("New Analysis", width="stretch", type="primary"):
             st.session_state.analysis_result = None
             st.session_state.current_url = None
             st.session_state.analysis_complete = False
@@ -113,7 +113,7 @@ def render_sidebar():
                 pokemon_count = entry.get("pokemon_count", 0)
                 timestamp = entry.get("timestamp", "")
                 label = f"{title} ({pokemon_count})"
-                if st.button(label, key=f"history_{i}", use_container_width=True):
+                if st.button(label, key=f"history_{i}", width="stretch"):
                     st.session_state.analysis_result = entry.get("result")
                     st.session_state.current_url = entry.get("url")
                     st.session_state.analysis_complete = True
@@ -200,7 +200,7 @@ def render_sidebar():
                 if st.button(
                     "Submit Feedback",
                     disabled=not can_submit,
-                    use_container_width=True,
+                    width="stretch",
                     type="primary" if can_submit else "secondary",
                 ):
                     from ui.components import log_user_feedback
@@ -215,7 +215,7 @@ def render_sidebar():
                         st.error("Failed to submit feedback. Please try again.")
 
             with col2:
-                if st.button("Clear Form", use_container_width=True):
+                if st.button("Clear Form", width="stretch"):
                     st.session_state.feedback_url = ""
                     st.session_state.feedback_description = ""
                     st.rerun()
@@ -234,7 +234,7 @@ def render_sidebar():
 
         if st.button(
             "Reset Session",
-            use_container_width=True,
+            width="stretch",
             help="Clear current analysis results and reset the application.",
         ):
             st.session_state.clear()

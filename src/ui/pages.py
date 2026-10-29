@@ -175,7 +175,7 @@ def render_export_feedback(feedback_json):
             )
 
         st.markdown("**Data Preview:**")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width="stretch")
 
     except Exception as e:
         st.error(f"Error preparing export: {str(e)}")
