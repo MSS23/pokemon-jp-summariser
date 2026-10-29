@@ -2,7 +2,6 @@
 Core VGC analysis engine using Google Gemini AI.
 """
 
-import json
 import re
 import logging
 from typing import Dict, Optional, Any, List
@@ -14,7 +13,8 @@ from utils.config import Config, POKEMON_NAME_TRANSLATIONS, MOVE_NAME_TRANSLATIO
 from utils.errors import APILimitError, get_user_friendly_api_error_message
 from core.scraper import ArticleScraper
 from core.pokemon_validator import PokemonValidator
-from core.prompts import ANALYSIS_PROMPT
+from core.prompts import ANALYSIS_PROMPT, wrap_article
+from core.schema import TeamAnalysis, to_result_dict
 from utils.image_analyzer import (
     extract_images_from_url,
     filter_vgc_images,
@@ -26,6 +26,9 @@ from utils.image_analyzer import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+# Upper bound on vision calls per analysis (each image is one Gemini request)
+MAX_IMAGE_CALLS = 3
 
 # Re-export for backward compatibility (app.py imports these from here)
 __all__ = ["GeminiVGCAnalyzer", "APILimitError", "get_user_friendly_api_error_message"]
@@ -85,6 +88,7 @@ class GeminiVGCAnalyzer:
             top_k=40,
             max_output_tokens=16000,
             response_mime_type="application/json",
+            response_schema=TeamAnalysis,
         )
         
         # Initialize helper components
@@ -153,10 +157,9 @@ class GeminiVGCAnalyzer:
             if any(score > 0.3 for score in detected_formats.values()):
                 format_hints = self._create_format_hints(detected_formats)
                 prompt = f"{prompt}\n\n{format_hints}"
-            full_prompt = f"{prompt}\n\nCONTENT TO ANALYZE:\n{processed_content}"
+            full_prompt = f"{prompt}\n\n{wrap_article(processed_content)}"
 
-            # Generate response with retry logic
-            result = self._generate_with_fallbacks(full_prompt, content, url)
+            result = self._generate_standard(full_prompt, content)
 
             # Enhanced validation with confidence scoring
             result = self._validate_and_enhance_result(result, content, url)
@@ -169,13 +172,8 @@ class GeminiVGCAnalyzer:
 
             return result
 
-        except json.JSONDecodeError as e:
-            # Provide more helpful JSON error guidance
-            raise ValueError(
-                f"The AI response could not be parsed as valid JSON. "
-                f"This may indicate the content was too complex or fragmented. "
-                f"Error: {str(e)}. Try using simpler or more focused content."
-            )
+        except APILimitError:
+            raise
         except Exception as e:
             # Enhanced error context
             error_context = self._generate_error_context(content, url, str(e))
@@ -196,8 +194,8 @@ class GeminiVGCAnalyzer:
             # Start with text-only analysis
             text_result = self.analyze_article(content, url)
             
-            # If URL is provided, attempt image analysis
-            if url:
+            # Images cost one Gemini call each; skip them when the text already gave six full spreads
+            if url and not self._has_full_spreads(text_result):
                 try:
                     # Extract and analyze images
                     image_analysis = self._analyze_images_from_url(url)
@@ -242,7 +240,7 @@ class GeminiVGCAnalyzer:
         """
         try:
             # Extract images from URL
-            all_images = extract_images_from_url(url, max_images=10)
+            all_images = extract_images_from_url(url, max_images=MAX_IMAGE_CALLS * 3)
             
             if not all_images:
                 return None
@@ -252,7 +250,7 @@ class GeminiVGCAnalyzer:
             
             if not vgc_images:
                 # If no VGC-specific images found, try a few of the best general images
-                vgc_images = all_images[:3]
+                vgc_images = all_images
             
             analyzed_images = []
             extracted_data = {
@@ -261,8 +259,8 @@ class GeminiVGCAnalyzer:
                 "strategy_insights": []
             }
             
-            # Analyze each image
-            for image_info in vgc_images:
+            # Analyze each image (capped: each one is a Gemini call on the user's quota)
+            for image_info in vgc_images[:MAX_IMAGE_CALLS]:
                 try:
                     if image_info.get('data') and image_info.get('format'):
                         # Analyze image with vision client
@@ -299,6 +297,11 @@ class GeminiVGCAnalyzer:
             # Return None to indicate image analysis failed
             return None
     
+    @staticmethod
+    def _has_full_spreads(result: Dict[str, Any]) -> bool:
+        team = result.get("pokemon_team") or []
+        return len(team) >= 6 and all((m.get("ev_spread") or {}).get("total", 0) > 0 for m in team[:6])
+
     def _merge_text_and_image_analysis(self, text_result: Dict[str, Any], image_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         ULTRA-ENHANCED text and image analysis integration for note.com articles
@@ -659,28 +662,6 @@ class GeminiVGCAnalyzer:
 
         return result
     
-    def _generate_with_fallbacks(self, prompt: str, original_content: str, url: str = None) -> Dict[str, Any]:
-        """Generate analysis with multiple fallback strategies"""
-        strategies = [
-            self._generate_standard,
-            self._generate_with_reduced_content,
-            self._generate_with_simplified_prompt
-        ]
-        
-        last_error = None
-        for strategy in strategies:
-            try:
-                return strategy(prompt, original_content)
-            except APILimitError:
-                # Auth/quota/model errors won't be fixed by a smaller prompt; retrying just burns quota
-                raise
-            except Exception as e:
-                last_error = e
-                continue
-        
-        # All strategies failed, raise the last error
-        raise last_error
-    
     def _generate_standard(self, prompt: str, content: str) -> Dict[str, Any]:
         """Standard generation approach"""
         logger.info("Making standard API call to Gemini")
@@ -701,9 +682,10 @@ class GeminiVGCAnalyzer:
                 raise ValueError("Empty response from Gemini API")
 
             logger.info(f"Received response: {len(response.text)} chars")
-            logger.debug(f"Response preview: {response.text[:200]}...")
-            
-            return self._parse_json_response(response.text)
+            # response_schema makes the SDK parse the JSON; None means it was cut off or malformed
+            if not isinstance(response.parsed, TeamAnalysis):
+                raise ValueError("Gemini returned an incomplete response. Try a shorter article.")
+            return to_result_dict(response.parsed)
             
         except Exception as e:
             # Enhanced error detection for different API failure types
@@ -782,66 +764,8 @@ class GeminiVGCAnalyzer:
                 logger.error(f"General API error: {original_error}")
                 raise ValueError(f"API call failed: {original_error}")
     
-    def _generate_with_reduced_content(self, prompt: str, content: str) -> Dict[str, Any]:
-        """Fallback with reduced content size"""
-        # Rebuild prompt with reduced content instead of string replace
-        # (replace won't match because prompt was built with processed_content, not raw content)
-        reduced_content = content[:4000]
-        analysis_prompt = self._get_analysis_prompt()
-        reduced_prompt = f"{analysis_prompt}\n\nCONTENT TO ANALYZE:\n{reduced_content}"
-        
-        response = self.client.models.generate_content(
-            model=self.model_name, contents=reduced_prompt, config=self.generation_config
-        )
-
-        if not response.text:
-            raise ValueError("Empty response from Gemini API")
-
-        result = self._parse_json_response(response.text)
-        # Mark as partial analysis
-        result["translation_notes"] = result.get("translation_notes", "") + " | Partial content analysis due to size constraints"
-        return result
-    
-    def _generate_with_simplified_prompt(self, prompt: str, content: str) -> Dict[str, Any]:
-        """Fallback with simplified prompt for complex content"""
-        simple_prompt = """
-        Analyze this Pokemon VGC content and extract team information. Focus on Pokemon names and return valid JSON:
-        {
-          "title": "extracted title",
-          "pokemon_team": [{"name": "Pokemon Name", "ability": "ability", "held_item": "item", "moves": []}],
-          "overall_strategy": "strategy",
-          "regulation": "Not specified"
-        }
-        
-        Content: """ + content[:3000]
-        
-        response = self.client.models.generate_content(
-            model=self.model_name, contents=simple_prompt, config=self.generation_config
-        )
-
-        if not response.text:
-            raise ValueError("Empty response from Gemini API")
-
-        result = self._parse_json_response(response.text)
-        # Mark as simplified analysis
-        result["translation_notes"] = result.get("translation_notes", "") + " | Simplified analysis due to content complexity"
-        return result
-    
     def _validate_and_enhance_result(self, result: Dict[str, Any], content: str, url: str = None) -> Dict[str, Any]:
         """Enhanced validation with confidence scoring and improvements"""
-        # CRITICAL FIX: Validate that result is a dictionary before processing
-        if not isinstance(result, dict):
-            print(f"Warning: _validate_and_enhance_result received non-dict type: {type(result)}")
-            return {
-                "title": "Type Error in Validation",
-                "pokemon_team": [],
-                "overall_strategy": "Unable to process due to type error in validation",
-                "regulation": "Not specified",
-                "translation_notes": f"Validation error: expected dict, got {type(result).__name__}",
-                "analysis_confidence": 0.0,
-                "parsing_error": True
-            }
-        
         # Apply original validation
         result = self._validate_and_clean_result(result)
         result = self.pokemon_validator.fix_pokemon_name_translations(result)
@@ -861,13 +785,6 @@ class GeminiVGCAnalyzer:
         if confidence_score < 0.4:
             guidance = self._generate_low_confidence_guidance(result, content)
             result["user_guidance"] = guidance
-        
-        # Enhance error messages
-        if result.get("parsing_error"):
-            result["user_guidance"] = (
-                "The analysis encountered parsing difficulties. This may be due to complex content structure. "
-                "Try using the 'Article Text' input method if you used a URL, or provide more focused content."
-            )
         
         return result
     
@@ -901,11 +818,7 @@ class GeminiVGCAnalyzer:
         elif found_terms > 0:
             confidence += 0.05  # Some VGC content
         
-        # JSON parsing success (less penalty for minor issues)
-        if not result.get("parsing_error"):
-            confidence += 0.05  # Small bonus for perfect parsing
-        elif result.get("recovery_successful"):
-            confidence += 0.02  # Small bonus for successful recovery
+        confidence += 0.05  # schema-valid response
         
         # Bonus for having strategy or regulation info
         if result.get("overall_strategy") and result.get("overall_strategy") not in ["Not specified", ""]:
@@ -923,9 +836,6 @@ class GeminiVGCAnalyzer:
             issues.append("No Pokemon team detected")
         elif len(result.get("pokemon_team", [])) < 2:
             issues.append("Only partial team detected")
-        
-        if result.get("parsing_error"):
-            issues.append("JSON parsing difficulties")
         
         if len(content.strip()) < 500:
             issues.append("Limited content available")
@@ -961,61 +871,6 @@ class GeminiVGCAnalyzer:
         """Get the VGC analysis prompt. See core/prompts.py for the full text."""
         return ANALYSIS_PROMPT
 
-    def _parse_json_response(self, response_text: str) -> Dict[str, Any]:
-        """Parse JSON response from Gemini API.
-
-        With response_mime_type="application/json", Gemini returns valid JSON directly.
-        We keep a lightweight fallback for edge cases (network issues, truncation).
-        """
-        logger.info("Starting JSON parsing of API response")
-        logger.debug(f"Response text length: {len(response_text)} chars")
-
-        text = response_text.strip()
-
-        # Strategy 1: direct parse (expected path with response_mime_type)
-        try:
-            result = json.loads(text)
-            if isinstance(result, dict):
-                logger.info(f"JSON parsed directly - {len(result.get('pokemon_team', []))} Pokemon")
-                return result
-        except json.JSONDecodeError:
-            logger.debug("Direct JSON parse failed, trying extraction")
-
-        # Strategy 2: extract JSON object from surrounding text (rare)
-        json_match = re.search(r'(\{.*\})', text, re.DOTALL)
-        if json_match:
-            try:
-                result = json.loads(json_match.group(1))
-                if isinstance(result, dict):
-                    logger.info("JSON extracted from surrounding text")
-                    return result
-            except json.JSONDecodeError:
-                pass
-
-        logger.warning("All JSON parsing strategies failed, returning fallback")
-        return self._create_fallback_result(response_text)
-    
-    def _create_fallback_result(self, response_text: str) -> Dict[str, Any]:
-        """Create fallback result when JSON parsing fails"""
-        return {
-            "title": "Analysis Error",
-            "parsing_error": True,
-            "error_details": "JSON parsing failed",
-            "pokemon_team": [],
-            "overall_strategy": "Unable to extract due to parsing error",
-            "regulation": "Not specified",
-            "translation_notes": "Analysis failed due to response parsing issues"
-        }
-    
-    def _create_minimal_fallback(self) -> Dict[str, Any]:
-        """Create minimal fallback when all parsing fails"""
-        return {
-            "title": "Parsing Failed",
-            "pokemon_team": [],
-            "overall_strategy": "Unable to analyze",
-            "regulation": "Not specified"
-        }
-    
     def _validate_pokemon_team_structure(self, pokemon_team: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Validate and enhance Pokemon team structure"""
         if not isinstance(pokemon_team, list):

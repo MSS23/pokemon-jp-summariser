@@ -28,7 +28,7 @@ Open http://localhost:8501, paste a Gemini API key from [Google AI Studio](https
 
 ## Deploy (Streamlit Community Cloud)
 
-Point a new app at this repo with `app.py` as the entry file. Cloud installs `requirements.txt` and `packages.txt` and uses Python 3.11 (`runtime.txt`). No secrets are needed. Optionally set `GEMINI_MODEL` in the app's secrets.
+Point a new app at this repo with `app.py` as the entry file. Cloud installs `requirements.txt` and uses Python 3.11 (`runtime.txt`). No secrets are needed. Optionally set `GEMINI_MODEL` in the app's secrets.
 
 ## How it works
 

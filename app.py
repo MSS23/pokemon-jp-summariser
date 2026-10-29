@@ -134,15 +134,12 @@ def process_analysis(input_type: str, content: str):
             # Validate and store results
             if result and isinstance(result, dict):
                 pokemon_team = result.get("pokemon_team", [])
-                has_recovery_flag = result.get("recovery_successful", False)
-                has_parsing_error = result.get("parsing_error", False)
 
-                if pokemon_team or has_recovery_flag:
+                if pokemon_team:
                     st.session_state.analysis_result = result
-                    if pokemon_team and not has_parsing_error:
-                        cache[cache_key] = result
-                        if len(cache) > 100:
-                            cache.pop(next(iter(cache)))
+                    cache[cache_key] = result
+                    if len(cache) > 100:
+                        cache.pop(next(iter(cache)))
                     st.session_state.analysis_complete = True
 
                     # Save to history
@@ -161,24 +158,12 @@ def process_analysis(input_type: str, content: str):
                         history.append(history_entry)
                         st.session_state.analysis_history = history[-10:]  # Keep last 10
 
-                    if pokemon_team and not has_parsing_error:
-                        status.update(label=f"Complete - {len(pokemon_team)} Pokemon extracted", state="complete")
-                    elif pokemon_team and has_parsing_error:
-                        if len(pokemon_team) >= 3:
-                            status.update(label=f"Complete - {len(pokemon_team)} Pokemon extracted", state="complete")
-                        else:
-                            status.update(label="Complete - team data may be incomplete", state="complete")
-                    elif has_recovery_flag:
-                        status.update(label="Partial analysis recovered", state="complete")
-                    else:
-                        status.update(label="Analysis complete", state="complete")
+                    status.update(label=f"Complete - {len(pokemon_team)} Pokemon extracted", state="complete")
 
                     st.rerun()
                 else:
                     status.update(label="No team data found", state="error")
                     st.error("No team data found. Please check your content and try again.")
-                    if has_parsing_error:
-                        st.info("Try using the 'Article Text' input method instead of URL.")
                     if input_type == "url":
                         with st.expander("Diagnostic Information"):
                             scraped_len = len(scraped_content) if scraped_content else 0
@@ -186,10 +171,6 @@ def process_analysis(input_type: str, content: str):
                             if scraped_content:
                                 st.write("**Content preview (first 500 chars):**")
                                 st.code(scraped_content[:500], language=None)
-                    error_details = result.get("error_details")
-                    if error_details:
-                        with st.expander("Error Details"):
-                            st.text(error_details)
             else:
                 status.update(label="Analysis failed", state="error")
                 st.error("Analysis failed - invalid result format. Please try again.")
@@ -246,7 +227,7 @@ if current_page == "Analysis Home":
 
     input_type, content = render_analysis_input()
 
-    if st.button("Analyze", type="primary", use_container_width=True):
+    if st.button("Analyze", type="primary", width="stretch"):
         if not st.session_state.user_api_key:
             st.warning("Please set your Google Gemini API key in the sidebar first.")
         elif content and content.strip():

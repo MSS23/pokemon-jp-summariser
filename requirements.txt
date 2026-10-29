@@ -1,6 +1,7 @@
 # Pokemon VGC Analysis Platform - runtime dependencies (Streamlit Community Cloud installs this file)
-streamlit>=1.28.0
-google-genai>=1.0.0
+streamlit>=1.50,<2  # width="stretch" needs 1.50+; upper bound stops a surprise major on redeploy
+google-genai>=1.0,<3  # response.parsed + response_schema; tested on 2.34
+pydantic>=2,<3
 requests>=2.31.0
 beautifulsoup4>=4.12.0
 Pillow>=10.0.0
